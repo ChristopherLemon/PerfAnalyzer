@@ -1,0 +1,125 @@
+{% extends "base.html"%}
+{% block layouttitle %}<h1>Technical Description</h1>{% endblock %}
+
+{% block content %}
+<!--Insert content here-->
+<!-- IFRAME -->
+<link href="{{ url_for('static', filename='css/fromword.css') }}" rel="stylesheet">
+
+<h2 class="underline-title">Job submission</h2>
+
+<h3>Run Options</h3>
+Jobs can be submitted using any combination of mpi, lsf, and ssh. This allows a great deal of flexibility to run locally, or to submit jobs to different hosts, clusters, and remote servers.
+
+<h3>Hardware Event Counters</h3>
+Jobs can be submitted to monitor an application using Linux perf events. By default, when multiple events are monitored, several runs may be performed. This is to prevent multiplexing of events, so that the resulting data
+can be easily understood. Different event counters are assigned to each event based on the estimated run time (provided by the user), and a crude estimate of the expected frequency of the event (not provided by the user). These
+event counters are therefore set appropriately for each event to avoid an excessively large sample data set, whilst obtaining enough samples to obtain statistically robust data within each function.
+If the approximate run time is not supplied by the user, the event counters will be set to a single value, which can be contolled by the <i>events per sample</i> parameter in the settings menu.
+
+<h3>Application Profiling</h3>
+In the standard mode a profiling job is submitted by attaching perf to each process of the application. All threads will be monitored for each process of the application, and profiling data is obtained for
+each of the individual processes/threads. The permissions required to run perf correctly depend on the value set in /proc/sys/kernel/perf_event_paranoid. It is recommended to run with
+/proc/sys/kernel/perf_event_paranoid equal to either -1 or 0 for application profiling (i.e. sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'),
+to avoid the need to run perf as root. To associate kernel function calls with the applications call sites the value of /proc/sys/kernel/kptr_restrict should be set to 0.
+
+<h3>System Wide Profiling</h3>
+For system wide profiling perf is attached to one process on each node and monitors the activity on all cores of the node. In this case all of the threads running on each of the underlying cores are monitored, and profiling data is obtained for each individual core/thread.
+To use system wide profiling it is recommended to set /proc/sys/kernel/perf_event_paranoid to either -1 or 0 (i.e. sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'), to avoid the need to run perf as root.
+
+<h3>Load Settings</h3>
+Each time a job is submitted, the settings used are saved to the <i>path_to_perf_profiler</i>/data folder, with the file name <i>job_name</i>.settings. These settings files can be loaded to restore the exact settings and events of a previous job. Because configuring the initial settings
+can be a bit laborious, this makes submitting and editing furher jobs much simpler.
+
+<h3>Load Results</h3>
+Results can be viewed by loading one or more of the results files from the location <i>path_to_perf_profiler</i>/data, with the file name <i>job_name</i>.results. For comparisons between jobs, it is often useful to load them together,
+to allow automatic differencing of the profiles.
+Results with a large number of processes/threads and events will increase the overhead of viewing the associated data.
+
+<h3>Monitor Job Progress</h3>
+Progress of the jobs can be seen in the monitor job progress tab. This polls regularly to see when a job has been completed.
+
+<h2 class="underline-title">Trace View</h2>
+View the sample trace for each process and thread in a job, as a function of time. This view can be used to detect parallel synchronization issues and unevenly distributed workloads. Two types of flamegraph can be
+viewed over a dynamically selected time range: cumulative and trace. The cumulative flamegraph displays the total time spent in each call stack in the time range. The trace flamegraph displays each function call as a function of time, and includes the approximate call number to allow easy navigation between consecutive calls of the same function. The
+call number is only approximate because it relies on hardware samples in each function call, and very brief function calls are therefore missed. The resolution can be improved by increasing the sample frequency (Hz) in the settings tab.
+
+<div class="flex-column" style="border-style:none;width:100%;height:100%">
+    <div hidden class="row" style="margin-left:0">
+        <div class="flex-column" style="width:100%;height:100%">
+            <object class="embedded_svg" type="image/svg+xml" data="../static/images/timelines.svg"></object>
+        </div>
+    </div>
+</div>
+
+<h2 class="underline-title">Event View</h2>
+<h3>Standard Events</h3>
+View sample data for a single event, for multiple processes\threads. This allows quick comparisons of the load balancing across all of the processes\threads,
+and for multiple jobs if more than one results file is loaded. The flamegraph highlights the top ten hotspots for the reference process/thread,
+which are also displayed in the bar charts below. The reference process/thread can be changed by clicking on the corresponding column of the bar chart,
+or by setting it as the reference in the list of processes/threads. The flamegraph also provides a filter, to see the hotspots within a selected call stack.
+Below is an example of a simple benchmark case.
+
+<div class="flex-column" style="border-style:none;width:100%;height:100%">
+    <div hidden class="row" style="margin-left:0">
+        <div class="flex-column" style="width:100%;height:100%">
+            <object class="embedded_svg" type="image/svg+xml" data="../static/images/original_event_flamegraph.svg"></object>
+        </div>
+    </div>
+</div>
+
+<h3>Custom Event Ratios</h3>
+For custom events that are ratios of other events the flamegraph displays the ratio for each function, with the colour scaled relative to the geometric average of the displayed data.
+
+<div class="flex-column" style="border-style:none;width:100%;height:100%">
+    <div hidden class="row" style="margin-left:0">
+        <div class="flex-column" style="width:100%;height:100%">
+            <object class="embedded_svg" type="image/svg+xml" data="../static/images/custom_event_flamegraph.svg"></object>
+        </div>
+    </div>
+</div>
+
+<h3>Event Diff</h3>
+Profiles can be compared using the Diff buttons. In this case the flame graph shows the functions with the maximum differences, with the colour scaled relative to the positive or negative difference. Two types of diff can be performed:
+function names or call stacks. The function names diff compares the total cost of the function from all calls, ignoring context. This can be useful when the call stacks are expected to be different, or when the function is called from many different
+contexts. The call stack diff takes the calling context into account.
+
+<div class="flex-column" style="border-style:none;width:100%;height:100%">
+    <div hidden class="row" style="margin-left:0">
+        <div class="flex-column" style="width:100%;height:100%">
+            <object class="embedded_svg" type="image/svg+xml" data="../static/images/event_diff_flamegraph.svg"></object>
+        </div>
+    </div>
+</div>
+
+<h3>Filters</h3>
+Regular expressions can be used to filter the data, and are applied to all of the charts. The data can then be retrieved for specific functions of interest. Because the volume of information displayable in the browser is limited, it
+may sometimes be necessary to apply a filter to find function calls with a small number of observed samples.
+
+
+<h2 class="underline-title">Process View</h2>
+View all of the events for all of the threads observed for a selected process. This allows quick comparisons of the load balancing across all threads within a process, for any event,
+and for comparisons of different events within a process.
+
+<h2 class="underline-title">Analysis View</h2>
+There are two types of analysis. Roofline analysis uses the floating point events, memory access events, and the number of cycles to display the rate of arithmetic operations vs the rate of
+memory access operations. This requires the use of processor specific raw events, which are only available if the correct cpu is selected in the settings view. General analysis is a
+generalisation of the roofline analysis, and allows the viewing of arbitrary events plotted against each other. The functions can be grouped according to the ratio of the selected events, to help identify functions with particular numerical properties.
+The analysis view allows the viewing of multiple processes/threads, multiple events, and multiple sets of results
+simultaneously.
+
+<h2 class="underline-title">Custom Events</h2>
+Several types of custom events can be created. The most useful is the custom event ratio, which can be used for the analysis of many properties such as memory bandwidth, floating point operations, and instructions per cycle. It is also possible to sum multiple events,
+which may be useful for grouping similar events together. Finally there are derived events, which include the total accumulated events for processes or jobs, and sampled calls, which can be helpful for visualising the basic program structure using flamegraphs.
+
+<h2 class="underline-title">Results Summary</h2>
+The results summary contains information on the profiler settings used for the loaded results. This includes the event counters assigned for each event, and the total run times for the application.
+
+<h2 class="underline-title">Settings</h2>
+Allows the user to change the processor model, the monitored events, and parameters for the execution environment.
+
+<h3>Perf Events</h3>
+Perf events for each cpu type are defined in the <i>cpu</i>.events files. These can be found in the location <i>path_to_perf_profiler</i>/perf_events folder, and can be modified to include extra cpus, or events. Information for creating
+events can be found in the Intel® 64 and IA-32 Architectures Software Developer’s Manual.
+
+{% endblock %}

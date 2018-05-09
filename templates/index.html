@@ -1,0 +1,347 @@
+{% extends "base.html"%}
+{% block  layouttitle %}
+{{layout["title"]}}
+{% endblock %}
+
+{% block content %}
+<!--Insert content here-->
+<!-- IFRAME -->
+{% if job_settings["run_parallel"] %}
+    {% set checked_parallel = "checked" %}
+{% else %}
+    {% set checked_parallel = "" %}
+{% endif %}
+{% if job_settings["run_system_wide"] %}
+    {% set checked_system_wide = "checked" %}
+{% else %}
+    {% set checked_system_wide = "" %}
+{% endif %}
+{% if job_settings["run_as_root"] %}
+    {% set checked_root = "checked" %}
+{% else %}
+    {% set checked_root = "" %}
+{% endif %}
+{% if job_settings["use_ssh"] %}
+    {% set checked_ssh = "checked" %}
+    {% set disabled_ssh = "" %}
+{% else %}
+    {% set checked_ssh = "" %}
+    {% set disabled_ssh = "disabled" %}
+{% endif %}
+{% if "password" in job_settings %}
+    {% if job_settings["password"] != "" %}
+        {% set disabled_private_key = "disabled" %}
+    {% endif %}
+    {% set disabled_password = "" %}
+{% endif %}
+{% if "private_key" in job_settings %}
+    {% set disabled_private_key = "" %}
+    {% if job_settings["private_key"] != "" %}
+        {% set disabled_password = "disabled" %}
+    {% endif %}
+{% endif %}
+{% if job_settings["use_lsf"] %}
+    {% set checked_lsf = "checked" %}
+    {% set disabled_lsf = "" %}
+{% else %}
+    {% set checked_lsf = "" %}
+    {% set disabled_lsf = "disabled" %}
+{% endif %}
+{% if job_settings["use_mpirun"] %}
+    {% set checked_mpirun = "checked" %}
+    {% set disabled_mpirun = "" %}
+{% else %}
+    {% set checked_mpirun = "" %}
+    {% set disabled_mpirun = "disabled" %}
+{% endif %}
+
+<div class="panel-group" id="accordion">
+    <div class="container">
+        <div class="row">
+            <div class="flex-column" style="border-style:none;width:100%">
+                <div class="panel panel-default">
+                    <a data-toggle="collapse" data-parent="#accordion" href="#submit1">
+                        <div class="panel-heading">
+                             <h4 class="panel-title">
+                                <strong>Submit Perf Job</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                             </h4>
+                        </div>
+                    </a>
+                    <div id="submit1" class="panel-collapse collapse">
+                        <form action="{{url_for('index')}}" method="post">
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:20%"><p>Enable MPI</p><input type="checkbox" {{checked_mpirun}} onclick="toggle_input(this,'global_mpirun_params','local_mpirun_params','mpirun_version', 'processes','processes_per_node')" name="use_mpirun" id="use_mpirun" value={{job_settings["use_mpirun"]}}></div>
+                                <div class="flex-column" style="border-style:none;width:27%"><p>MPI Version</p>
+                                    <div class="flex-row">
+                                        <div class="flex-column" style="width:100%">
+                                            <select class="selectpicker" data-width="100%" name="mpirun_version" id="mpirun_version">
+                                                {% for version in ["Intel MPI", "Open MPI", "Platform MPI"] %}
+                                                    {% if version==job_settings["mpirun_version"] %}
+                                                        <option selected="selected">{{version}}</option>
+                                                    {% else %}
+                                                        <option >{{version}}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex-column" style="border-style:none;width:14%"><p>Processes <strong><font color="#2a9bfc">*</font></strong></p><input required type="number" class="form-control" {{disabled_mpirun}} name="processes" id="processes" min="1" oninput="update_processes(this)" value={{job_settings["processes"]}}></div>
+                                <div class="flex-column" style="border-style:none;width:13%"><p>Processes per host <strong><font color="#2a9bfc">*</font></strong></p><input required type="number" class="form-control" {{disabled_mpirun}} name="processes_per_node" id="processes_per_node" min="1" oninput="update_processes_per_node(this)" value={{job_settings["processes_per_node"]}}></div>
+                                <div class="flex-column" style="border-style:none;width:13%"><p>Global parameters</p><input style="width:100%" {{disabled_mpirun}} title="include any addional mpirun parameters (excluding number of processes)" type="text" class="form-control text_checkbox_sync" name="global_mpirun_params" id="global_mpirun_params" value="{{job_settings["global_mpirun_params"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:13%"><p>Local parameters</p><input style="width:100%" {{disabled_mpirun}} title="include any addional mpirun parameters (excluding number of processes)" type="text" class="form-control text_checkbox_sync" name="local_mpirun_params" id="local_mpirun_params" value="{{job_settings["local_mpirun_params"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:20%"><p>Enable SSH</p><input type="checkbox" {{checked_ssh}} onclick="toggle_input(this,'server','username','password','private_key')" name="use_ssh" id="use_ssh" value={{job_settings["use_ssh"]}}></div>
+                                <div class="flex-column" style="border-style:none;width:27%"><p>Server <strong><font color="#2a9bfc">*</font></strong></p><input required type="text" {{disabled_ssh}} class="form-control" name="server" id="server" value="{{job_settings["server"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:14%"><p>Username <strong><font color="#2a9bfc">*</font></strong></p><input required type="text" {{disabled_ssh}} class="form-control" name="username" id="username" value="{{job_settings["username"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:13%"><p>Password <strong><font color="#2a9bfc">*</font></strong></p><input required type="password" {{disabled_ssh}} {{disabled_password}} class="form-control" name="password" id="password" oninput="password_oninput(this)" value=""></div>
+                                <div class="flex-column" style="border-style:none;width:26%"><p>Private key <strong><font color="#2a9bfc">*</font></strong></p><input required type="text" {{disabled_ssh}} {{disabled_private_key}} class="form-control" name="private_key" id="private_key" placeholder="Absolute path to private key" oninput="private_key_oninput(this)" value="{{job_settings["private_key"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:20%"><p>Enable LSF</p><input type="checkbox" {{checked_lsf}} onclick="toggle_input(this,'lsf_params','queue')" name="use_lsf" id="use_lsf" value={{job_settings["use_lsf"]}}></div>
+                                <div class="flex-column" style="border-style:none;width:27%"><p>Queue <strong><font color="#2a9bfc">*</font></strong></p><input required type="text" {{disabled_lsf}} class="form-control" name="queue" id="queue" oninput="update_queue(this)" value="{{job_settings["queue"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:53%"><p>lsf parameters</p><input required style="width:100%" {{disabled_lsf}} title="include any additional bsub flags" type="text" class="form-control text_checkbox_sync" name="lsf_params" id="lsf_params" value="{{job_settings["lsf_params"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:16%" title="perf events are split between multiple realizations, which can be run at the same time"><p>Run multiple realizations in parallel</p><input type="checkbox" {{checked_parallel}} name="run_parallel" id="run_parallel" value={{job_settings["run_parallel"]}}></div>
+                                <div class="flex-column" style="border-style:none;width:16%" title="monitor each cpu core: requires /proc/sys/kernel/perf_event_paranoid <= 0"><p>System-wide profiling:</p><input type="checkbox" {{checked_system_wide}} name="run_system_wide" id="run_system_wide" onchange="toggle_system_wide(this)" value={{job_settings["run_system_wide"]}}></div>
+                                <div class="flex-column" style="border-style:none;width:15%" title="may be required in some environments"><p>Run perf as root:</p><input type="checkbox" {{checked_root}} name="run_as_root" id="run_as_root"  value={{job_settings["run_as_root"]}}></div>
+                                <div class="flex-column" style="border-style:none;width:53%"><p>Perf parameters</p><input style="width:100%" type="text" title="include additional perf flags (excluding events\event counters)" class="form-control text_checkbox_sync" name="perf_params" id="perf_params" value="{{job_settings["perf_params"]}}"></div>
+                            </div>
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:47%"><p>Job name <strong><font color="#2a9bfc">*</font></strong></p><input type="text" required class="form-control" name="perf_job_name" id="perf_job_name" placeholder="JOBNAME used to identify running job and results" value="{{job_settings["job_name"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:53%"><p>Approximate length of job, in minutes (optional)</p><input type="text" class="form-control" name="run_duration" id="run_duration" placeholder="Event sampling rates will be set according to job length" value={{job_settings["run_duration"]}}></div>
+                                <div class="flex-column" style="border-style:none;width:100%"><p>Working directory <strong><font color="#2a9bfc">*</font></strong></p><input required type="text" class="form-control" name="working_directory_linux" id="working_directory_linux" placeholder="Path to working directory" value="{{job_settings["working_directory_linux"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:100%"><p>Executable <strong><font color="#2a9bfc">*</font></strong></p><input required type="text" class="form-control" name="executable" id="executable" value="{{job_settings["executable"]}}" placeholder="Path to executable"></div>
+                                <div class="flex-column" style="border-style:none;width:100%"><p>Executable arguments ($ symbols will be replaced with the job name and realization number - may be required to avoid resource contention)</p><input type="text" class="form-control" name="perf_args" id="perf_args" placeholder="arg$ will be replaced by arg_JOBNAME_1, arg_JOBNAME_2, etc, for each realization" value="{{job_settings["arguments"]}}"></div>
+                                <div class="flex-column" style="border-style:none;width:100%"><p>Copy files before each realization - comma separated list ($ symbols will be replaced with the job name and realization number - may be required to avoid resource contention)</p><input type="text" class="form-control" name="copy_files" id="copy_files" placeholder="file$.ext will be copied to file_JOBNAME_1.ext, file_JOBNAME_2.ext, etc, for each realization" value="{{job_settings["copy_files"]}}"></div>
+                            </div>
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:100%"><input type="submit" class="btn btn-basic" id="run_btn" name="run_btn" value="Submit"></div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="flex-column" style="border-style:none;width:100%" >
+                <div class="panel panel-default">
+                    <a data-toggle="collapse" data-parent="#accordion" href="#load_settings1">
+                        <div class="panel-heading">
+                             <h4 class="panel-title">
+                                <strong>Load Perf Settings</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                             </h4>
+                        </div>
+                    </a>
+                    <div id="load_settings1" class="panel-collapse collapse">
+                        <form action="{{url_for('index')}}" method="post" enctype="multipart/form-data">
+                            <div style="border-style:none;border-color:lightgrey">
+                                <div class="flex-row">
+                                    <div class="flex-column" style="width:100%;height:100%"><input required type="file" class="form-control" name="file" id="PerfSettings" accept=".settings" ></div>
+                                </div>
+                            </div>
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><input type="submit" class="btn btn-basic" name="settings_btn" value="Load"></div>
+                            </div>
+                        </form>
+                    </div>
+                 </div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="flex-column" style="border-style:none;width:100%" >
+                <div class="panel panel-default">
+                    <a data-toggle="collapse" data-parent="#accordion" href="#load1">
+                        <div class="panel-heading">
+                             <h4 class="panel-title">
+                                <strong>Load Perf Profiles</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                             </h4>
+                        </div>
+                    </a>
+                    <div id="load1" class="panel-collapse collapse">
+                        <form action="{{url_for('index')}}" method="post" enctype="multipart/form-data">
+                            <div style="border-style:none;border-color:lightgrey">
+                                <div class="flex-row">
+                                    <div class="flex-column" style="width:100%;height:100%"><input required type="file" class="form-control" name="file[]" id="PerfData" multiple="multiple" accept=".results" ></div>
+                                </div>
+                            </div>
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><input type="submit" class="btn btn-basic" name="btn" value="Load"></div>
+                            </div>
+                        </form>
+                    </div>
+                 </div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="row">
+            <div class="flex-column" style="border-style:none;width:100%" >
+                <div class="panel panel-default">
+                    <a data-toggle="collapse" data-parent="#accordion" href="#log1">
+                        <div class="panel-heading">
+                             <h4 class="panel-title">
+                                <strong>Monitor Running Jobs</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                             </h4>
+                        </div>
+                    </a>
+                    <div id="log1" class="panel-collapse collapse">
+                        <div class="flex-row">
+                             <div class="flex-column" style="border-style:none;width:100%;height:300px"><textarea style="height:300px" id="log_window" readonly></textarea></div>
+                        </div>
+                        <div class="flex-row">
+                            <div class="flex-column" style="border-style:none;width:100%;height:100%"><button type="button" class="btn btn-basic submit_style_button" id="clear_btn" name="clear_btn" onclick="clear_log()">Clear</button></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        var timeout;
+        function poll_results() {
+            $.ajax({
+                url:"{{url_for('check_for_results')}}",
+                contentType: 'application/json;charset=UTF-8',
+                type: 'POST',
+                success: function(response) {
+                    console.log(response);
+                    let log_window = document.getElementById("log_window");
+                    log_window.innerHTML = response
+                    timeout = setTimeout(poll_results,5000);
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }
+        timeout = setTimeout(poll_results,100);
+        function clear_log() {
+            $.ajax({
+                url:"{{url_for('clear_html_log')}}",
+                contentType: 'application/json;charset=UTF-8',
+                type: 'POST',
+                success: function(response) {
+                    console.log(response);
+                    let log_window = document.getElementById("log_window");
+                    log_window.innerHTML = response
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }
+        $(document).ready(function(){
+            $(window).unload(
+                function(event) {
+                    clearTimeout(timeout);
+                }
+            );
+        });
+        $('form input').blur(function() {
+            let inputVal = $(this).val(),
+                titleText = $(this).attr('placeholder');
+            if ( inputVal !=  '' ) {
+                $(this).tooltip({
+                    title: titleText,
+                    trigger: 'focus',
+                    container: 'form'
+                });
+            }
+        });
+        function toggle_input() {
+            let checkbox = arguments[0];
+            for (var i = 1; i < arguments.length; i++) {
+                id = arguments[i];
+                let input = document.getElementById(id);
+                if (checkbox.checked) {
+                    input.disabled = false;
+                } else {
+                    input.disabled = true;
+                }
+            }
+        }
+        function password_oninput(inputbox) {
+            let password = $(inputbox).prop("value");
+            if (password.length > 0) {
+                $('#password').prop('disabled', false);
+                $('#private_key').prop("disabled", true);
+            } else {
+                $('#private_key').prop("disabled", false);
+            }
+        }
+        function private_key_oninput(inputbox) {
+            let key = $(inputbox).prop("value");
+            if (key.length > 0) {
+                $('#password').prop('disabled', true);
+                $('#private_key').prop("disabled", false);
+            } else {
+                $('#password').prop("disabled", false);
+            }
+        }
+        function update_processes(inputbox) {
+            let n_proc = $(inputbox).prop("value");
+            let text =  $('#lsf_params').prop("value");
+            re = /\s+-n\s+\d*\s+/g;
+            text = text.replace(re," -n " + n_proc + " ");
+            $('#lsf_params').prop("value", text);
+        }
+        function update_processes_per_node(inputbox) {
+            let n_proc = $(inputbox).prop("value");
+            let text =  $('#lsf_params').prop("value");
+            re = /ptile=\s*\d*/g;
+            text = text.replace(re,"ptile=" + n_proc);
+            $('#lsf_params').prop("value", text);
+        }
+        function update_queue(inputbox) {
+            let queue = $(inputbox).prop("value");
+            let text =  $('#lsf_params').prop("value");
+            re = /\s+-q\s*?.*?(?=\s-)/g;
+            text = text.replace(re, " -q " + queue + " ");
+            $('#lsf_params').prop("value", text);
+        }
+        function toggle_system_wide(checkbox) {
+            let text =  $('#perf_params').prop("value");
+            if (!checkbox.checked) {
+                if( text.match("-a") ) {
+                    text = text.replace(" -a", "");
+                }
+            } else {
+                if( !text.match("-a") ) {
+                    text += " -a";
+                }
+            }
+            $('#perf_params').prop("value", text);
+        }
+        function toggleChevron(e) {
+            $(e.target).prevUntil('.panel .panel-default')
+                .find("i.indicator")
+                .toggleClass('glyphicon-chevron-left glyphicon-chevron-down');
+        }
+        $('#accordion').on('hidden.bs.collapse', toggleChevron);
+        $('#accordion').on('shown.bs.collapse', toggleChevron);
+
+        function clear_loaded_data() {
+            $("#clear_data_form").submit();
+        }
+    </script>
+ </div>
+
+
+{% endblock %}
+
+{% block layoutfooter %}
+
+<form action="{{url_for('clear_loaded_data')}}" method="post" id="clear_data_form">
+    <div class="btn-group" data-toggle="buttons">
+        <label style="margin:1px;margin-right:12px;" class="btn btn-primary" onclick="clear_loaded_data()">
+            <input type="radio" autocomplete="off"> Clear Results
+        </label>
+    </div>
+    {{layout["footer"]}}
+</form>
+
+{% endblock %}
+
+
+

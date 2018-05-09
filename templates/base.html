@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+
+    <title>Perf Analyzer</title>
+
+    <!-- Bootstrap Core CSS -->
+    <!--link href="static/css/bootstrap.min.css" rel="stylesheet"-->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+
+    <!-- MetisMenu CSS -->
+    <!--link href="static/css/metisMenu.min.css" rel="stylesheet"-->
+    <link href="{{ url_for('static', filename='css/metisMenu.min.css') }}" rel="stylesheet">
+
+    <!-- Timeline CSS -->
+    <!--link href="static/css/timeline.css" rel="stylesheet"-->
+    <link href="{{ url_for('static', filename='css/timeline.css') }}" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <!--link href="static/css/startmin.css" rel="stylesheet"-->
+    <link href="{{ url_for('static', filename='css/startmin.css') }}" rel="stylesheet">
+
+    <!-- Morris Charts CSS -->
+    <!--link href="static/css/morris.css" rel="stylesheet"-->
+    <link href="{{ url_for('static', filename='css/morris.css') }}" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+    <!--link href="static/css/font-awesome.min.css" rel="stylesheet" type="text/css"-->
+    <link href="{{ url_for('static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <![endif]-->
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.1/css/bootstrap-slider.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/css/bootstrap-select.min.css">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.7.1/bootstrap-slider.min.js"></script>
+    <script src="../static/js/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.12.4/js/bootstrap-select.min.js"></script>
+</head>
+<body>
+
+<div id="wrapper">
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="#"><strong><em style="font-family:verdana;color:white;"><font color="#f5f5f5">Perf</font><font color="#2a9bfc">Analyzer</font></em></strong></a>
+        </div>
+
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+        </button>
+
+        <!-- Top Navigation: Left Menu -->
+        <ul class="nav navbar-nav navbar-left navbar-top-links pull-right">
+            <li><a href={{url_for("about")}}><i class="fa fa-question-circle fa-fw"></i> About</a></li>
+            <li><a href={{url_for("td")}}><i class="fa fa-book fa-fw"></i> Technical Description</a></li>
+            <li><a href={{url_for("shutdown")}}><i class="fa fa-close fa-fw"></i> Close</a></li>
+        </ul>
+
+        <!-- Sidebar -->
+        <div class="navbar-default sidebar" role="navigation">
+            <div class="sidebar-nav navbar-collapse">
+                <ul class="nav" id="side-menu">
+                    <li>
+                        <a href={{url_for("index")}}><i class="fa fa-play fa-fw"></i> Submit Jobs / Load Profiles</a>
+                    </li>
+                    <li>
+                        <a href="#"><i class="fa fa-clock-o fa-fw"></i> Trace View <span class="fa arrow"></span></a>
+                        <ul class="nav nav-second-level">
+                            {% if enabled_modes["trace"] %}
+                                {% for job in jobs %}
+                                    <li>
+                                        <a href={{url_for("TraceView.trace_view",job=job)}}>{{job}}</a>
+                                    </li>
+                                {% endfor %}
+                            {% endif %}
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="#"><i class="fa fa-area-chart fa-fw"></i> Event View <span class="fa arrow"></span></a>
+                        <ul class="nav nav-second-level">
+                            {% for group in all_event_groups %}
+                                {% if group != "Trace" %}
+                                <li>
+                                    <a href="#">{{group}} <span class="listcount"></span><span class="fa arrow"></span></a>
+                                    <ul class="nav nav-third-level">
+                                    {% for event in events %}
+                                        {% if event_group_map[event]==group %}
+                                        <li>
+                                            <a href={{url_for("EventView.event_view",event=event)}}>{{event}}</a>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </ul>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="#"><i class="fa fa-bar-chart fa-fw"></i> Process View <span class="fa arrow"></span></a>
+                        <ul class="nav nav-second-level">
+                            {% for job in processes %}
+                            <li>
+                                <a href="#">{{job}} <span class="listcount"></span><span class="fa arrow"></span></a>
+                                <ul class="nav nav-third-level">
+                                {% for process in processes[job] %}
+                                    {% if "all" not in process %}
+                                        {% set process_choice = [job, process]|join("_") %}
+                                         <li>
+                                            <a href={{url_for("ProcessView.process_view",process=process_choice)}}>{{process}}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                </ul>
+                            </li>
+                             {% endfor %}
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="#"><i class="fa fa-line-chart fa-fw"></i> Analysis View <span class="fa arrow"></span></a>
+                        <ul class="nav nav-second-level">
+                            {% if enabled_modes["roofline_analysis"] %}
+                                {% set enabled_roofline = "" %}
+                            {% else %}
+                                {% set enabled_roofline = "disabled" %}
+                            {% endif %}
+                            {% if enabled_modes["general_analysis"] %}
+                                {% set enabled_general = "" %}
+                            {% else %}
+                                {% set enabled_general = "disabled" %}
+                            {% endif %}
+                            <li>
+                                <a class="{{enabled_roofline}}" href={{url_for("AnalysisView.roofline_analysis")}}>Roofline Analysis</a>
+                            </li>
+                            <li>
+                                <a class="{{enabled_general}}" href={{url_for("AnalysisView.general_analysis")}}>General Analysis</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href={{url_for("CustomEventsView.add_custom_event")}}><i class="fa fa-plus-circle fa-fw"></i>Create Custom Event</a>
+                    </li>
+                    <li>
+                        <a href={{url_for("run_summary")}}><i class="fa fa-tasks fa-fw"></i>Results Summary</a>
+                    </li>
+                    <li>
+                        <a href={{url_for("SettingsView.settings")}}><i class="fa fa-cog fa-fw"></i> Settings</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div id="page-wrapper">
+        <div >
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <h4 class="page-header">
+                    {% block layouttitle %}
+
+                    {% endblock %}</h4>
+                </div>
+            </div>
+
+                <div class="container-fluid">
+                {% block content %}Your content goes here{% endblock %}
+                </div>
+
+            <div class="row">
+                <div class="col-lg-12">
+                    <h4 class="footer">
+                    {% block layoutfooter %}
+
+                    {% endblock %}</h4>
+                </div>
+            </div>
+
+            <!-- ... Your content goes here ... -->
+
+
+        </div>
+        {% block tail_js %}
+
+        {% endblock %}
+
+        <script type="text/javascript">
+            function addLoadEvent(func) {
+                var oldonload = window.onload;
+                if (typeof window.onload != 'function') {
+                    window.onload = func;
+                } else {
+                    window.onload = function() {
+                        if (oldonload) {
+                          oldonload();
+                        }
+                        func();
+                    }
+                }
+            }
+            addLoadEvent(count_all_list_entries);
+            function count_all_list_entries() {
+                $('.listcount').each(function() {
+                    let n = $(this).parent().next('.nav').find('a[href]').length;
+                    $(this).prop('innerHTML','(' + n.toString() + ')');
+                });
+            }
+        </script>
+
+    </div>
+
+</div>
+
+<!-- jQuery -->
+
+
+<!-- Bootstrap Core JavaScript -->
+<script src="../static/js/bootstrap.min.js"></script>
+
+<!-- Metis Menu Plugin JavaScript -->
+<script src="../static/js/metisMenu.min.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="../static/js/startmin.js"></script>
+
+
+
+
+</body>
+</html>

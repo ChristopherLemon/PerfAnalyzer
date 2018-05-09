@@ -1,0 +1,3 @@
+t=0.50
+dd-0/0;__GI___libc_write;apic_timer_interrupt;smp_apic_timer_interrupt;hrtimer_interrupt;__hrtimer_run_queues;tick_sched_timer;tick_sched_handle;update_process_times;scheduler_tick;task_tick_fair;update_curr 1
+t=2.75

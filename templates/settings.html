@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block layouttitle %}
+{{layout["title"]}}
+{% endblock %}
+
+{% block content %}
+
+<div class="panel-group" id="accordion">
+    <div class="container">
+        <form id="cpu_form" action="{{url_for("SettingsView.update_cpu")}}" method="post" style="width:100%">
+            <div class="row" style="border-style:none">
+                <div class="flex-column" style="width:100%">
+                    <div class="panel panel-default">
+                        <a data-toggle="collapse" data-parent="#accordion" href="#cpu1">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">
+                                    <strong>CPU</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                </h4>
+                            </div>
+                        </a>
+                        <div id="cpu1" class="panel-collapse collapse">
+                            <div class="flex-row">
+                            <select style="margin:1px;margin-left:12px" class="selectpicker" name="cpu" id="cpu">
+                                {% for cpu in available_cpus %}
+                                    {% if cpu==user_settings["cpu"] %}
+                                        <option selected="selected">{{cpu}}</option>
+                                    {% else %}
+                                        <option >{{cpu}}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="container">
+        <form id="settings_form" action="{{url_for("SettingsView.settings")}}" method="post" style="width:100%">
+            {% for group in selected_cpu_event_groups %}
+                {% if group!="Custom"  %}
+                    <div class="row" style="border-style:none">
+                        <div class="flex-column" style="width:100%">
+                            <div class="panel panel-default">
+                                <a data-toggle="collapse" data-parent="#accordion" href="#{{group|replace(" ","")}}">
+                                    <div class="panel-heading">
+                                        <h4 class="panel-title">
+                                            <strong>Add / Remove {{group}} events <span class="checkboxcount"></span></strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                        </h4>
+                                    </div>
+                                </a>
+                                <div id="{{group|replace(" ","")}}" class="panel-collapse collapse">
+                                    <div class="flex-row">
+                                        {% for event in selected_cpu_events %}
+                                            {% if selected_cpu_event_group_map[event]==group %}
+                                                {% if event in user_settings["events"] %}
+                                                    {% set checked = "checked" %}
+                                                {% else %}
+                                                    {% set checked = "" %}
+                                                {% endif %}
+                                                {% if group!="Trace" %}
+                                                    <div class="flex-column" style="width:50%"><label><input type="checkbox" {{checked}} onclick="count_all_checkboxes()" class="counted_checkbox" id="{{event}}" name="{{event}}"><b>{{event}}</b></label></div>
+                                                {% else %}
+                                                    <div class="flex-column" style="width:50%"><label><input type="checkbox" {{checked}} onclick="count_all_checkboxes()" class="counted_checkbox" id="{{event}}" name="{{event}}"><b>{{event}}</b></label></div>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <div class="row">
+                <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                    <div class="panel panel-default">
+                        <a data-toggle="collapse" data-parent="#accordion" href="#params1">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">
+                                     <strong>Modify Profiler Settings</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                </h4>
+                            </div>
+                        </a>
+                        <div id="params1" class="panel-collapse collapse">
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:33%"><p>Events Per Sample:</p><input type="text" class="form-control" name="event_counter" id=event_counter" value={{user_settings["event_counter"]}} title="Number of events per sample" placeholder="Number of events per sample"></div>
+                                <div class="flex-column" style="border-style:none;width:33%"><p>Sample Frequency (Hz):</p><input type="text" class="form-control" name="frequency" id=frequency" value={{user_settings["frequency"]}} title="Frequency of sample (in Hz) for cpu-clock and task-clock" placeholder="Frequency of sample (in Hz) for cpu-clock and task-clock"></div>
+                                <div class="flex-column" style="border-style:none;width:34%"><p>Time resolution (S):</p><input type="text" class="form-control" name="dt" id=dt" value={{user_settings["dt"]}} title="Time interval of bins used for sample collection" placeholder="Time interval of bins used for sample collection"></div>
+                                <div class="flex-column" style="border-style:none;width:33%"><p>Maximum number of events recorded per realization:</p><input type="text" class="form-control" name="max_events_per_run" id=max_events_per_run" value={{user_settings["max_events_per_run"]}} title="Maximum number of events assigned to each run" placeholder="Maximum number of events assigned to each run"></div>
+                                <div class="flex-column" style="border-style:none;width:67%"><p>Attach to every nth process:</p><input type="text" class="form-control" name="proc_attach" id=proc_attach" value={{user_settings["proc_attach"]}} title="Attach to subset of processes" placeholder="Attach to subset of processes"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class=row>
+                <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                    <div class="panel panel-default">
+                        <a data-toggle="collapse" data-parent="#accordion" href="#path1">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">
+                                     <strong>Modify System Variables</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                </h4>
+                            </div>
+                        </a>
+                        <div id="path1" class="panel-collapse collapse">
+                            <div class="flex-column" style="border-style:none;width:100%"><p>Set Environment Variables</p><input style="width:100%" type="text" class="form-control" name="env_variables" id="env_variables" value="{{user_settings["env_variables"]}}" title="Include I_MPI_ROOT for mpirun if needed" placeholder="Include I_MPI_ROOT for mpirun if needed"></div>
+                            <div class="flex-column" style="border-style:none;width:100%"><p>Prepend to Path</p><input style="width:100%" type="text" class="form-control" name="bin_path" id=bin_path" value="{{user_settings["bin_path"]}}" title="Include path to perf and MPI or OpenMP if needed" placeholder="Include path to perf and MPI or OpenMP if needed"></div>
+                            <div class="flex-column" style="border-style:none;width:100%"><p>Prepend to Library Path</p><input style="width:100%" class="form-control" type="text" name="lib_path" id=lib_path" value="{{user_settings["lib_path"]}}" title="Include MPI or OpenMP libraries if needed" placeholder="Include MPI or OpenMP libraries if needed"></div>
+                            <div class="flex-column" style="border-style:none;width:100%"><p>Preload Libraries</p><input style="width:100%" type="text" class="form-control" name="preload" id=preload" value="{{user_settings["preload"]}}" title="Include any debug libraries for MPI or OpenMP if needed" placeholder="Include any debug libraries for MPI or OpenMP if needed"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class=row>
+                <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                    <row>
+                        <div class="flex-column" style="width:100%"><input type="submit" class="btn btn-basic" id="settings_btn" name="settings_btn" value="Update Settings"></div>
+                    </row>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block layoutfooter %}
+<form action="{{url_for('clear_loaded_data')}}" method="post" id="clear_data_form">
+    <div class="btn-group" data-toggle="buttons">
+        <label style="margin:1px;margin-right:12px;" class="btn btn-primary" onclick="clear_loaded_data()">
+            <input type="radio" autocomplete="off"> Clear Results
+        </label>
+    </div>
+    {{layout["footer"]}}
+</form>
+{% endblock %}
+
+{% block tail_js %}
+
+<script type="text/javascript">
+    function toggleChevron(e) {
+        $(e.target).prevUntil('.panel .panel-default')
+            .find("i.indicator")
+            .toggleClass('glyphicon-chevron-left glyphicon-chevron-down');
+    }
+    $('#accordion').on('hidden.bs.collapse', toggleChevron);
+    $('#accordion').on('shown.bs.collapse', toggleChevron);
+    window.onload = count_all_checkboxes;
+    // Weird bug - onload function seemingly cannot also be used for the onclick function? Hence the duplicate
+    function count_all_checkboxes() {
+        $('.checkboxcount').each(function(){
+           count_checkboxes($(this));
+        });
+    }
+    $('#cpu').change(function () {
+        let form = document.getElementById("cpu_form");
+        form.submit();
+    });
+    $('#settings_btn').on("click", function () {
+        let form = document.getElementById("settings_form");
+        form.submit();
+    });
+    function count_checkboxes(checkboxcount) {
+        let n = 0;
+        let m = 0;
+        checkboxcount.closest('.panel').find('.counted_checkbox').each(function () {
+            n++;
+            if ($(this).is(':checked')) {
+                m++;
+            }
+        });
+        checkboxcount.prop('innerHTML','(' + m.toString() + ' / ' + n.toString() + ')');
+    }
+    function clear_loaded_data() {
+        $("#clear_data_form").submit();
+    }
+</script>
+{% endblock %}

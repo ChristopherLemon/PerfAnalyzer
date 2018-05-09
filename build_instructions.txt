@@ -1,0 +1,29 @@
+build windows redistributable\debug on windows machine
+
+setup virtual environment
+
+virtualenv perf_profiler
+perf_profiler\bin\activate.bat
+pip install -r requirements.txt
+
+build redistributable
+
+pyinstaller --distpath windows_dist server.spec
+
+##########################################################
+
+build linux redistributable\debug on linux machine
+
+dependencies for lxml:
+sudo apt-get install python-lxml
+sudo apt-get install libxml2-dev libxslt-dev python-dev
+
+setup virtual environment
+
+virtualenv perf_profiler
+source ./perf_profiler/bin/activate
+pip install -r requirements.txt
+
+build redistributable
+
+pyinstaller --distpath linux_dist server.spec

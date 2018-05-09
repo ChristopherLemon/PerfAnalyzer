@@ -1,0 +1,1328 @@
+{% extends "base.html" %}
+{% block layouttitle %}
+{{analysis_model.layout.title}}
+<br>
+<br>
+<div id="flamegraph_reference_case" class="flex-column" style="border-style:none;width:100%;height:100%"><div style="margin-left:12px;">Reference Process ID: {{analysis_model.layout.reference_id}}</div></div>
+{% endblock %}
+{% block content %}
+
+<div class="panel-group" id="accordion">
+    <form action="" method="post">
+        {% if analysis_model.layout.flamegraph %}
+            <div class="container">
+                <div class="row">
+                    <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                        <div class="panel panel-default">
+                            <a data-toggle="collapse" data-parent="#accordion" href="#flamegraph_collapse">
+                                <div class="panel-heading">
+                                    <h4 class="panel-title">
+                                        <strong>FlameGraph (Time Ordered Event Samples)</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                    </h4>
+                                </div>
+                            </a>
+                            <div id="flamegraph_collapse" class="panel-collapse collapse">
+                                <div class="flex-row">
+                                    <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="flamegraph_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
+                                </div>
+                                <div class="row" style="margin-left:0">
+                                    <div class="flex-column" style="width:20%"><button style="margin:1px;margin-left:12px;" type="button" class="btn btn-basic btn-info" id="flamegraph_filter_btn" name="flamegraph_filter_btn" onclick="flamegraph_filter(this)">Filter Function Name</button></div>
+                                    <div class="flex-column" style="width:60%;height:100%;text-align:center">
+                                        <label style="margin-left:12px;font-size:20px;" id="flamegraph_info"></label>
+                                    </div>
+                                    <div class="flex-column" style="width:20%;height:100%"></div>
+                                </div>
+                                <div class="row" style="margin-left:0">
+                                    <div class="flex-column" style="width:100%;height:100%">
+                                        <object class="embedded_svg" type="image/svg+xml" data={{analysis_model.layout.flamegraph}} id="flamegraph" onload="add_flamegraph_events()"></object>
+                                    </div>
+                                </div>
+                                <div class="flex-row" style=";margin-left:0;margin-right:0">
+                                    <div class="flex-column" style="width:60%;height:100%;">
+                                        <div class="btn-group" data-toggle="buttons" >
+                                            <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_flamegraph('reference')">
+                                                <input type="radio" autocomplete="off" checked> Reference Process
+                                            </label>
+                                            <label style="margin:1px;" class="btn btn-primary" onclick="toggle_flamegraph('selected')">
+                                                <input type="radio" autocomplete="off"> All Selected Processes
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="flex-column" style="width:40%;height:100%;;flex-direction:row-reverse;">
+                                        <div class="btn-group" data-toggle="buttons">
+                                            <label style="margin:1px;" class="btn btn-primary active" onclick="toggle_flamegraph_mode('hotspots')">
+                                                <input type="radio" autocomplete="off" checked> Show HotSpots
+                                            </label>
+                                            <label style="margin:1px;margin-right:12px;" class="btn btn-primary" onclick="toggle_flamegraph_mode('clusters')">
+                                                <input type="radio"  autocomplete="off"> Show Clusters
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="flex-row" style="border-style:none;">
+                                        <div class="flex-column" style="width:70%"><p>Text Filter:</p><input style="margin:1px" class="form-control" id="text_filter" name="text_filter" placeholder="Regular Expression (i.e. match function1 or function2 with function1|function2)" value="{{analysis_model.text_filter}}" oninput="find_text(this)"></div>
+                                        <div class="flex-column" style="width:30%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="text_btn" name="text_btn" onclick="apply_text_filter('text_filter')">Apply Text Filter</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        {% if analysis_model.layout.event_totals_chart %}
+            <div class="container">
+                <div class="row">
+                    <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                        <div class="panel panel-default">
+                            <a data-toggle="collapse" data-parent="#accordion" href="#event_totals_chart_collapse">
+                                <div class="panel-heading">
+                                    <h4 class="panel-title">
+                                         <strong>Total Event Counts</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                    </h4>
+                                </div>
+                            </a>
+                            <div id="event_totals_chart_collapse" class="panel-collapse collapse">
+                                <div class="flex-row">
+                                    <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="chart_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
+                                </div>
+                                <div class="flex-row table_controls" style="border-style:none;">
+                                    <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" id="row_filter" name="row_filter" placeholder="Regex expression to filter function names" oninput="apply_row_filter(this)"></div>
+                                    <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" id="column_filter" name="column_filter" placeholder="Regex expression to filter process names" oninput="apply_column_filter(this)"></div>
+                                </div>
+                                <div class="btn-group chart_controls" data-toggle="buttons" >
+                                    <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_selection_mode('add-remove-process')">
+                                        <input type="radio"  autocomplete="off" checked> Add / Remove Process
+                                    </label>
+                                    <label style="margin:1px;" class="btn btn-primary" onclick="toggle_selection_mode('select-reference-process')">
+                                        <input type="radio" autocomplete="off"> Select Reference Process
+                                    </label>
+                                </div>
+                                <div style="margin-right:12px;" class="pull-right chart_controls"><i style="color:grey;font-size:18px;"><span id="selection_mode_text">Click on a process to add to or remove from flamegraph</span></i></div>
+                                <object class="embedded_svg toggle_event_totals_chart" type="image/svg+xml" data={{analysis_model.layout.event_totals_chart}} id="event_totals_chart" onload="add_barchart_events('event_totals_chart')"></object>
+                                {% if analysis_model.layout.event_ratios_chart %}
+                                    <object class="embedded_svg toggle_event_totals_chart" type="image/svg+xml" data={{analysis_model.layout.event_ratios_chart}} id="event_ratios_chart" hidden onload="add_barchart_events('event_ratios_chart')"></object>
+                                {% endif %}
+                                <div class="table-container toggle_event_totals_chart filter_event_totals_table percentages_table highlighted" id="event_totals_table" hidden>{{analysis_model.layout.event_totals_table|safe}}</div>
+                                <div class="btn-group" data-toggle="buttons" >
+                                    <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_event_totals_chart('event_totals_chart', false)">
+                                        <input type="radio"  autocomplete="off" checked> Chart
+                                    </label>
+                                    {% if analysis_model.layout.event_ratios_chart %}
+                                        <label style="margin:1px;" class="btn btn-primary" onclick="toggle_event_totals_chart('event_ratios_chart', false)">
+                                            <input type="radio"  autocomplete="off"> Chart (Ratios)
+                                        </label>
+                                    {% endif %}
+                                    <label style="margin:1px;" class="btn btn-primary" onclick="toggle_event_totals_chart('event_totals_table', true)">
+                                        <input type="radio" autocomplete="off"> Table
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        {% if analysis_model.layout.scatter_plot %}
+            <div class="container">
+                <div class="row">
+                    <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                        <div class="panel panel-default">
+                            <a data-toggle="collapse" data-parent="#accordion" href="#scatter_plot_collapse">
+                                <div class="panel-heading">
+                                    <h4 class="panel-title">
+                                        <strong>2D Event Scatter Plot</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                    </h4>
+                                </div>
+                            </a>
+                            <div id="scatter_plot_collapse" class="panel-collapse collapse">
+                                <div class="flex-row">
+                                    <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="scatter_plot_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
+                                </div>
+                                <div class="btn-group chart_controls" data-toggle="buttons" >
+                                    <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_scatter_plot('hotspots')">
+                                        <input type="radio"  autocomplete="off" checked> Hotspots
+                                    </label>
+                                    <label style="margin:1px;" class="btn btn-primary" onclick="toggle_scatter_plot('clusters')">
+                                        <input type="radio" autocomplete="off"> Clusters
+                                    </label>
+                                </div>
+                                <div style="margin-right:12px;" class="pull-right"><i style="color:grey;font-size:18px;">Click on node to filter on function name or select an area to zoom in</i></div>
+                                <div id="canvas_container" class="svg_canvas_container">
+                                    <object class="embedded_svg svg_underlay" type="image/svg+xml" data={{analysis_model.layout.scatter_plot}} id="scatter_plot" onload="add_scatter_plot_events('scatter_plot')"></object>
+                                    <div id="dynamic_div" style="position:absolute;width:100%;height:100%;top:0;left:0;bottom:0;right:0;pointer-events:none;">
+                                        <svg width="100%" height="100%">
+                                            <rect id="dynamic_rectangle" x="0" y="0" width="0" height="0" style="fill:blue;stroke:#337ab7;stroke-width:3;fill-opacity:0.1;stroke-opacity:0.9;"></rect>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div id="output"></div>
+                                <div class="flex-row" style=";margin-left:0;margin-right:0">
+                                    <div class="flex-column" style="width:40%;height:100%;">
+                                        <div class="btn-group" data-toggle="buttons" >
+                                            <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_scatter_plot('default')">
+                                                <input type="radio" autocomplete="off" checked> Default
+                                            </label>
+                                            <label style="margin:1px;" class="btn btn-primary" onclick="toggle_scatter_plot('centred')">
+                                                <input type="radio"  autocomplete="off"> Diff Against Reference
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="flex-column" style="width:60%;height:100%;;flex-direction:row-reverse;">
+                                        <div class="btn-group" data-toggle="buttons">
+                                            <label style="margin:1px;" class="btn btn-primary active" onclick="toggle_scatter_plot('absolute')">
+                                                <input type="radio"  autocomplete="off" checked> Absolute Scale
+                                            </label>
+                                            <label style="margin:1px;" class="btn btn-primary" onclick="toggle_scatter_plot('log')">
+                                                <input type="radio" autocomplete="off"> Log Scale
+                                            </label>
+                                            <label style="margin:1px;margin-right:12px;" class="btn btn-primary" onclick="reset_scatter_plot()">
+                                                <input type="radio" autocomplete="off"> Reset
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex-row">
+                                    <div class="flex-column" style="width:70%"><p>Text Filter:</p><input style="margin:1px" class="form-control" id="point_filter" name="point_filter" placeholder="Regular Expression (i.e. match function1 or function2 with function1|function2)" value="{{analysis_model.text_filter}}" oninput="find_points(this)"></div>
+                                    <div class="flex-column" style="width:30%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="point_btn" name="point_btn" onclick="apply_text_filter('point_filter')">Apply Text Filter</button></div>
+                                </div>
+                                {% if analysis_model.analysis_type == "general" %}
+                                    <div class="row" style="margin-left:0">
+                                        <div class="flex-column" style="width:35%;height:100%">
+                                            <p>y-axis</p>
+                                            <select style="margin:1px" class="selectpicker" data-width="100%" name="event1" id="event1">
+                                                {% for event in events %}
+                                                    {% if "Trace" not in event %}
+                                                        {% if event==analysis_model.event1 %}
+                                                            <option selected="selected">{{event}}</option>
+                                                        {% else %}
+                                                            <option >{{event}}</option>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="flex-column" style="width:35%;height:100%">
+                                            <p>x-axis</p>
+                                            <select style="margin:1px" class="selectpicker" data-width="100%" name="event2" id="event2">
+                                                {% for event in events %}
+                                                    {% if "Trace" not in event %}
+                                                        {% if event==analysis_model.event2 %}
+                                                            <option selected="selected">{{event}}</option>
+                                                        {% else %}
+                                                            <option >{{event}}</option>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="flex-column" style="width:30%">Apply Changes:<button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="modify_plot_btn" name="kmeans_btn" onclick="modify_plot(this)">Load New Events</button></div>
+                                    </div>
+                                {% endif %}
+                                <div class="flex-row" id="cluster_controls" hidden>
+                                    <div class="flex-column" style="width:70%"><p>Number of Clusters:</p><input style="margin:1px" type="number" class="form-control" id="num_clusters" name="num_clusters" placeholder="Integer>0" min="1" max="{{colours|length}}" value={{analysis_model.num_clusters}}></div>
+                                    <div class="flex-column" style="width:30%"><p>Apply Changes:</p><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="kmeans_btn" name="kmeans_btn" onclick="update_cluster_parameters(this)">Run New Cluster Analysis</button></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        <div class="container">
+            <div class="row">
+                <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                    <div class="panel panel-default">
+                        <a data-toggle="collapse" data-parent="#accordion" href="#cluster_list_collapse">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">
+                                    <strong>Select Clusters</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                </h4>
+                            </div>
+                        </a>
+                        <div id="cluster_list_collapse" class="panel-collapse collapse">
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="cluster_loader" style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
+                            </div>
+                            <label><input type="checkbox" onclick="check_all_clusters(this)" class="check_all_cluster_box" id="check_all_cluster_box" name="check_all_cluster_box"><b>All</b></label>
+                            <br>
+                            <div id="cluster_checkboxes" value="{{colours|length}}">
+                            {% for i in range(0,colours|length) %}
+                                {% if i|string in analysis_model.selected_clusters %}
+                                    {% set checked = "checked" %}
+                                {% else %}
+                                    {% set checked = "" %}
+                                {% endif %}
+                                {% if i < analysis_model.clusters|length %}
+                                    {% set hidden = "" %}
+                                {% else %}
+                                    {% set hidden = "hidden" %}
+                                {% endif %}
+                                <div {{hidden}} class="cluster_checkbox_container" id="container_{{i}}">
+                                    <div class="flex-row" style="margin-left:0">
+                                        <div class="flex-column" style="width:10%;height:100%"><label><input type="checkbox" {{checked}} class="cluster_checkbox" id="{{i}}" name="{{i}}"><b>{{i|string}}</b></label></div>
+                                        <div class="flex-column" style="width:90%;height:100%"><div onclick="check_cluster_box({{i}})" style="width:120px;height:20px;background-color:{{colours[i]}}"><b><center>{{i|string}}</center></b></div></div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            </div>
+                            <div class="flex-row">
+                                <div class="flex-column" style="margin-left:12px;width:20%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="cluster_btn" name="cluster_btn" onclick="update_selected_clusters()">Update Selected Clusters</button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <input type="hidden" id="reference_id" name="reference_id" value={{analysis_model.reference_id}} />
+        <input type="hidden" id="reference_count" name="reference_count" value={{analysis_model.reference_count}} />
+        <input type="hidden" id="base_event_reference_id" name="base_event_reference_id" value={{analysis_model.base_event_reference_id}} />
+        <input type="hidden" id="reference_event" name="reference_event" value={{analysis_model.reference_event}} />
+        <div class="container">
+            <div class="row">
+                <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                    <div class="panel panel-default">
+                        <a data-toggle="collapse" data-parent="#accordion" href="#events1">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">
+                                    <strong>Select Events</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                </h4>
+                            </div>
+                        </a>
+                        <div id="events1" class="panel-collapse collapse">
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="event_loader" style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
+                            </div>
+                            <label><input type="checkbox" onclick="check_all_events(this)" class="check_all_events_box" id="check_all_events_box" name="check_all_events_box"><b>All</b></label>
+                            <br>
+                            <div id="event_checkboxes">
+                                {% for event in events %}
+                                    {% set event_name = event|replace_operators %}
+                                    {% if event in analysis_model.selected_events %}
+                                        {% set checked = "checked" %}
+                                    {% else %}
+                                        {% set checked = "" %}
+                                    {% endif %}
+                                    {% if event == analysis_model.reference_event %}
+                                        {% set checked_ref = "checked" %}
+                                    {% else %}
+                                        {% set checked_ref = "" %}
+                                    {% endif %}
+                                    <div class="flex-row" style="margin-left:0">
+                                        <div class="flex-column" style="width:35%;height:100%"><label><input class="event_checkbox counted_checkbox" type="checkbox" {{checked}} id="{{event_name}}" name="{{event}}"><b>Event Count For:&nbsp{{event}}</b></label></div>
+                                        <div class="flex-column" style="width:30%;height:100%"><label><input class="event_reference_checkbox" type="checkbox" {{checked_ref}} onclick="check_event_reference_boxes(this,'{{event}}','{{event_name}}')" id="{{event_name}}_ref"><b>Set As Reference</b></label></div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="flex-row">
+                                <div class="flex-column" style="margin-left:12px;width:20%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="event_btn" name="event_btn" onclick="update_selected_events()">Update Selected Events</button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="row">
+                <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                    <div class="panel panel-default">
+                        <a data-toggle="collapse" data-parent="#accordion" href="#processes2">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">
+                                    <strong>Select Processes / Threads</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                </h4>
+                            </div>
+                        </a>
+                        {% if analysis_model.system_wide %}
+                            {% set unit = "Core" %}
+                            {% set units = "Cores" %}
+                        {% else %}
+                            {% set unit = "Process" %}
+                            {% set units = "Processes" %}
+                        {% endif %}
+                        <div id="processes2" class="panel-collapse collapse">
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="process_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
+                            </div>
+                            <div class="flex-row" style="border-style:none;">
+                                <div class="flex-column" style="width:55%"><p>Filter out background threads (Minimum % of total)</p><input style="margin:1px" type="number" class="form-control" id="process_filter" name="process_filter" placeholder="Percentage of total" min="0" max="{{100}}" step="0.1" value="0.0" oninput="filter_threads(this)"></div>
+                            </div>
+                            <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                                <div class="flex-row" style="margin-left:0">
+                                    <p>Thread Event Counts</p>
+                                </div>
+                                <div class="flex-row" style="margin-left:0">
+                                    <label><input type="checkbox" onclick="check_thread_boxes(this,'')" class="thread_checkbox" id="check_all_threads" name="check_all_threads"><b>Select Thread Event Counts For All Jobs</b></label>
+                                </div>
+                                {% for job in analysis_model.jobs %}
+                                    <div class="counted_checklist">
+                                        <div class="flex-row" style="margin-left:0">
+                                            <div class="flex-column" style="width:30%;height:100%"><a type="button" class="btn btn-info collapsed collapsible_btn" data-toggle="collapse" data-target="#{{job}}_process_list">Select Thread Event Counts For Job {{job}} <span class="checkboxcount"></span><span class="fa chevron pull-right"></span></a></div>
+                                            <div class="flex-column" style="width:25%;height:100%"><label><input type="checkbox" onclick="check_thread_boxes(this,'{{job}}_')" class="thread_checkbox" id="check_all_threads_{{job}}" name="check_all_threads_{{job}}"><b>Select Thread Event Counts For All {{units}}</b></label></div>
+                                            <div class="flex-column" style="width:20%;height:100%"><span class="gradient_bar sum_checkbox_percentages"></span></div>
+                                            <div class="flex-column" style="width:25%;height:100%"><span style="font-weight:bold" class="dynamic_text sum_checkbox_percentages"></span></div>
+                                        </div>
+                                        <div id={{job}}_process_list class="collapse">
+                                            {% for process_name in analysis_model.process_names[job]|natural_sort %}
+                                                {% if "all" not in process_name %}
+                                                    <div class="counted_checklist">
+                                                        <div class="flex-row" style="margin-left:0">
+                                                            <div class="flex-column" style="width:45%;height:100%"><a type="button" class="btn btn-info collapsed collapsible_btn" data-toggle="collapse" data-target="#{{job}}_{{process_name}}_thread_list">Select Thread Event Counts For {{unit}} {{process_name}} <span class="checkboxcount"></span><span class="fa chevron pull-right"></span></a></div>
+                                                            <div class="flex-column" style="width:15%;height:100%"><label><input type="checkbox" onclick="check_thread_boxes(this,'{{job}}_{{process_name}}_')" class="thread_checkbox" id="check_thread_box_{{job}}_{{process_name}}" name="check_thread_box_{{job}}_{{process_name}}"><b>Select All Threads</b></label></div>
+                                                            <div class="flex-column" style="width:20%;height:100%"><span class="gradient_bar sum_checkbox_percentages"></span></div>
+                                                            <div class="flex-column" style="width:20%;height:100%"><span style="font-weight:bold" class="dynamic_text sum_checkbox_percentages"></span></div>
+                                                        </div>
+                                                        <div id={{job}}_{{process_name}}_thread_list class="collapse">
+                                                            {% for id in ids %}
+                                                                {% if id.job == job and id.process_name == process_name and id.tid != "all" %}
+                                                                    {% if id in analysis_model.base_event_selected_ids %}
+                                                                        {% set checked = "checked" %}
+                                                                    {% else %}
+                                                                        {% set checked = "" %}
+                                                                    {% endif %}
+                                                                    {% if id.label == analysis_model.base_event_reference_id %}
+                                                                        {% set checked_ref = "checked" %}
+                                                                    {% else %}
+                                                                        {% set checked_ref = "" %}
+                                                                    {% endif %}
+                                                                    <div class="flex-row thread_filter" style="margin-left:0">
+                                                                        <div class="flex-column" style="width:35%;height:100%"><label><input class="thread_checkbox counted_checkbox" type="checkbox" {{checked}} id="{{job}}_{{process_name}}_{{id.tid}}" name="{{id.label}}"><b>Event Count For Thread:&nbsp{{id.tid}}</b></label></div>
+                                                                        <div class="flex-column" style="width:30%;height:100%"><label><input class="reference_checkbox" type="checkbox" {{checked_ref}} onclick="check_process_reference_boxes(this,'{{id.label}}','{{job}}_{{process_name}}_{{id.tid}}')" id="{{id.label}}_ref"><b>Set As Reference</b></label></div>
+                                                                        <div class="flex-column" style="width:20%;height:100%"><span class="gradient_bar" value="{{id.max_percentage}}"></span></div>
+                                                                        <div class="flex-column" style="width:15%;height:100%"><span style="font-weight:bold" class="summed_percentage" value="{{id.total_percentage}}"></span><strong style="margin-left:6px;">{{id.total_percentage|round(2)|format_percentage}} %</strong></div>
+                                                                    </div>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                                <div class="flex-row" style="margin-left:0">
+                                    {% if analysis_model.system_wide %}
+                                        <p>Core Cumulative Event Counts (Summed Over Threads)</p>
+                                    {% else %}
+                                        <p>Process Cumulative Event Counts (Summed Over Threads)</p>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-row" style="margin-left:0">
+                                    <label><input type="checkbox" onclick="check_process_boxes(this,'')" class="process_checkbox" id="check_all_processes" name="check_all_processes"><b>Select {{unit}} Event Counts For All Jobs</b></label>
+                                </div>
+                                {% for job in analysis_model.jobs %}
+                                    <div class="counted_checklist">
+                                        <div class="flex-row" style="margin-left:0">
+                                            <div class="flex-column" style="width:30%;height:100%"><a type="button" class="btn btn-info collapsed collapsible_btn" data-toggle="collapse" style="padding-left:0%width:25%" data-target="#{{job}}_process_list2">Select {{unit}} Event Counts for Job {{job}} </span><span class="checkboxcount"></span><span class="fa chevron pull-right"></span></a></div>
+                                            <div class="flex-column" style="width:25%;height:100%"><label><input type="checkbox" onclick="check_process_boxes(this,'{{job}}_')" class="process_checkbox" id="check_all_processes_{{job}}" name="check_all_processes_{{job}}"><b>Select Core Event Counts For All Processes</b></label></div>
+                                            <div class="flex-column" style="width:20%;height:100%"><span class="gradient_bar sum_checkbox_percentages"></span></div>
+                                            <div class="flex-column" style="width:25%;height:100%"><span style="font-weight:bold" class="dynamic_text sum_checkbox_percentages"></span></div>
+                                        </div>
+                                        <div id={{job}}_process_list2 class="collapse">
+                                            {% for process_name in analysis_model.process_names[job]|natural_sort %}
+                                                {% for id in ids %}
+                                                    {% if id.job == job and id.process_name == process_name and id.pid != "all" and id.tid == "all" %}
+                                                        {% if id in analysis_model.base_event_selected_ids %}
+                                                            {% set checked = "checked" %}
+                                                        {% else %}
+                                                            {% set checked = "" %}
+                                                        {% endif %}
+                                                        {% if id.label == analysis_model.base_event_reference_id %}
+                                                            {% set checked_ref = "checked" %}
+                                                        {% else %}
+                                                            {% set checked_ref = "" %}
+                                                        {% endif %}
+                                                        <div class="flex-row thread_filter" style="margin-left:0">
+                                                            <div class="flex-column" style="width:35%;height:100%"><label><input class="process_checkbox counted_checkbox" type="checkbox" {{checked}} id="{{job}}_{{process_name}}_all" name="{{id.label}}"><b>Event Count For {{unit}}:&nbsp{{id.process_name}}</b></label></div>
+                                                            <div class="flex-column" style="width:25%;height:100%"><label><input class="reference_checkbox" type="checkbox" {{checked_ref}} onclick="check_process_reference_boxes(this,'{{id.label}}','{{job}}_{{process_name}}_all')" id="{{id.label}}_ref"><b>Set As Reference</b></label></div>
+                                                            <div class="flex-column" style="width:20%;height:100%"><span class="gradient_bar" value="{{id.max_percentage}}"></span></div>
+                                                            <div class="flex-column" style="width:15%;height:100%"><span style="font-weight:bold" class="summed_percentage" value="{{id.total_percentage}}"></span><strong style="margin-left:6px;">{{id.total_percentage|round(2)|format_percentage}} %</strong></div>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                                {% if analysis_model.system_wide %}
+                                    <p>Host Cumulative Event Counts (Summed Over Cores)</p>
+                                {% else %}
+                                    <p>Job Cumulative Event Counts (Summed Over Processes)</p>
+                                {% endif %}
+                                <div class="flex-row" style="margin-left:0">
+                                    <label><input type="checkbox" onclick="check_job_boxes(this,'')" class="job_checkbox" id="check_all_jobs" name="check_all_jobs"><b>Select Job Event Counts For All Jobs</b></label>
+                                </div>
+                                {% for job in analysis_model.jobs %}
+                                    {% for process_name in analysis_model.process_names[job]|natural_sort %}
+                                        {% for id in ids %}
+                                            {% if id.job == job and id.process_name == process_name and id.pid == "all" and id.tid == "all" %}
+                                                {% if id in analysis_model.base_event_selected_ids %}
+                                                    {% set checked = "checked" %}
+                                                {% else %}
+                                                    {% set checked = "" %}
+                                                {% endif %}
+                                                {% if id.label == analysis_model.base_event_reference_id %}
+                                                    {% set checked_ref = "checked" %}
+                                                {% else %}
+                                                    {% set checked_ref = "" %}
+                                                {% endif %}
+                                                {% if analysis_model.system_wide %}
+                                                    {% set host_id = " / Host: " + id.process_name %}
+                                                {% else %}
+                                                    {% set host_id = "" %}
+                                                {% endif %}
+                                                <div class="flex-row thread_filter" style="margin-left:0">
+                                                    <div class="flex-column" style="width:35%;height:100%"><label><input class="job_checkbox" type="checkbox" {{checked}} id="{{job}}_all_all" name="{{id.label}}"><b>Event Count For Job:&nbsp{{id.job}}{{host_id}}</b></label></div>
+                                                    <div class="flex-column" style="width:20%;height:100%"><label><input class="reference_checkbox" type="checkbox" {{checked_ref}} onclick="check_process_reference_boxes(this,'{{id.label}}','{{job}}_all_all')" id="{{id.label}}_ref"><b>Set As Reference</b></label></div>
+                                                    <div class="flex-column" style="width:20%;height:100%"><span class="gradient_bar" value="{{id.max_percentage}}"></span></div>
+                                                    <div class="flex-column" style="width:15%;height:100%"><span style="font-weight:bold" class="summed_percentage" value="{{id.total_percentage}}"></span><strong style="margin-left:6px;">{{id.total_percentage|round(2)|format_percentage}} %</strong></div>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                            <div class="flex-row">
+                                <div class="flex-column" style="margin-left:12px;width:20%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="process_btn" name="process_btn" onclick="update_selected_processes(this)">Update Selected Processes</button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block layoutfooter %}
+<form action="{{url_for('clear_loaded_data')}}" method="post" id="clear_data_form">
+    <div class="btn-group" data-toggle="buttons">
+        <label style="margin:1px;margin-right:12px;" class="btn btn-primary" onclick="clear_loaded_data()">
+            <input type="radio" autocomplete="off"> Clear Results
+        </label>
+    </div>
+    {{analysis_model.layout.footer}}
+</form>
+{% endblock %}
+
+{% block tail_js %}
+
+<script type="text/javascript">
+
+    var selection_mode = "add-remove-process";
+
+    function find_text(inputbox) {
+        let filter = $(inputbox).prop("value");
+        let flamegraph = document.getElementById('flamegraph');
+        flamegraph.contentDocument.reset_search();
+        if( filter.length > 0 )
+        {
+            flamegraph.contentDocument.search(filter);
+        }
+    }
+    function find_points(inputbox) {
+        let filter = $(inputbox).prop("value");
+        let m = filter.length;
+        let searchcolour = 'rgb(230,0,230)';
+        let match = new RegExp(filter);
+        let scatter_plot = document.getElementById('scatter_plot');
+        let subdoc = getSubDocument(scatter_plot);
+        $(subdoc).find('.dots').each(function() {
+            let desc = $(this).find('desc').prop('innerHTML');
+            let name = desc.substr(desc.indexOf(' ')+1)
+            let fill = $(this).css('fill');
+            if (!$(this).is("[orig_fill]")) {
+                $(this).attr('orig_fill', fill);
+            }
+            if (m > 0 && match.test(name)) {
+                $(this).css('fill',searchcolour);
+            } else {
+                let orig_fill = $(this).attr('orig_fill');
+                $(this).css('fill',orig_fill);
+            }
+        });
+    }
+
+    function toggle_event_totals_chart(this_id, is_table)
+    {
+        $('.toggle_event_totals_chart').each(function() {
+            if ($(this).attr('id') == this_id) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+        if (is_table) {
+            $('.table_controls').show();
+            $('.chart_controls').hide();
+        }
+        else {
+            $('.table_controls').hide();
+            $('.chart_controls').show();
+        }
+    }
+    function apply_row_filter(inputbox) {
+        let filter = $(inputbox).prop("value").toLowerCase();
+        $('.filter_event_totals_table').each(function () {
+            if (!$(this).is(':hidden')) {
+                $(this).find('tbody').find('tr').each(function () {
+                    let proc = $(this).find('td').prop('innerHTML');
+                    if (proc.toLowerCase().indexOf(filter) >= 0)
+                    {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            }
+        });
+    }
+    function apply_column_filter(inputbox) {
+        let filter = $(inputbox).prop("value").toLowerCase();
+        $('.filter_event_totals_table').each(function () {
+            if (!$(this).is(':hidden')) {
+                let matched_processes = [];
+                let m = 0;
+                $(this).find('th').each(function () {
+                    let proc = $(this).prop('innerHTML');
+                    if (proc.toLowerCase().indexOf(filter) >= 0 || m == 0)
+                    {
+                        matched_processes.push(true);
+                    } else {
+                        matched_processes.push(false);
+                    }
+                    m++;
+                });
+                for (let i=0; i<matched_processes.length; ++i) {
+                    let matched = matched_processes[i];
+                    let column_index = (i + 1).toString();
+                    let jquery_string = 'td:nth-child(' + column_index + '),th:nth-child(' + column_index + ')';
+                    if (matched) {
+                        $(jquery_string).show();
+                    } else {
+                        $(jquery_string).hide();
+                    }
+                }
+            }
+        });
+    }
+    function toggle_selection_mode(mode)
+    {
+        selection_mode = mode;
+        if( selection_mode == "add-remove-process" ) {
+            $('#selection_mode_text').prop("innerHTML", "Click on a process to add to or remove from flamegraph");
+        } else {
+            $('#selection_mode_text').prop("innerHTML", "Click on a process to make it the reference process");
+        }
+    }
+    function toggle_flamegraph(ids)
+    {
+        let vals = {"flamegraph_id":ids};
+        goto_url = "{{url_for('AnalysisView.update_flamegraph_ids')}}"
+        let x = JSON.stringify(vals);
+        let data = {json:x};
+        showLoaders("Loading Selected Data");
+        $.ajax({
+            url:goto_url,
+            contentType: 'application/json;charset=UTF-8',
+            data:x,
+            type: 'POST',
+            success: function(response) {
+                console.log(response);
+                document.getElementById("flamegraph").data = response.flamegraph;
+                document.getElementById("flamegraph_info").innerHTML = "";
+                hideLoaders();
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+    function toggle_flamegraph_mode(mode)
+    {
+        let vals = {"flamegraph_mode":mode};
+        goto_url = "{{url_for('AnalysisView.update_flamegraph_mode')}}"
+        let x = JSON.stringify(vals);
+        let data = {json:x};
+        showLoaders("Loading Selected Data");
+        $.ajax({
+            url:goto_url,
+            contentType: 'application/json;charset=UTF-8',
+            data:x,
+            type: 'POST',
+            success: function(response) {
+                console.log(response);
+                document.getElementById("flamegraph").data = response.flamegraph;
+                document.getElementById("flamegraph_info").innerHTML = "";
+                hideLoaders();
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+    function toggle_scatter_plot(mode)
+    {
+        let vals = {"scatter_plot_mode":mode};
+        goto_url = "{{url_for('AnalysisView.update_scatter_plot_mode')}}"
+        let x = JSON.stringify(vals);
+        let data = {json:x};
+        showLoaders("Loading Data For 2D Event Scatter Plot");
+        $.ajax({
+            url:goto_url,
+            contentType: 'application/json;charset=UTF-8',
+            data:x,
+            type: 'POST',
+            success: function(response) {
+                console.log(response);
+                document.getElementById("scatter_plot").data = response;
+                if (mode == "clusters") {
+                    $('#cluster_controls').show();
+                } else if (mode == "hotspots") {
+                    $('#cluster_controls').hide();
+                }
+                hideLoaders();
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+    function modify_plot(thisSelect) {
+        let id = thisSelect.id;
+        vals = "";
+        let select1 = document.getElementById("event1");
+        let select2 = document.getElementById("event2");
+        let event1 = select1.options[select1.selectedIndex].value;
+        let event2 = select2.options[select2.selectedIndex].value;
+        vals = {"event1":event1,"event2":event2};
+        let x = JSON.stringify(vals);
+        let data = {json:x};
+        showLoaders("Loading New Chart Data");
+        $.ajax({
+            url:"{{url_for('AnalysisView.get_new_chart')}}",
+            contentType: 'application/json;charset=UTF-8',
+            data:x,
+            type: 'POST',
+            success: function(response) {
+                console.log(response);
+                document.getElementById("scatter_plot").data = response;
+                hideLoaders();
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+    function update_cluster_parameters(thisSelect) {
+        let vals = "";
+        goto_url = "";
+        let id = thisSelect.id;
+        let input_ok = false;
+        input_ok = document.getElementById("num_clusters").checkValidity();
+        let num_clusters = document.getElementById("num_clusters").value;
+        document.getElementById("num_clusters")
+        vals = {"num_clusters":num_clusters};
+        goto_url = "{{url_for('AnalysisView.update_kmeans_cluster_parameters')}}"
+        if (input_ok ) {
+            let x = JSON.stringify(vals);
+            let data = {json:x};
+            showLoaders("Running Cluster Analysis");
+            $.ajax({
+                url:goto_url,
+                contentType: 'application/json;charset=UTF-8',
+                data:x,
+                type: 'POST',
+                success: function(response) {
+                    console.log(response);
+                    document.getElementById("scatter_plot").data = response;
+                    hideLoaders();
+                    showClusterCheckboxes(num_clusters);
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            });
+        }
+    }
+    function showClusterCheckboxes(num_clusters) {
+       let container = $('#cluster_checkboxes');
+       container.find('.cluster_checkbox_container').each(function() {
+           let container_id = $(this).attr('id');
+           let id = parseInt(container_id.match(/\d+/)[0]);
+           if ( id < num_clusters ) {
+               $(this).show();
+               $(this).checked = true;
+           } else {
+            $(this).hide();
+            $(this).checked = false;
+           }
+       });
+    }
+    function check_cluster_box(id) {
+        let checkbox = document.getElementById(id);
+        checkbox.checked = !checkbox.checked;
+    }
+    function check_thread_boxes(thisBox, match) {
+        let boxes = document.getElementsByClassName("thread_checkbox");
+        let threshold = parseFloat($('#process_filter').prop('value'));
+        for (let i=0; i<boxes.length; ++i) {
+            if ( boxes[i].id.includes(match)) {
+                let pc = parseFloat($(boxes[i]).closest('.flex-row').find('.summed_percentage').attr('value'));
+                if (pc > threshold) {
+                    boxes[i].checked = thisBox.checked;
+                } else {
+                    boxes[i].checked = false;
+                }
+            }
+        }
+    }
+    function check_process_boxes(thisBox, match) {
+        let boxes = document.getElementsByClassName("process_checkbox");
+        for (let i=0; i<boxes.length; ++i) {
+            if ( boxes[i].id.includes(match)) {
+                boxes[i].checked = thisBox.checked;
+            }
+        }
+    }
+    function check_job_boxes(thisBox, match) {
+        let boxes = document.getElementsByClassName("job_checkbox");
+        for (let i=0; i<boxes.length; ++i) {
+            if ( boxes[i].id.includes(match)) {
+                boxes[i].checked = thisBox.checked;
+            }
+        }
+    }
+    function check_process_reference_boxes(thisBox, reference_id, checkbox_id) {
+        thisBox.checked = true;
+        if ( checkbox_id ) {
+            document.getElementById(checkbox_id).checked = true;
+        }
+        document.getElementById("base_event_reference_id").value = reference_id;
+        let boxes = document.getElementsByClassName("reference_checkbox");
+        for (let i=0; i<boxes.length; ++i) {
+            if ( boxes[i].id != thisBox.id ) {
+                boxes[i].checked = false;
+            }
+        }
+    }
+    function check_event_reference_boxes(thisBox, reference_event, checkbox_id) {
+        thisBox.checked = true;
+        if ( checkbox_id ) {
+            document.getElementById(checkbox_id).checked = true;
+        }
+        document.getElementById("reference_event").value = reference_event;
+        let boxes = document.getElementsByClassName("event_reference_checkbox");
+        for (let i=0; i<boxes.length; ++i) {
+            if ( boxes[i].id != thisBox.id ) {
+                boxes[i].checked = false;
+            }
+        }
+    }
+    function count_all_checkboxes() {
+        $('.checkboxcount').each(function(){
+           count_checkboxes($(this));
+        });
+    }
+    function count_checkboxes(checkboxcount) {
+        let n = 0;
+        let m = 0;
+        checkboxcount.closest('.counted_checklist').find('.counted_checkbox').each(function () {
+            n++;
+            if ($(this).is(':checked')) {
+                m++;
+            }
+        });
+        checkboxcount.prop('innerHTML','(' + m.toString() + ' / ' + n.toString() + ')');
+    }
+    function sum_checkbox_percentages() {
+        $('.sum_checkbox_percentages').each(function () {
+            sum_percentages($(this));
+        });
+    }
+    function sum_percentages(checkboxpercentage) {
+        let pc = 0.0;
+        checkboxpercentage.closest('.counted_checklist').find('.summed_percentage').each(function () {
+            let percentage = parseFloat($(this).attr('value'))
+            pc += percentage
+        });
+        checkboxpercentage.prop('value',parseFloat(pc.toFixed(2)));
+    }
+    function fill_dynamic_text() {
+        $('.dynamic_text').each(function() {
+            let pc = $(this).prop('value');
+            let x = parseFloat(pc);
+            if( x >= 100.0 ) {
+                pc = pc.toFixed(0);
+             }
+            $(this).prop('innerHTML', pc + " %");
+        });
+    }
+    function append_count_percentages() {
+        let reference = $('#reference_count').attr('value');
+        let update_ints = false;
+        let update_floats = false;
+        $('.percentages_table').each(function() {
+            $(this).find('td').each(function() {
+                let entry = $(this).prop('innerHTML');
+                let reference_count = parseFloat(reference);
+                let count = parseFloat(entry);
+                let pc = 100.0 * count / reference_count;
+                if ( pc >= 0.01 && pc <= 1000.0 ) {
+                    entry += " (" + pc.toFixed(2) + "%)";
+                    $(this).prop('innerHTML', entry);
+                }
+            });
+        });
+    }
+    function highlight_reference_column() {
+        let reference_id = $('#reference_id').attr('value');
+        let index = -1;
+        $('.percentages_table').each(function() {
+            $(this).find('thead').find('th').each(function(i) {
+                let column_header = $(this).prop('innerHTML');
+                if( column_header == reference_id ) {
+                    index = i;
+                }
+            });
+        });
+        let table_body = $('.highlighted').find('tbody');
+        table_body.find('tr').each(function() {
+            $(this).find('td').each(function(i) {
+                if (i == index ) {
+                    $(this).addClass('highlight_reference');
+                }
+            });
+        });
+    }
+    function add_table_tooltips() {
+        $('.percentages_table').each(function() {
+            let headers = [];
+            $(this).find('tr').each(function(i) {
+                if( i == 0 ) {
+                    $(this).find('th').each(function (j) {
+                        headers[j] = $(this).prop('innerHTML');
+                    });
+                } else {
+                    let function_name = "";
+                    $(this).find('td').each(function(k) {
+                        if( k == 0 ) {
+                            function_name = $(this).prop('innerHTML');
+                        } else {
+                            let header = headers[k];
+                            $(this).prop('title',function_name + ": " + header);
+                        }
+                    });
+                }
+            });
+        });
+    }
+    function check_all_clusters(thisBox) {
+        let num_clusters = document.getElementById("num_clusters").value;
+        let boxes = document.getElementsByClassName("cluster_checkbox");
+        for (let i = 0; i < boxes.length; ++i) {
+            if ( i < num_clusters ) {
+                boxes[i].checked = thisBox.checked;
+            }
+        }
+    }
+    function check_all_events(thisBox) {
+        let boxes = document.getElementsByClassName("event_checkbox");
+        for (let i = 0; i < boxes.length; ++i) {
+            boxes[i].checked = thisBox.checked;
+        }
+    }
+    function add_flamegraph_events() {
+        svg = document.getElementById("flamegraph");
+        let subdoc = getSubDocument(svg)
+        if ( subdoc ) {
+            plot = $(subdoc).find('svg')
+            addEvent(plot[0], "click", function(e) {
+                if ( e.target && e.target.parentNode.nodeName == "g"){
+                    wrap_flamegraph_onclick(e.target.parentNode);
+                }
+            });
+        }
+    }
+    function wrap_flamegraph_onclick(e) {
+        info_box = document.getElementById("flamegraph_info");
+        let info;
+        let children = e.childNodes;
+        for (let i=0; i<children.length;i++) {
+            if (children[i].tagName == "title") {
+                info = children[i].firstChild.nodeValue;
+            }
+        }
+        info_box.innerHTML = info;
+    }
+    function add_barchart_events(id) {
+        let event_chart = document.getElementById(id);
+        let chart = getSubDocument(event_chart);
+        if( chart ) {
+            $(chart).find('.bar').each(function() {
+                let id = $(this).find('.x_label').html();
+                let rect = $(this).find('.rect');
+                addEvent(rect[0], "click", function() {
+                    if( selection_mode == "select-reference-process") {
+                        let vals = {"new_ref_id":id};
+                        let x = JSON.stringify(vals);
+                        update_all_charts(id, x);
+                    } else {
+                        toggle_flamegraph(id);
+                    }
+                });
+            });
+            let tooltip = $(chart).find('.tooltip');
+            addEvent(tooltip[0], "click", function() {
+                let id = "";
+                $(this).closest('.tooltip').find('.x_label').each(function() {
+                    id = $(this).html();
+                });
+                if( selection_mode == "select-reference-process") {
+                    let vals = {"new_ref_id":id};
+                    let x = JSON.stringify(vals);
+                    update_all_charts(id, x);
+                } else {
+                    toggle_flamegraph(id);
+                }
+            });
+        }
+    }
+    var svg = document.querySelector('svg');
+    var pt = svg.createSVGPoint();
+    // Get point in global SVG space
+    function cursorPoint(evt){
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      return pt;
+    //  return pt.matrixTransform(svg.getScreenCTM().inverse());
+    }
+    //Variables
+    var last_mousex;
+    var last_mousey;
+    var mousex;
+    var mousey;
+    var mousedown;
+    var offsetx;
+    var offsety;
+    function initialise_canvas(id) {
+        let scatter_plot = document.getElementById(id);
+        chart_canvas = getSubDocument(scatter_plot);
+        let rect = $(chart_canvas).find('.plot > rect');
+        last_mousex = last_mousey = 0;
+        mousex = mousey = 0;
+        mousedown = false;
+        addEvent(rect[0], "mousedown", function(e) {
+            let svg_object = document.getElementById(id);
+            let svg_pos = $(svg_object).offset(); // svg plot elements have coordinates relative to plot object
+            let canvas_container = document.getElementById("canvas_container");
+            let canvas_pos = $(canvas_container).offset();  // box has coordinates relative to container
+            offsetx = svg_pos.left - canvas_pos.left;
+            offsety = svg_pos.top - canvas_pos.top;
+            $('#dynamic_rectangle').show();
+            cursorPoint(e);
+            last_mousex = parseInt(pt.x);
+            last_mousey = parseInt(pt.y);
+            mousedown = true;
+        });
+        addEvent(rect[0], 'mouseup', function(e) {
+            mousedown = false;
+            cluster_zoom(id);
+        });
+        addEvent(rect[0], 'mousemove', function(e) {
+            cursorPoint(e);
+            mousex = parseInt(pt.x);
+            mousey = parseInt(pt.y);
+            if(mousedown) {
+                let x = last_mousex + offsetx;
+                let y = last_mousey + offsety;
+                let width = mousex - last_mousex;
+                let height = mousey - last_mousey;
+                $('#dynamic_rectangle').attr("x", x.toString());
+                $('#dynamic_rectangle').attr("y", y.toString());
+                $('#dynamic_rectangle').attr("width", width.toString());
+                $('#dynamic_rectangle').attr("height", height.toString());
+            }
+            //debug
+            //$('#output').html('current: '+mousex+', '+mousey+'<br/>last: '+last_mousex+', '+last_mousey+'<br/>mousedown: '+mousedown);
+        });
+    }
+    function cluster_zoom(id) {
+        let minx = Number.MAX_VALUE;
+        let maxx = -Number.MAX_VALUE;
+        let miny = Number.MAX_VALUE;
+        let maxy = -Number.MAX_VALUE;
+        let xlower = Math.min(mousex, last_mousex);
+        let ylower = Math.min(mousey, last_mousey);
+        let xupper = Math.max(mousex, last_mousex);
+        let yupper = Math.max(mousey, last_mousey);
+        let zoom = false;
+        let scatter_plot = document.getElementById(id);
+        chart_canvas = getSubDocument(scatter_plot);
+        $(chart_canvas).find('circle.dot').each(function() {
+            let pos = $(this).position();
+            let x = pos.left;
+            let y = pos.top;
+            if ( x >= xlower + offsetx && x <= xupper + offsetx && y >= ylower  + offsety && y <= yupper  + offsety) {
+                zoom = true;
+                let desc = $(this).siblings('.value').html();
+                let vals = desc.split(": ",2);
+                minx = Math.min(minx, parseFloat(vals[0]))
+                maxx = Math.max(maxx, parseFloat(vals[0]))
+                miny = Math.min(miny, parseFloat(vals[1]))
+                maxy = Math.max(maxy, parseFloat(vals[1]))
+            }
+        });
+        if ( zoom ) {
+            vals = {"minx":minx,"miny":miny,"maxx":maxx,"maxy":maxy};
+            let x = JSON.stringify(vals);
+            let label = "Selected Range";
+            update_all_charts(label, x);
+            $('#dynamic_rectangle').hide();
+        }
+    }
+    function reset_scatter_plot() {
+        maxx = Number.MAX_VALUE;
+        maxy = Number.MAX_VALUE;
+        minx = -Number.MAX_VALUE;
+        miny = -Number.MAX_VALUE;
+        vals = {"reset_filters":"", "minx":minx,"miny":miny,"maxx":maxx,"maxy":maxy};
+        let x = JSON.stringify(vals);
+        let label = "Complete Range";
+        update_all_charts(label, x);
+    }
+    function add_scatter_plot_events(id) {
+        initialise_canvas(id);
+        let scatter_plot = document.getElementById(id);
+        let chart = getSubDocument(scatter_plot);
+        if( chart ) {
+            plot = $(chart).find('.xy-graph')
+            addEvent(plot[0], "click", function(e) {
+                if ( e.target && e.target.nodeName == "circle"){
+                    let label = $(e.target).closest('.dots').find('.label').html();
+                    filter = label.split(":").slice(-1)[0].trim();
+                    let vals = {"text_filter":filter};
+                    let x = JSON.stringify(vals);
+                    update_all_charts(filter, x);
+                }
+            });
+            let tooltip_box = $(chart).find('.tooltip-box');
+            addEvent(tooltip_box[0], "click", function() {
+                let filter = "";
+                $(this).closest('.tooltip').find('.label').each(function() {
+                    label = $(this).html();
+                    filter = label.split(":").slice(-1)[0].trim();
+                });
+                let vals = {"text_filter":filter};
+                let x = JSON.stringify(vals);
+                update_all_charts(filter, x);
+            });
+        }
+    }
+    function update_selected_clusters() {
+        let selected_clusters = [];
+        let num_clusters = document.getElementById("num_clusters").value
+        $('.cluster_checkbox').each(function () {
+            if ($(this).is(':checked')) {
+                let name = $(this).attr('name');
+                if (parseInt(name) <= parseInt(num_clusters)) {
+                    selected_clusters.push(name);
+                }
+            }
+        });
+        let vals = {"selected_clusters": selected_clusters, "num_clusters": num_clusters};
+        let x = JSON.stringify(vals);
+        label = "Selected Clusters";
+        update_all_charts(label, x);
+    }
+    function update_selected_events() {
+        let selected_events = [];
+        $('.event_checkbox').each(function () {
+            if ($(this).is(':checked')) {
+                let name = $(this).attr('name');
+                selected_events.push(name);
+            }
+        });
+        let reference_event = document.getElementById("reference_event").value
+        let vals = {"selected_events": selected_events, "reference_event": reference_event};
+        let x = JSON.stringify(vals);
+        label = "Selected Events";
+        update_all_charts(label, x);
+    }
+    function update_selected_processes(e) {
+        let selected_processes = [];
+        $('.thread_checkbox,.process_checkbox,.job_checkbox').each(function () {
+            if ($(this).is(':checked')) {
+                let name = $(this).attr('name');
+                selected_processes.push(name);
+            }
+        });
+        let base_event_reference_id = document.getElementById("base_event_reference_id").value
+        let vals = {"process_ids": selected_processes, "base_event_reference_id": base_event_reference_id};
+        let x = JSON.stringify(vals);
+        label = "Selected Processes";
+        update_all_charts(label, x);
+    }
+    function flamegraph_filter(e) {
+        let info = document.getElementById("flamegraph_info").innerHTML;
+        let pattern = /[^\s]+/;
+        let filter = info.match(pattern)[0];
+        label = filter;
+        if( filter == "all" ) {
+            filter = ""; // match anything
+        }
+        let vals = {"text_filter":filter};
+        let x = JSON.stringify(vals);
+        update_all_charts(label, x);
+        $('#text_filter').prop('value', filter);
+    }
+    function apply_text_filter(id) {
+        let filter = $(document.getElementById(id)).prop("value");
+        label = "Match " + filter;
+        let vals = {"text_filter":filter};
+        let x = JSON.stringify(vals);
+        update_all_charts(label, x);
+    }
+    function update_all_charts(label, x) {
+        showLoaders("Loading Data For " + label);
+        $.ajax({
+            url:"{{url_for('AnalysisView.update_all_charts')}}",
+            contentType: 'application/json;charset=UTF-8',
+            data:x,
+            type: 'POST',
+            success: function(response) {
+                console.log(response);
+                document.getElementById("event_totals_chart").data = response.event_totals_chart;
+                document.getElementById("event_totals_table").innerHTML = response.event_totals_table;
+                if( response.event_ratios_chart != undefined ) {
+                    document.getElementById("event_ratios_chart").data = response.event_ratios_chart;
+                }
+                if( response.scatter_plot != undefined ) {
+                    document.getElementById("scatter_plot").data = response.scatter_plot;
+                }
+                document.getElementById("text_filter").value = response.text_filter;
+                document.getElementById("point_filter").value = response.text_filter;
+                document.getElementById("flamegraph").data = response.flamegraph;
+                document.getElementById("flamegraph_reference_case").innerHTML = "Reference Case: " + response.id;
+                document.getElementById("reference_id").value = response.reference_id;
+                document.getElementById("reference_count").value = response.reference_count;
+                let checkbox = document.getElementById(response.event_name_ref + "_ref");
+                check_event_reference_boxes(checkbox, response.reference_event);
+                checkbox = document.getElementById(response.base_event_reference_id + "_ref");
+                check_process_reference_boxes(checkbox, response.base_event_reference_id);
+                document.getElementById("flamegraph_info").innerHTML = "";
+                append_count_percentages();
+                highlight_reference_column();
+                add_table_tooltips();
+                hideLoaders();
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+    function filter_threads(inputbox) {
+        let threshold = parseFloat($(inputbox).prop("value"));
+        let boxes = document.getElementsByClassName("thread_checkbox");
+        for (let i=0; i<boxes.length; ++i) {
+            let pc = parseFloat($(boxes[i]).closest('.flex-row').find('.summed_percentage').attr('value'));
+            if (pc < threshold) {
+                boxes[i].checked = false;
+                $(boxes[i]).closest('.flex-row').hide();
+            } else {
+                $(boxes[i]).closest('.flex-row').show();
+            }
+        }
+        count_all_checkboxes();
+    }
+    function getSubDocument(embedding_element)
+    {
+        if (embedding_element.contentDocument)
+        {
+            return embedding_element.contentDocument;
+        }
+        else
+        {
+            let subdoc = null;
+            try {
+                subdoc = embedding_element.getSVGDocument();
+            } catch(e) {}
+            return subdoc;
+        }
+    }
+    function addEvent(obj, evType, fn) {
+        if (obj.addEventListener) {
+            obj.addEventListener(evType, fn, false);
+            return true;
+        } else if (obj.attachEvent) {
+            let r = obj.attachEvent("on" + evType, fn);
+            return r;
+        } else {
+            alert("Handler could not be attached");
+        }
+    }
+    window.onload = function()  {
+        hideLoaders();
+        $('.table_controls').hide();
+        $('.chart_controls').show();
+        $('#cluster_controls').hide();
+        $('input[type=checkbox]').each(function () {
+            $(this).click(function () {
+            count_all_checkboxes();
+            });
+        });
+        count_all_checkboxes();
+        sum_checkbox_percentages();
+        insert_gradient_bars();
+        fill_dynamic_text();
+        append_count_percentages();
+        highlight_reference_column();
+        add_table_tooltips();
+    }
+    function toggleChevron(e) {
+        $(e.target).prevUntil('.panel .panel-default')
+            .find("i.indicator")
+            .toggleClass('glyphicon-chevron-left glyphicon-chevron-down');
+    }
+    $('#accordion').on('hidden.bs.collapse', toggleChevron);
+    $('#accordion').on('shown.bs.collapse', toggleChevron);
+    function insert_gradient_bars() {
+        $('.gradient_bar').each(function () {
+            let pc = $(this).prop('value');
+            // jQuery does not set the property 'value' to the initial value? Get the attribute 'value' instead
+            if( typeof pc == 'undefined' ) {
+               pc = $(this).attr('value');
+            }
+            let offset = Math.round(300 - 2*pc).toString()
+            $(this).css("height","20px");
+            $(this).css("width", Math.round(pc).toString() + "%");
+            $(this).css("background","linear-gradient(to right, green, red " + offset + "%");
+        });
+    }
+    function showLoaders(message) {
+        $('.loader').each(function() {
+            $(this).prop("innerHTML", message);
+            $(this).show();
+        });
+    }
+    function hideLoaders() {
+        setTimeout(hideLoaderTimeout, 2500);
+        $('.loader').each(function() {
+            $(this).prop('innerHTML', "Data Update Complete");
+        });
+    }
+    function hideLoaderTimeout(loader) {
+        $('.loader').each(function() {
+            $(this).hide();
+        });
+    }
+    function clear_loaded_data() {
+        $("#clear_data_form").submit();
+    }
+
+</script>
+
+{% endblock %}

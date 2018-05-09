@@ -1,0 +1,21 @@
+{% extends "base.html"%}
+{% block layouttitle %}<h1>Perf Analyzer Overview</h1>{% endblock %}
+{% block content %}
+<!--Insert content here-->
+<!-- IFRAME -->
+<link href="{{ url_for('static', filename='css/fromword.css') }}" rel="stylesheet">
+
+<h2 class="underline-title">General Info</h2>
+Browser based user interface, for performance profiling with the Linux perf hardware counters.
+
+<h2 class="underline-title">Browser Support</h2>
+By default, the application launches with the system default browser. This can be changed by providing the path to an alternative browser as a command line argument (i.e. --browser=<i>path_to_browser</i>).
+The recommended browser is Chrome, or Firefox.
+
+<h2 class="underline-title">Operating System</h2>
+Due to the dependence on perf, the performance profiling can only be performed on a Linux system. However, the user interface can be run on Windows or Linux.
+When running the user interface on Windows the Secure Shell (SSH) option must be used, to perform the performance profiling on a remote Linux System.
+
+{% endblock %}
+
+

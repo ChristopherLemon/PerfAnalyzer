@@ -1,0 +1,139 @@
+t=0.00
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 3
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 7
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;sys_write 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;sys_read 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 1
+t=0.50
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 3
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 5
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 3
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;sys_read 1
+t=1.00
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 3
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 3
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 5
+t=1.50
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 5
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 4
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 3
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;sys_read 1
+t=2.00
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 4
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 7
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 3
+t=2.50
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 3
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 4
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 4
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 4
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 2
+dd-0/0;read;entry_SYSCALL_64_stage2 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 1
+t=3.00
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 5
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 3
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;sys_read 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 4
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 2
+t=3.50
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 4
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 6
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 6
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;sys_write 1
+t=4.00
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 7
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 3
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;sys_write 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 4
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;sys_read 1
+t=4.50
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 3
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 6
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 6
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 3
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;write_null 1
+t=5.00
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 6
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 3
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 3
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 4
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 3
+t=5.50
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 7
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 3
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 3
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 5
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 1
+t=6.00
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 3
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 4
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 2
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 5
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 3
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;sys_write 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 1
+t=6.50
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 8
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;sys_read 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 4
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 2
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 1
+t=7.00
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 7
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 4
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user 7
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 1
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;rw_verify_area;security_file_permission;apparmor_file_permission;common_file_perm 1
+t=7.50
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe 1
+dd-0/0;__GI___libc_write;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_write;vfs_write 1
+t=7.55

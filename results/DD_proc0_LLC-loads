@@ -1,0 +1,5 @@
+t=0.00
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;vfs_read;__vfs_read;new_sync_read;read_iter_zero;iov_iter_zero;clear_user;__clear_user;apic_timer_interrupt;smp_apic_timer_interrupt;hrtimer_interrupt;__hrtimer_run_queues;tick_sched_timer;tick_sched_handle;update_process_times;scheduler_tick;task_tick_fair;update_curr;update_min_vruntime 1
+t=1.00
+dd-0/0;read;[unknown] 1
+t=2.75

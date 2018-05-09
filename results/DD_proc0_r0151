@@ -1,0 +1,7 @@
+t=0.00
+dd-0/0;read;syscall_return_via_sysret 1
+t=0.50
+dd-0/0;read;apic_timer_interrupt;smp_apic_timer_interrupt;irq_exit;__softirqentry_text_start;rcu_process_callbacks;rcu_report_qs_rnp;rcu_gp_kthread_wake;swake_up;swake_up_locked.part.2;wake_up_process;try_to_wake_up;select_task_rq_fair 1
+t=1.00
+dd-0/0;read;entry_SYSCALL_64_after_hwframe;do_syscall_64;sys_read;apic_timer_interrupt;smp_apic_timer_interrupt;hrtimer_interrupt;__hrtimer_run_queues;tick_sched_timer;tick_sched_do_timer 1
+t=5.17

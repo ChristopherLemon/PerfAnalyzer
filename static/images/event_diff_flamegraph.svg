@@ -1,0 +1,1471 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" width="100%" height="100%" onload="init(evt)" onresize="resize(evt)" viewBox="0 0 1200 306" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->
+<defs >
+    <linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
+        <stop stop-color="#eeeeee" stop-opacity="0.0" offset="5%" />
+        <stop stop-color="#eeeeee" stop-opacity="1.0" offset="15%" />
+        <stop stop-color="#eeeeb0" stop-opacity="1.0" offset="100%" />
+    </linearGradient>
+</defs>
+<style type="text/css">
+    .func_g:hover { stroke:black; stroke-width:0.5; cursor:pointer; }
+</style>
+<script type="text/ecmascript">
+<![CDATA[
+    var details, searchbtn, matchedtxt, svg, globalscale;
+    function init(evt) {
+        details = document.getElementById("details").firstChild;
+        searchbtn = document.getElementById("search");
+        matchedtxt = document.getElementById("matched");
+        svg = document.getElementsByTagName("svg")[0];
+        globalscale = svg.viewBox.baseVal.width/svg.width.baseVal.value;
+        searching = 0;
+    }
+    function resize(evt) {
+        svg = document.getElementsByTagName("svg")[0];
+        globalscale = svg.viewBox.baseVal.width/svg.width.baseVal.value;
+    }
+
+    // mouse-over for info
+    function s(node) {      // show
+        info = g_to_text(node);
+        details.nodeValue = "Function " + info;
+    }
+    function c() {          // clear
+        details.nodeValue = ' ';
+    }
+
+    // ctrl-F for search
+    window.addEventListener("keydown",function (e) {
+        if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
+            e.preventDefault();
+            search_prompt();
+        }
+    })
+
+    // functions
+    function find_child(parent, name, attr) {
+        var children = parent.childNodes;
+        for (var i=0; i<children.length;i++) {
+            if (children[i].tagName == name)
+                return (attr != undefined) ? children[i].attributes[attr].value : children[i];
+        }
+        return;
+    }
+    function orig_save(e, attr, val) {
+        if (e.attributes["_orig_"+attr] != undefined) return;
+        if (e.attributes[attr] == undefined) return;
+        if (val == undefined) val = e.attributes[attr].value;
+        e.setAttribute("_orig_"+attr, val);
+    }
+    function orig_load(e, attr) {
+        if (e.attributes["_orig_"+attr] == undefined) return;
+        e.attributes[attr].value = e.attributes["_orig_"+attr].value;
+        e.removeAttribute("_orig_"+attr);
+    }
+    function g_to_text(e) {
+        var text = find_child(e, "title").firstChild.nodeValue;
+        return (text)
+    }
+    function g_to_func(e) {
+        var func = g_to_text(e);
+        if (func != null)
+            func = func.replace(/ .*/, "");
+        return (func);
+    }
+    function update_text(e) {
+        var r = find_child(e, "rect");
+        var t = find_child(e, "text");
+        var w = parseFloat(r.attributes["width"].value) -3;
+        var txt = find_child(e, "title").textContent.replace(/\([^(]*\)$/,"");
+        t.attributes["x"].value = parseFloat(r.attributes["x"].value) +3;
+
+        // Smaller than this size won't fit anything
+        if (w < 2*12*0.59) {
+            t.textContent = "";
+            return;
+        }
+
+        t.textContent = txt;
+        // Fit in full text width
+        if (/^ *$/.test(txt) || t.getSubStringLength(0, txt.length) < w)
+            return;
+
+        for (var x=txt.length-2; x>0; x--) {
+            if (t.getSubStringLength(0, x+2) <= w) {
+                t.textContent = txt.substring(0,x) + "..";
+                return;
+            }
+        }
+        t.textContent = "";
+    }
+
+    // zoom
+    function zoom_reset(e) {
+        if (e.attributes != undefined) {
+            orig_load(e, "x");
+            orig_load(e, "width");
+        }
+        if (e.childNodes == undefined) return;
+        for(var i=0, c=e.childNodes; i<c.length; i++) {
+            zoom_reset(c[i]);
+        }
+    }
+    function zoom_child(e, x, ratio) {
+        if (e.attributes != undefined) {
+            if (e.attributes["x"] != undefined) {
+                orig_save(e, "x");
+                e.attributes["x"].value = (parseFloat(e.attributes["x"].value) - x - 10) * ratio + 10;
+                if(e.tagName == "text") e.attributes["x"].value = find_child(e.parentNode, "rect", "x") + 3;
+            }
+            if (e.attributes["width"] != undefined) {
+                orig_save(e, "width");
+                e.attributes["width"].value = parseFloat(e.attributes["width"].value) * ratio;
+            }
+        }
+
+        if (e.childNodes == undefined) return;
+        for(var i=0, c=e.childNodes; i<c.length; i++) {
+            zoom_child(c[i], x-10, ratio);
+        }
+    }
+    function zoom_parent(e) {
+        if (e.attributes) {
+            if (e.attributes["x"] != undefined) {
+                orig_save(e, "x");
+                e.attributes["x"].value = 10;
+            }
+            if (e.attributes["width"] != undefined) {
+                orig_save(e, "width");
+                e.attributes["width"].value = parseInt(globalscale*svg.width.baseVal.value) - (10*2);
+            }
+        }
+        if (e.childNodes == undefined) return;
+        for(var i=0, c=e.childNodes; i<c.length; i++) {
+            zoom_parent(c[i]);
+        }
+    }
+    function zoom(node) {
+        svg = document.getElementsByTagName("svg")[0];
+        globalscale = svg.viewBox.baseVal.width/svg.width.baseVal.value;
+        var attr = find_child(node, "rect").attributes;
+        var width = parseFloat(attr["width"].value);
+        var xmin = parseFloat(attr["x"].value);
+        var xmax = parseFloat(xmin + width);
+        var ymin = parseFloat(attr["y"].value);
+        var ratio = (globalscale*svg.width.baseVal.value - 2*10) / width;
+
+        // XXX: Workaround for JavaScript float issues (fix me)
+        var fudge = 0.0001;
+
+        var unzoombtn = document.getElementById("unzoom");
+        unzoombtn.style["opacity"] = "1.0";
+
+        var el = document.getElementsByTagName("g");
+        for(var i=0;i<el.length;i++){
+            var e = el[i];
+            var a = find_child(e, "rect").attributes;
+            var ex = parseFloat(a["x"].value);
+            var ew = parseFloat(a["width"].value);
+            // Is it an ancestor
+            if (0 == 0) {
+                var upstack = parseFloat(a["y"].value) > ymin;
+            } else {
+                var upstack = parseFloat(a["y"].value) < ymin;
+            }
+            if (upstack) {
+                // Direct ancestor
+                if (ex <= xmin && (ex+ew+fudge) >= xmax) {
+                    e.style["opacity"] = "0.5";
+                    zoom_parent(e);
+                    e.onclick = function(e){unzoom(); zoom(this);};
+                    update_text(e);
+                }
+                // not in current path
+                else
+                    e.style["display"] = "none";
+            }
+            // Children maybe
+            else {
+                // no common path
+                if (ex < xmin || ex + fudge >= xmax) {
+                    e.style["display"] = "none";
+                }
+                else {
+                    zoom_child(e, xmin, ratio);
+                    e.onclick = function(e){zoom(this);};
+                    update_text(e);
+                }
+            }
+        }
+    }
+    function unzoom() {
+        var unzoombtn = document.getElementById("unzoom");
+        unzoombtn.style["opacity"] = "0.0";
+
+        var el = document.getElementsByTagName("g");
+        for(i=0;i<el.length;i++) {
+            el[i].style["display"] = "block";
+            el[i].style["opacity"] = "1";
+            zoom_reset(el[i]);
+            update_text(el[i]);
+        }
+    }
+
+    // search
+    function reset_search() {
+        var el = document.getElementsByTagName("rect");
+        for (var i=0; i < el.length; i++) {
+            orig_load(el[i], "fill")
+        }
+    }
+    function search_prompt() {
+        if (!searching) {
+            var term = prompt("Enter a search term (regexp " +
+                "allowed, eg: ^ext4_)", "");
+            if (term != null) {
+                search(term)
+            }
+        } else {
+            reset_search();
+            searching = 0;
+            searchbtn.style["opacity"] = "0.1";
+            searchbtn.firstChild.nodeValue = "Search"
+            matchedtxt.style["opacity"] = "0.0";
+            matchedtxt.firstChild.nodeValue = ""
+        }
+    }
+    function search(term) {
+        var re = new RegExp(term);
+        var el = document.getElementsByTagName("g");
+        var matches = new Object();
+        var maxwidth = 0;
+        for (var i = 0; i < el.length; i++) {
+            var e = el[i];
+            if (e.attributes["class"].value != "func_g")
+                continue;
+            var func = g_to_func(e);
+            var rect = find_child(e, "rect");
+            if (rect == null) {
+                // the rect might be wrapped in an anchor
+                // if nameattr href is being used
+                if (rect = find_child(e, "a")) {
+                    rect = find_child(r, "rect");
+                }
+            }
+            if (func == null || rect == null)
+                continue;
+
+            // Save max width. Only works as we have a root frame
+            var w = parseFloat(rect.attributes["width"].value);
+            if (w > maxwidth)
+                maxwidth = w;
+
+            if (func.match(re)) {
+                // highlight
+                var x = parseFloat(rect.attributes["x"].value);
+                orig_save(rect, "fill");
+                rect.attributes["fill"].value =
+                    "rgb(230,0,230)";
+
+                // remember matches
+                if (matches[x] == undefined) {
+                    matches[x] = w;
+                } else {
+                    if (w > matches[x]) {
+                        // overwrite with parent
+                        matches[x] = w;
+                    }
+                }
+                searching = 1;
+            }
+        }
+        if (!searching)
+            return;
+
+        searchbtn.style["opacity"] = "1.0";
+        searchbtn.firstChild.nodeValue = "Reset Search"
+
+        // calculate percent matched, excluding vertical overlap
+        var count = 0;
+        var lastx = -1;
+        var lastw = 0;
+        var keys = Array();
+        for (k in matches) {
+            if (matches.hasOwnProperty(k))
+                keys.push(k);
+        }
+        // sort the matched frames by their x location
+        // ascending, then width descending
+        keys.sort(function(a, b){
+                return a - b;
+            if (a < b || a > b)
+                return a - b;
+            return matches[b] - matches[a];
+        });
+        // Step through frames saving only the biggest bottom-up frames
+        // thanks to the sort order. This relies on the tree property
+        // where children are always smaller than their parents.
+        for (var k in keys) {
+            var x = parseFloat(keys[k]);
+            var w = matches[keys[k]];
+            if (x >= lastx + lastw) {
+                count += w;
+                lastx = x;
+                lastw = w;
+            }
+        }
+        // display matched percent
+        matchedtxt.style["opacity"] = "1.0";
+        pct = 100 * count / maxwidth;
+        if (pct == 100)
+            pct = "100"
+        else
+            pct = pct.toFixed(1)
+        matchedtxt.firstChild.nodeValue = "Matched: " + pct + "%";
+    }
+    function searchover(e) {
+        searchbtn.style["opacity"] = "1.0";
+    }
+    function searchout(e) {
+        if (searching) {
+            searchbtn.style["opacity"] = "1.0";
+        } else {
+            searchbtn.style["opacity"] = "0.1";
+        }
+    }
+]]>
+</script>
+<rect x="0.0" y="0" width="1200.0" height="306.0" fill="url(#background)" />
+<text text-anchor="middle" x="600.00" y="24" font-size="17" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+<text text-anchor="" x="10.00" y="289" font-size="12" font-family="Verdana" fill="rgb(0,0,0)" id="details" > </text>
+<text text-anchor="" x="10.00" y="24" font-size="12" font-family="Verdana" fill="rgb(0,0,0)" id="unzoom" onclick="unzoom()" style="opacity:0.0;cursor:pointer" >Reset Zoom</text>
+<text text-anchor="" x="1090.00" y="24" font-size="12" font-family="Verdana" fill="rgb(0,0,0)" id="search" onmouseover="searchover()" onmouseout="searchout()" onclick="search_prompt()" style="opacity:0.1;cursor:pointer" >Search</text>
+<text text-anchor="" x="1090.00" y="289" font-size="12" font-family="Verdana" fill="rgb(0,0,0)" id="matched" > </text>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 52 samples, 0.0094%; Exclusive: 52 samples, 0.0094%; Difference: 0.0000%)</title><rect x="423.3" y="193" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.27" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_call (Inclusive: 68,996 samples, 12.4856%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="204.5" y="129" width="147.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="207.49" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_fork_call</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 228 samples, 0.0413%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="53.6" y="81" width="0.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="56.59" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmpc_fork_call (Inclusive: 7,424 samples, 1.3435%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="88.4" y="145" width="15.9" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="91.40" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>all (552,604 samples, 100%)</title><rect x="10.0" y="257" width="1180.0" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="13.00" y="267.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_internal_join (Inclusive: 615 samples, 0.1113%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="351.8" y="113" width="1.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="354.82" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_add_ (Inclusive: 21,111 samples, 3.8203%; Exclusive: 21,111 samples, 3.8203%; Difference: 0.0147%)</title><rect x="113.5" y="81" width="45.1" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="116.49" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benc..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 144 samples, 0.0261%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.9" y="177" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.92" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>MAIN__ (Inclusive: 191,366 samples, 34.6299%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="10.0" y="177" width="408.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="13.01" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >MAIN__</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_add_ (Inclusive: 21,134 samples, 3.8244%; Exclusive: 21,134 samples, 3.8244%; Difference: 0.0090%)</title><rect x="159.2" y="81" width="45.1" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="162.17" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benc..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>main (Inclusive: 191,367 samples, 34.6300%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="10.0" y="193" width="408.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="13.01" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >main</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_x86_pause (Inclusive: 57 samples, 0.0103%; Exclusive: 57 samples, 0.0103%; Difference: -0.0244%)</title><rect x="113.4" y="81" width="0.1" height="15.0" fill="rgb(208,208,255)" rx="2" ry="2"/>
+<text text-anchor="" x="116.35" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_call (Inclusive: 7,369 samples, 1.3335%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="88.5" y="129" width="15.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="91.52" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 7,369 samples, 1.3335%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="88.5" y="113" width="15.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="91.52" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 89 samples, 0.0161%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.9" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.95" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 99 samples, 0.0179%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.1" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.06" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_launch_thread (Inclusive: 172,690 samples, 31.2502%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.2" y="177" width="368.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="824.23" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_launch_thread</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 47 samples, 0.0085%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.6" y="113" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.56" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_vector_product_ (Inclusive: 231 samples, 0.0418%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.4" y="209" width="0.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.43" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>do_softirq (Inclusive: 47 samples, 0.0085%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.1" y="145" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.10" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 68 samples, 0.0123%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.4" y="129" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.43" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 49 samples, 0.0089%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.7" y="193" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.66" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 219 samples, 0.0396%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="844.1" y="129" width="0.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="847.10" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_2_ (Inclusive: 7,400 samples, 1.3391%; Exclusive: 7,400 samples, 1.3391%; Difference: 0.0056%)</title><rect x="904.3" y="129" width="15.8" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="907.29" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 61 samples, 0.0110%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.2" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.24" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 76 samples, 0.0138%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.2" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.21" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_2_ (Inclusive: 70 samples, 0.0127%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.2" y="209" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.19" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__intel_ssse3_rep_memcpy (Inclusive: 11,728 samples, 2.1223%; Exclusive: 11,728 samples, 2.1223%; Difference: 0.0130%)</title><rect x="844.9" y="129" width="25.1" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="847.94" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_vector_product_ (Inclusive: 49,058 samples, 8.8776%; Exclusive: 49,058 samples, 8.8776%; Difference: -3.2110%)</title><rect x="1019.1" y="129" width="104.8" height="15.0" fill="rgb(0,0,255)" rx="2" ry="2"/>
+<text text-anchor="" x="1022.14" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchmarks_I..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks.exe-0/2 (Inclusive: 186,127 samples, 33.6818%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.1" y="225" width="397.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.08" y="235.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchmarks.exe-0/2</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 53 samples, 0.0096%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.0" y="145" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.98" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 68,996 samples, 12.4856%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="204.5" y="113" width="147.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="207.49" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_invoke_task_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>schedule (Inclusive: 139 samples, 0.0252%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="818.6" y="161" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="821.62" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 11,731 samples, 2.1229%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="28.5" y="113" width="25.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="31.54" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 86 samples, 0.0156%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.9" y="161" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.92" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_launch_worker (Inclusive: 184,947 samples, 33.4683%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.6" y="193" width="394.9" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.59" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_launch_worker</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_call (Inclusive: 16,027 samples, 2.9003%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="54.2" y="129" width="34.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="57.18" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 90 samples, 0.0163%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.4" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.43" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 101 samples, 0.0183%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.2" y="145" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.21" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 139 samples, 0.0252%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.1" y="161" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.06" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_init_ (Inclusive: 5,003 samples, 0.9053%; Exclusive: 1,045 samples, 0.1891%; Difference: 0.1891%)</title><rect x="10.0" y="161" width="10.7" height="15.0" fill="rgb(255,197,197)" rx="2" ry="2"/>
+<text text-anchor="" x="13.02" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 179 samples, 0.0324%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.9" y="193" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.95" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 159 samples, 0.0288%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.4" y="193" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.43" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_matrix_product_ (Inclusive: 31,296 samples, 5.6634%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="351.8" y="161" width="66.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="354.82" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchma..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_x86_pause (Inclusive: 47 samples, 0.0085%; Exclusive: 47 samples, 0.0085%; Difference: -0.0201%)</title><rect x="54.1" y="81" width="0.1" height="15.0" fill="rgb(208,208,255)" rx="2" ry="2"/>
+<text text-anchor="" x="57.08" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 101 samples, 0.0183%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.2" y="161" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.21" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_x86_pause (Inclusive: 1,196 samples, 0.2164%; Exclusive: 1,196 samples, 0.2164%; Difference: 0.0000%)</title><rect x="433.7" y="129" width="2.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="436.70" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>get_page_from_freelist (Inclusive: 48 samples, 0.0087%; Exclusive: 42 samples, 0.0076%; Difference: 0.0076%)</title><rect x="20.4" y="33" width="0.1" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="23.44" y="43.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_vector_product_ (Inclusive: 219 samples, 0.0396%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.9" y="209" width="0.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.92" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 76 samples, 0.0138%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.6" y="129" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.56" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_hyper_barrier_release (Inclusive: 11,103 samples, 2.0092%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.2" y="145" width="23.7" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="824.23" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 66 samples, 0.0119%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.2" y="129" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.24" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>do_page_fault (Inclusive: 3,957 samples, 0.7161%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="12.3" y="129" width="8.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="15.25" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 53 samples, 0.0096%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.0" y="161" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.98" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_2_ (Inclusive: 7,369 samples, 1.3335%; Exclusive: 7,369 samples, 1.3335%; Difference: 0.0002%)</title><rect x="88.5" y="81" width="15.8" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="91.52" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 72 samples, 0.0130%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.4" y="177" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.39" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>start_thread (Inclusive: 184,947 samples, 33.4683%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.6" y="209" width="394.9" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.59" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >start_thread</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 161,586 samples, 29.2408%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="844.9" y="161" width="345.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="847.94" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_invoke_task_func</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 55 samples, 0.0100%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.8" y="177" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.84" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 135 samples, 0.0244%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.5" y="177" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.49" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_yield (Inclusive: 176 samples, 0.0318%; Exclusive: 176 samples, 0.0318%; Difference: 0.0132%)</title><rect x="844.6" y="129" width="0.3" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="847.57" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 113 samples, 0.0204%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.5" y="161" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.52" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 183 samples, 0.0331%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.1" y="193" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.06" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 459 samples, 0.0831%; Exclusive: 459 samples, 0.0831%; Difference: -0.2106%)</title><rect x="352.1" y="81" width="1.0" height="15.0" fill="rgb(196,196,255)" rx="2" ry="2"/>
+<text text-anchor="" x="355.13" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_2_ (Inclusive: 52 samples, 0.0094%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.6" y="209" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.58" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 75 samples, 0.0136%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.2" y="145" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.24" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>schedule (Inclusive: 69 samples, 0.0125%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.2" y="161" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.17" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 53 samples, 0.0096%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.4" y="97" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.43" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_vector_product_ (Inclusive: 66,802 samples, 12.0886%; Exclusive: 66,802 samples, 12.0886%; Difference: 0.0000%)</title><rect x="610.1" y="129" width="142.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="613.06" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchmarks_IP_matr..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 178,778 samples, 32.3519%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="436.8" y="145" width="381.7" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="439.76" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >L_kmp_invoke_pass_parms</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 7,369 samples, 1.3335%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="88.5" y="97" width="15.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="91.52" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__intel_ssse3_rep_memcpy (Inclusive: 11,656 samples, 2.1093%; Exclusive: 11,656 samples, 2.1093%; Difference: 0.0000%)</title><rect x="436.8" y="129" width="24.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="439.76" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 110 samples, 0.0199%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.2" y="177" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.24" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 79 samples, 0.0143%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.5" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.52" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 16,027 samples, 2.9003%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="54.2" y="97" width="34.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="57.18" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >L_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 161,586 samples, 29.2408%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="844.9" y="145" width="345.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="847.94" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >L_kmp_invoke_pass_parms</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_yield (Inclusive: 112 samples, 0.0203%; Exclusive: 112 samples, 0.0203%; Difference: 0.0000%)</title><rect x="436.2" y="113" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="439.25" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 58 samples, 0.0105%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.9" y="97" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.92" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_internal_join (Inclusive: 134 samples, 0.0242%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="28.3" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="31.25" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>do_huge_pmd_anonymous_page (Inclusive: 3,954 samples, 0.7155%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="12.3" y="81" width="8.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="15.25" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 126 samples, 0.0228%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.9" y="145" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.95" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_vector_product_ (Inclusive: 68,996 samples, 12.4856%; Exclusive: 68,996 samples, 12.4856%; Difference: 0.3970%)</title><rect x="204.5" y="81" width="147.3" height="15.0" fill="rgb(255,184,184)" rx="2" ry="2"/>
+<text text-anchor="" x="207.49" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchmarks_IP_matr..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 58 samples, 0.0105%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.9" y="193" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.93" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_matrix_product_ (Inclusive: 70 samples, 0.0127%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.9" y="209" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.93" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_4_ (Inclusive: 4,016 samples, 0.7267%; Exclusive: 4,016 samples, 0.7267%; Difference: 0.0000%)</title><rect x="511.6" y="129" width="8.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="514.55" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 55 samples, 0.0100%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.8" y="193" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.84" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmpc_fork_call (Inclusive: 21,417 samples, 3.8757%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="158.6" y="145" width="45.7" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="161.57" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__km..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 148 samples, 0.0268%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.9" y="193" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.92" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_yield (Inclusive: 188 samples, 0.0340%; Exclusive: 188 samples, 0.0340%; Difference: 0.0139%)</title><rect x="844.2" y="113" width="0.4" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="847.16" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_call (Inclusive: 134 samples, 0.0242%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="28.3" y="129" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="31.25" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>do_softirq (Inclusive: 47 samples, 0.0085%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.6" y="145" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.63" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_x86_pause (Inclusive: 67 samples, 0.0121%; Exclusive: 67 samples, 0.0121%; Difference: -0.0288%)</title><rect x="159.0" y="81" width="0.2" height="15.0" fill="rgb(208,208,255)" rx="2" ry="2"/>
+<text text-anchor="" x="162.02" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>sys_sched_yield (Inclusive: 125 samples, 0.0226%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.2" y="177" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.17" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 89 samples, 0.0161%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.9" y="161" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.87" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__do_page_fault (Inclusive: 3,957 samples, 0.7161%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="12.3" y="113" width="8.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="15.25" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmpc_fork_call (Inclusive: 21,386 samples, 3.8700%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="112.9" y="145" width="45.7" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="115.90" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__km..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 145 samples, 0.0262%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.6" y="193" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.56" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_call (Inclusive: 275 samples, 0.0498%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="112.9" y="129" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="115.90" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 79 samples, 0.0143%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.5" y="97" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.52" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 126 samples, 0.0228%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.9" y="193" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.87" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>scheduler_tick (Inclusive: 50 samples, 0.0090%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.1" y="81" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.06" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_call (Inclusive: 277 samples, 0.0501%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="53.6" y="129" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="56.59" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_add_ (Inclusive: 21,142 samples, 3.8259%; Exclusive: 21,142 samples, 3.8259%; Difference: 0.0203%)</title><rect x="928.7" y="129" width="45.2" height="15.0" fill="rgb(255,208,208)" rx="2" ry="2"/>
+<text text-anchor="" x="931.71" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benc..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 162 samples, 0.0293%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.8" y="193" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.77" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_ (Inclusive: 16,304 samples, 2.9504%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="53.6" y="161" width="34.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="56.59" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >be..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_call (Inclusive: 21,134 samples, 3.8244%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="159.2" y="129" width="45.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="162.17" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__km..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 50 samples, 0.0090%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="88.4" y="81" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="91.41" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>irq_exit (Inclusive: 47 samples, 0.0085%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.7" y="161" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.70" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_internal_join (Inclusive: 55 samples, 0.0100%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="88.4" y="113" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="91.40" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 21,111 samples, 3.8203%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="113.5" y="97" width="45.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="116.49" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >L_km..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 75 samples, 0.0136%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.2" y="97" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.21" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmpc_fork_call (Inclusive: 69,083 samples, 12.5014%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="204.3" y="145" width="147.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="207.30" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmpc_fork_call</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>start_thread (Inclusive: 172,690 samples, 31.2502%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.2" y="209" width="368.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="824.23" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >start_thread</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>put_prev_task_fair (Inclusive: 49 samples, 0.0089%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="818.7" y="145" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="821.71" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>page_fault (Inclusive: 1,962 samples, 0.3550%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="20.7" y="145" width="4.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="23.70" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>do_huge_pmd_anonymous_page (Inclusive: 1,961 samples, 0.3549%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="20.7" y="81" width="4.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="23.70" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 103 samples, 0.0186%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.6" y="161" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.56" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_ (Inclusive: 16,065 samples, 2.9071%; Exclusive: 16,065 samples, 2.9071%; Difference: 0.0114%)</title><rect x="870.0" y="129" width="34.3" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="872.98" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >be..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 21,134 samples, 3.8244%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="159.2" y="113" width="45.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="162.17" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__km..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 162 samples, 0.0293%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.5" y="177" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.52" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_call (Inclusive: 87 samples, 0.0157%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="204.3" y="129" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="207.30" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_add_ (Inclusive: 189 samples, 0.0342%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.5" y="209" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.52" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>page_fault (Inclusive: 3,958 samples, 0.7162%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="12.3" y="145" width="8.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="15.25" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_add_ (Inclusive: 21,417 samples, 3.8757%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="158.6" y="161" width="45.7" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="161.57" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benc..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 109 samples, 0.0197%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.1" y="129" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.06" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_add_ (Inclusive: 164 samples, 0.0297%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.2" y="209" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.21" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_matrix_product_ (Inclusive: 93 samples, 0.0168%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.4" y="209" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.39" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_barrier (Inclusive: 275 samples, 0.0498%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="112.9" y="97" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="115.90" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 68 samples, 0.0123%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.5" y="129" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.49" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_4_ (Inclusive: 4,036 samples, 0.7304%; Exclusive: 4,036 samples, 0.7304%; Difference: 0.0036%)</title><rect x="920.1" y="129" width="8.6" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="923.09" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_call (Inclusive: 615 samples, 0.1113%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="351.8" y="129" width="1.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="354.82" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_barrier (Inclusive: 11,103 samples, 2.0092%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.2" y="161" width="23.7" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="824.23" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_internal_join (Inclusive: 87 samples, 0.0157%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="204.3" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="207.30" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__intel_ssse3_rep_memcpy (Inclusive: 50 samples, 0.0090%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.7" y="209" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.66" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 94 samples, 0.0170%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.8" y="129" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.77" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks.exe-0/6 (Inclusive: 173,966 samples, 31.4811%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="818.5" y="225" width="371.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="821.52" y="235.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchmarks.exe-0/6</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 86 samples, 0.0156%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.9" y="145" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.92" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_call (Inclusive: 283 samples, 0.0512%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="158.6" y="129" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="161.57" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 21,134 samples, 3.8244%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="159.2" y="97" width="45.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="162.17" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >L_km..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_barrier (Inclusive: 55 samples, 0.0100%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="88.4" y="97" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="91.40" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 63 samples, 0.0114%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.9" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.92" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__intel_ssse3_rep_memcpy (Inclusive: 11,731 samples, 2.1229%; Exclusive: 11,731 samples, 2.1229%; Difference: 0.0136%)</title><rect x="28.5" y="81" width="25.1" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="31.54" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_ (Inclusive: 151 samples, 0.0273%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.9" y="209" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.87" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 73 samples, 0.0132%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.9" y="129" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.92" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>irq_exit (Inclusive: 51 samples, 0.0092%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.1" y="161" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.10" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 89 samples, 0.0161%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.5" y="145" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.49" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_internal_join (Inclusive: 283 samples, 0.0512%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="158.6" y="113" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="161.57" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_barrier (Inclusive: 134 samples, 0.0242%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="28.3" y="97" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="31.25" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 193 samples, 0.0349%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.4" y="193" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.43" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 88 samples, 0.0159%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.4" y="97" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.43" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_2_ (Inclusive: 7,424 samples, 1.3435%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="88.4" y="161" width="15.9" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="91.40" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 127 samples, 0.0230%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.4" y="145" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.43" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 4,022 samples, 0.7278%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="104.3" y="113" width="8.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="107.31" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmpc_fork_call (Inclusive: 16,304 samples, 2.9504%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="53.6" y="145" width="34.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="56.59" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 79 samples, 0.0143%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.0" y="177" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.98" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__alloc_pages_nodemask (Inclusive: 49 samples, 0.0089%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="20.4" y="49" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="23.44" y="59.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_yield (Inclusive: 103 samples, 0.0186%; Exclusive: 103 samples, 0.0186%; Difference: 0.0000%)</title><rect x="436.5" y="129" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="439.54" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 4,022 samples, 0.7278%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="104.3" y="97" width="8.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="107.31" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_matrix_product_ (Inclusive: 30,950 samples, 5.6008%; Exclusive: 30,950 samples, 5.6008%; Difference: 0.0237%)</title><rect x="1123.9" y="129" width="66.1" height="15.0" fill="rgb(255,208,208)" rx="2" ry="2"/>
+<text text-anchor="" x="1126.89" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchma..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 66 samples, 0.0119%; Exclusive: 66 samples, 0.0119%; Difference: -0.0302%)</title><rect x="204.3" y="81" width="0.1" height="15.0" fill="rgb(208,208,255)" rx="2" ry="2"/>
+<text text-anchor="" x="207.30" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_2_ (Inclusive: 7,369 samples, 1.3335%; Exclusive: 7,369 samples, 1.3335%; Difference: 0.0000%)</title><rect x="495.8" y="129" width="15.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="498.82" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>BENCH_P2_T12 (Inclusive: 552,604 samples, 100.0000%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="10.0" y="241" width="1180.0" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="13.00" y="251.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >BENCH_P2_T12</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_ (Inclusive: 152 samples, 0.0275%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.5" y="209" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.49" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 75 samples, 0.0136%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.4" y="193" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.39" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 142 samples, 0.0257%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.2" y="193" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.21" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 71 samples, 0.0128%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.9" y="97" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.87" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_ (Inclusive: 16,027 samples, 2.9003%; Exclusive: 16,027 samples, 2.9003%; Difference: 0.0045%)</title><rect x="54.2" y="81" width="34.2" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="57.18" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >be..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 81 samples, 0.0147%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.9" y="129" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.87" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_matrix_product_ (Inclusive: 30,819 samples, 5.5770%; Exclusive: 30,819 samples, 5.5770%; Difference: 0.0000%)</title><rect x="752.7" y="129" width="65.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="755.70" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchma..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 149 samples, 0.0270%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.5" y="193" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.49" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 21,111 samples, 3.8203%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="113.5" y="113" width="45.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="116.49" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__km..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_add_ (Inclusive: 21,386 samples, 3.8700%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="112.9" y="161" width="45.7" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="115.90" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benc..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 126 samples, 0.0228%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.9" y="161" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.95" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_add_ (Inclusive: 21,030 samples, 3.8056%; Exclusive: 21,030 samples, 3.8056%; Difference: 0.0000%)</title><rect x="520.1" y="129" width="44.9" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="523.13" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benc..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>scheduler_tick (Inclusive: 48 samples, 0.0087%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.4" y="81" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.43" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_add_ (Inclusive: 21,206 samples, 3.8375%; Exclusive: 21,206 samples, 3.8375%; Difference: 0.0221%)</title><rect x="973.9" y="129" width="45.2" height="15.0" fill="rgb(255,208,208)" rx="2" ry="2"/>
+<text text-anchor="" x="976.85" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benc..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 103 samples, 0.0186%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.6" y="145" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.56" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 62 samples, 0.0112%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.5" y="113" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.49" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 91 samples, 0.0165%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.4" y="161" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.43" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_ (Inclusive: 16,002 samples, 2.8957%; Exclusive: 16,002 samples, 2.8957%; Difference: 0.0000%)</title><rect x="461.6" y="129" width="34.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="464.65" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >be..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 57 samples, 0.0103%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.2" y="97" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.24" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 4,732 samples, 0.8563%; Exclusive: 4,732 samples, 0.8563%; Difference: 0.0000%)</title><rect x="423.6" y="129" width="10.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.59" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_call (Inclusive: 4,022 samples, 0.7278%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="104.3" y="129" width="8.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="107.31" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 180 samples, 0.0326%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.1" y="177" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.06" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__do_page_fault (Inclusive: 1,961 samples, 0.3549%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="20.7" y="113" width="4.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="23.70" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>irq_exit (Inclusive: 51 samples, 0.0092%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.6" y="161" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.63" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_matrix_product_ (Inclusive: 118 samples, 0.0214%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.0" y="209" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.98" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_4_ (Inclusive: 4,049 samples, 0.7327%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="104.3" y="161" width="8.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="107.25" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_internal_join (Inclusive: 275 samples, 0.0498%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="112.9" y="113" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="115.90" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_launch_thread (Inclusive: 184,947 samples, 33.4683%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.6" y="177" width="394.9" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.59" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_launch_thread</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmpc_fork_call (Inclusive: 31,296 samples, 5.6634%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="351.8" y="145" width="66.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="354.82" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmpc_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 87 samples, 0.0157%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.8" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.77" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_copy_ (Inclusive: 11,865 samples, 2.1471%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="28.3" y="161" width="25.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="31.25" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >b..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks.exe-0/0 (Inclusive: 192,511 samples, 34.8371%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="10.0" y="225" width="411.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="13.00" y="235.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchmarks.exe-0/0</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_call (Inclusive: 11,731 samples, 2.1229%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="28.5" y="129" width="25.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="31.54" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 89 samples, 0.0161%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.5" y="161" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.49" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 178,778 samples, 32.3519%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="436.8" y="161" width="381.7" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="439.76" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_invoke_task_func</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 107 samples, 0.0194%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.9" y="129" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.95" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 55 samples, 0.0100%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.9" y="177" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.93" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 91 samples, 0.0165%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.4" y="145" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.43" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 73 samples, 0.0132%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.9" y="113" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.87" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_2_ (Inclusive: 67 samples, 0.0121%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.8" y="209" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.84" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 85 samples, 0.0154%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.8" y="97" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.77" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>handle_mm_fault (Inclusive: 1,961 samples, 0.3549%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="20.7" y="97" width="4.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="23.70" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 58 samples, 0.0105%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.5" y="97" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.49" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 84 samples, 0.0152%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.5" y="129" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.52" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_call (Inclusive: 30,681 samples, 5.5521%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="353.1" y="129" width="65.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="356.13" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_f..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 127 samples, 0.0230%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.4" y="161" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.43" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_barrier (Inclusive: 6,167 samples, 1.1160%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.6" y="161" width="13.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.59" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 190 samples, 0.0344%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.4" y="177" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.43" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 212 samples, 0.0384%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="158.6" y="81" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="161.57" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_launch_worker (Inclusive: 172,690 samples, 31.2502%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.2" y="193" width="368.8" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="824.23" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_launch_worker</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>clear_page_c_e (Inclusive: 1,902 samples, 0.3442%; Exclusive: 1,902 samples, 0.3442%; Difference: 0.3442%)</title><rect x="20.7" y="65" width="4.1" height="15.0" fill="rgb(255,187,187)" rx="2" ry="2"/>
+<text text-anchor="" x="23.70" y="75.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_barrier (Inclusive: 277 samples, 0.0501%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="53.6" y="97" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="56.59" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 48 samples, 0.0087%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.4" y="145" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.39" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 102 samples, 0.0185%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.4" y="129" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.43" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_barrier (Inclusive: 615 samples, 0.1113%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="351.8" y="97" width="1.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="354.82" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>call_softirq (Inclusive: 47 samples, 0.0085%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.6" y="129" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.63" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>handle_mm_fault (Inclusive: 3,957 samples, 0.7161%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="12.3" y="97" width="8.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="15.25" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_x86_pause (Inclusive: 134 samples, 0.0242%; Exclusive: 134 samples, 0.0242%; Difference: -0.0575%)</title><rect x="351.8" y="81" width="0.3" height="15.0" fill="rgb(206,206,255)" rx="2" ry="2"/>
+<text text-anchor="" x="354.85" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_vector_product_ (Inclusive: 69,083 samples, 12.5014%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="204.3" y="161" width="147.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="207.30" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchmarks_IP_matr..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 16,027 samples, 2.9003%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="54.2" y="113" width="34.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="57.18" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_barrier (Inclusive: 283 samples, 0.0512%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="158.6" y="97" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="161.57" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__sched_yield (Inclusive: 290 samples, 0.0525%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="818.6" y="209" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="821.62" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 120 samples, 0.0217%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.8" y="145" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.77" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 113 samples, 0.0204%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.2" y="193" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.24" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 165 samples, 0.0299%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.5" y="193" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.52" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_internal_join (Inclusive: 277 samples, 0.0501%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="53.6" y="113" width="0.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="56.59" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_vector_product_ (Inclusive: 199 samples, 0.0360%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.6" y="209" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.56" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 30,681 samples, 5.5521%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="353.1" y="97" width="65.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="356.13" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >L_kmp_i..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_fork_call (Inclusive: 21,111 samples, 3.8203%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="113.5" y="129" width="45.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="116.49" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__km..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 179 samples, 0.0324%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.9" y="177" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.95" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 120 samples, 0.0217%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.8" y="161" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.77" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>system_call_fastpath (Inclusive: 236 samples, 0.0427%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="818.6" y="193" width="0.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="821.62" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_add_ (Inclusive: 21,084 samples, 3.8154%; Exclusive: 21,084 samples, 3.8154%; Difference: 0.0000%)</title><rect x="565.0" y="129" width="45.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="568.04" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benc..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 213 samples, 0.0385%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="112.9" y="81" width="0.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="115.90" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>tick_sched_timer (Inclusive: 60 samples, 0.0109%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.4" y="113" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.43" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 129 samples, 0.0233%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.1" y="145" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.06" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 48 samples, 0.0087%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.4" y="161" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.39" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 113 samples, 0.0204%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.5" y="145" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.52" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 65 samples, 0.0118%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.2" y="193" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.19" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_hyper_barrier_release (Inclusive: 6,167 samples, 1.1160%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="423.6" y="145" width="13.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="426.59" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 68,996 samples, 12.4856%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="204.5" y="97" width="147.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="207.49" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >L_kmp_invoke_pass_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>do_page_fault (Inclusive: 1,961 samples, 0.3549%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="20.7" y="129" width="4.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="23.70" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>hrtimer_interrupt (Inclusive: 89 samples, 0.0161%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.9" y="145" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.87" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 8,519 samples, 1.5416%; Exclusive: 8,519 samples, 1.5416%; Difference: 0.6853%)</title><rect x="821.2" y="129" width="18.2" height="15.0" fill="rgb(255,165,165)" rx="2" ry="2"/>
+<text text-anchor="" x="824.23" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmpc_fork_call (Inclusive: 11,865 samples, 2.1471%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="28.3" y="145" width="25.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="31.25" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >_..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_ (Inclusive: 140 samples, 0.0253%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.2" y="209" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.24" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 162 samples, 0.0293%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.8" y="177" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.77" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 58 samples, 0.0105%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.2" y="177" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.19" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>local_apic_timer_interrupt (Inclusive: 76 samples, 0.0138%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.2" y="161" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.24" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_add_ (Inclusive: 206 samples, 0.0373%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="819.8" y="209" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="822.77" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__libc_start_main (Inclusive: 191,367 samples, 34.6300%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="10.0" y="209" width="408.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="13.01" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__libc_start_main</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 136 samples, 0.0246%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="436.2" y="129" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="439.25" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmpc_fork_call (Inclusive: 4,049 samples, 0.7327%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="104.3" y="145" width="8.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="107.25" y="155.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 139 samples, 0.0252%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.2" y="177" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.21" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_x86_pause (Inclusive: 2,189 samples, 0.3961%; Exclusive: 2,189 samples, 0.3961%; Difference: 0.1797%)</title><rect x="839.4" y="129" width="4.7" height="15.0" fill="rgb(255,198,198)" rx="2" ry="2"/>
+<text text-anchor="" x="842.42" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>L_kmp_invoke_pass_parms (Inclusive: 11,731 samples, 2.1229%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="28.5" y="97" width="25.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="31.54" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >L..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__run_hrtimer (Inclusive: 80 samples, 0.0145%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.2" y="129" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.21" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__intel_new_memset (Inclusive: 3,534 samples, 0.6395%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="20.7" y="161" width="7.6" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="23.70" y="171.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 88 samples, 0.0159%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.9" y="97" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.95" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_barrier (Inclusive: 87 samples, 0.0157%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="204.3" y="97" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="207.30" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 80 samples, 0.0145%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="821.0" y="193" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.98" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_wait_sleep (Inclusive: 106 samples, 0.0192%; Exclusive: 106 samples, 0.0192%; Difference: -0.0485%)</title><rect x="28.3" y="81" width="0.2" height="15.0" fill="rgb(206,206,255)" rx="2" ry="2"/>
+<text text-anchor="" x="31.30" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 125 samples, 0.0226%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="418.9" y="177" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="421.87" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_matrix_matrix_product_ (Inclusive: 30,681 samples, 5.5521%; Exclusive: 30,681 samples, 5.5521%; Difference: -0.0248%)</title><rect x="353.1" y="81" width="65.5" height="15.0" fill="rgb(208,208,255)" rx="2" ry="2"/>
+<text text-anchor="" x="356.13" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >benchma..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_invoke_task_func (Inclusive: 30,681 samples, 5.5521%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="353.1" y="113" width="65.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="356.13" y="123.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  >__kmp_i..</text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_4_ (Inclusive: 4,022 samples, 0.7278%; Exclusive: 4,022 samples, 0.7278%; Difference: 0.0011%)</title><rect x="104.3" y="81" width="8.6" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="107.31" y="91.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 155 samples, 0.0280%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="420.4" y="177" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="423.43" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>smp_apic_timer_interrupt (Inclusive: 143 samples, 0.0259%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="820.6" y="177" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="823.56" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__kmp_join_call (Inclusive: 55 samples, 0.0100%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="88.4" y="129" width="0.1" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="91.40" y="139.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>sys_sched_yield (Inclusive: 231 samples, 0.0418%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="818.6" y="177" width="0.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="821.62" y="187.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_scalar_multiply_add_ (Inclusive: 228 samples, 0.0413%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.9" y="209" width="0.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.95" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>__sched_yield (Inclusive: 150 samples, 0.0271%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.2" y="209" width="0.3" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.17" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>system_call_fastpath (Inclusive: 126 samples, 0.0228%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="421.2" y="193" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="424.17" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_add_ (Inclusive: 240 samples, 0.0434%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="419.4" y="209" width="0.5" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="422.43" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>apic_timer_interrupt (Inclusive: 61 samples, 0.0110%; Exclusive: 61 samples, 0.0110%; Difference: 0.0007%)</title><rect x="420.8" y="193" width="0.1" height="15.0" fill="rgb(255,209,209)" rx="2" ry="2"/>
+<text text-anchor="" x="423.78" y="203.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>alloc_pages_vma (Inclusive: 51 samples, 0.0092%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="20.4" y="65" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="23.44" y="75.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>benchmarks_IP_vector_add_ (Inclusive: 214 samples, 0.0387%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.1" y="209" width="0.4" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.06" y="219.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>update_process_times (Inclusive: 99 samples, 0.0179%; Exclusive: 0 samples, 0.0000%; Difference: 0.0000%)</title><rect x="422.1" y="97" width="0.2" height="15.0" fill="rgb(255,255,255)" rx="2" ry="2"/>
+<text text-anchor="" x="425.06" y="107.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+<g class="func_g" onmouseover="s(this)" onmouseout="c()" onclick="zoom(this)">
+<title>clear_page_c_e (Inclusive: 3,835 samples, 0.6940%; Exclusive: 3,835 samples, 0.6940%; Difference: 0.6940%)</title><rect x="12.3" y="65" width="8.1" height="15.0" fill="rgb(255,164,164)" rx="2" ry="2"/>
+<text text-anchor="" x="15.25" y="75.5" font-size="12" font-family="Verdana" fill="rgb(0,0,0)"  ></text>
+</g>
+</svg>
