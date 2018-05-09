@@ -22,7 +22,7 @@ setup virtual environment
 
 virtualenv perf_profiler
 source ./perf_profiler/bin/activate
-pip install -r requirements.txt
+pip install -r requirements_linux.txt
 
 build redistributable
 
