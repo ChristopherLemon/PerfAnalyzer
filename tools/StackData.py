@@ -616,6 +616,9 @@ class StackData:
             else: # Monitor application threads
                 if tid != "all": # One id for each thread of the application
                     process_ids.append(process_id)
+        if len(process_ids) == 0:  # No thread/core ids selected - add whatever is selected
+            for process_id in self.ordered_ids:
+                process_ids.append(process_id)
         return process_ids
 
     def set_process_ids(self):
