@@ -769,11 +769,14 @@
     }
     function check_thread_boxes(thisBox, match) {
         let boxes = document.getElementsByClassName("thread_checkbox");
+	    let pc = 1000.0;
         let threshold = parseFloat($('#process_filter').prop('value'));
         for (let i=0; i<boxes.length; ++i) {
             if ( boxes[i].id.includes(match)) {
-                let pc = parseFloat($(boxes[i]).closest('.flex-row').find('.summed_percentage').attr('value'));
-                if (pc > threshold) {
+                if ($(boxes[i]).closest('.flex-row').find('.summed_percentage').length) {
+                    pc = parseFloat($(boxes[i]).closest('.flex-row').find('.summed_percentage').attr('value'));
+		        }
+		        if (pc > threshold) {
                     boxes[i].checked = thisBox.checked;
                 } else {
                     boxes[i].checked = false;

@@ -474,7 +474,7 @@ class ColorHandler:
         b = 255
         if value > 0.000001:
             logmax = math.log(max)
-            logmean = math.log(mean))
+            logmean = math.log(mean)
             logvalue = math.log(value)
             if value > mean:
                 g = int(210 * ((logmax - logmean - (logvalue - logmean)) / (logmax - logmean)))
