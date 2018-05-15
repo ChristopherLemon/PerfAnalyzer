@@ -468,24 +468,19 @@ class ColorHandler:
             g = r
         return "rgb({},{},{})".format(str(r), str(g), str(b))
 
-    def color_log_scale(self, value, exc, min, mean, max):
+    def color_log_scale(self, value, mean, max):
         r = 255
         g = 255
         b = 255
-        if exc > 0:
+        if value > 0.000001:
             logmax = math.log(max)
-            logmean = math.log(mean)
-            logmin = abs(math.log(0.000001))
-            if min > 0.000001:
-                logmin = abs(math.log(min))
-            logvalue = logmin
-            if value > 0.000001:
-                logvalue = math.log(value)
-            if logvalue > logmean:
-                g = int(210 * (logmax - logvalue) / (logmax - logmean))
+            logmean = math.log(mean))
+            logvalue = math.log(value)
+            if value > mean:
+                g = int(210 * ((logmax - logmean - (logvalue - logmean)) / (logmax - logmean)))
                 b = g
-            elif logvalue < logmean:
-                r = int(210 * (logvalue - logmin) / (logmean - logmin))
+            elif value < mean:
+                r = int(210 * ((logmax - logmean + (logvalue - logmean)) / (logmax - logmean)))
                 b = r
         return "rgb({},{},{})".format(str(r), str(g), str(b))
 
@@ -842,8 +837,7 @@ class FlameGraph:
                 if self.diff:
                     color = self.color_handler.color_scale(delta, self.max_delta)
                 else:  # self.custom (ratio)
-                    color = self.color_handler.color_log_scale(delta, node.exclusive_time, self.lower_delta,
-                                                               self.mean_delta, self.upper_delta)
+                    color = self.color_handler.color_log_scale(delta, self.mean_delta, self.upper_delta)
             else:
                 color = self.color_handler.color_map(self.image_settings.colors, func)
             self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"2\" ry=\"2\"")
