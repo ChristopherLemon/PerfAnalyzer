@@ -298,22 +298,15 @@ class StackData:
                     else:
                         units = self.cpu_definition.get_active_event_units()
                         match = re.match("(.*proc(all|[0-9]+))_(.*)", line.strip())
-                        try:
-                            process = match.group(1)
-                            raw_event = match.group(3)
-                        except:
-                            x = 2
-                     #   process, par, raw_event = line.strip().rpartition('_')
+                        process = match.group(1)
+                        raw_event = match.group(3)
                         process_name = re.sub(job + "_", "", process)
                         full_path = os.path.join(self.path, line.strip())
                         event = raw_event_to_event(raw_event, self.cpu_definition)
                         unit = units[event]
                         event_type = get_event_type(event)
                         if unit == "Samples":
-                            try:
-                                counter = self.event_counters[job][raw_event]
-                            except:
-                                x=2
+                            counter = self.event_counters[job][raw_event]
                         else: # Hz
                             counter = 1
                         task_id = process + "_" + event
