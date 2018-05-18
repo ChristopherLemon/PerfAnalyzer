@@ -61,8 +61,9 @@
                                     </div>
                                 </div>
                             {% endif %}
+                            <p>Text Filter:</p><
                             <div class="flex-row" style="border-style:none;">
-                                <div class="flex-column" style="width:70%"><p>Text Filter:</p><input style="margin:1px" class="form-control" id="text_filter" name="text_filter" placeholder="Regular Expression (i.e. match function1 or function2 with function1|function2)" value="{{event_model.text_filter}}" oninput="find_text(this)"></div>
+                                <div class="flex-column" style="width:70%">input style="margin:1px" class="form-control" id="text_filter" name="text_filter" placeholder="Regular Expression (i.e. match function1 or function2 with function1|function2)" value="{{event_model.text_filter}}" oninput="find_text(this)"></div>
                                 <div class="flex-column" style="width:30%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="text_btn" name="text_btn" onclick="apply_text_filter()">Apply Text Filter</button></div>
                             </div>
                         </div>
@@ -194,8 +195,9 @@
                                     <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="scatter_plot_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
                                 </div>
                                 <object class="embedded_svg" type="image/svg+xml" data={{event_model.layout.scatter_plot}} id="scatter_plot"></object>
+                                <p>Text Filter:</p>
                                 <div class="flex-row">
-                                    <div class="flex-column" style="width:70%"><p>Text Filter:</p><input style="margin:1px" class="form-control" id="point_filter" name="point_filter" placeholder="Regular Expression (i.e. match function1 or function2 with function1|function2)" value="{{event_model.text_filter}}" oninput="find_points(this)"></div>
+                                    <div class="flex-column" style="width:70%"><input style="margin:1px" class="form-control" id="point_filter" name="point_filter" placeholder="Regular Expression (i.e. match function1 or function2 with function1|function2)" value="{{event_model.text_filter}}" oninput="find_points(this)"></div>
                                     <div class="flex-column" style="width:30%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="point_btn" name="point_btn" onclick="apply_text_filter('point_filter')">Apply Text Filter</button></div>
                                 </div>
                             </div>

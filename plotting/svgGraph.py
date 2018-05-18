@@ -4,7 +4,7 @@ import sys
 from pygal.style import Style
 import operator
 from collections import OrderedDict
-from plotting.ColourMaps import get_cluster_plot_colours, get_top_ten_colours, get_distinct_colours
+from plotting.ColourMaps import get_gradient_colours, get_top_ten_colours, get_distinct_colours
 from tools.Utilities import format_number
 
 custom_style_barchart = Style(
@@ -43,7 +43,7 @@ custom_style_barchart_diff = Style(
   opacity='.85',
   opacity_hover='1.0',
   transition='400ms ease-in',
-  colors=get_distinct_colours())
+  colors=get_gradient_colours(10))
 
 custom_style_hotspots = Style(
   font_family='googlefont:Roboto',
@@ -930,7 +930,7 @@ class ChartWriter:
         else:
             return self.generate_empty_chart()
 
-    def generate_vertical_stacked_bar_chart_diff(self, stack_data, number_to_rank=10, title="", write_colourmap=False):
+    def generate_vertical_stacked_bar_chart_diff(self, stack_data, number_to_rank=10, title=""):
 # Create vertical stacked bar chart\table for the functions with the biggest positive/negative differences
 # compared to base case
         chart = pygal.StackedBar(style=custom_style_barchart_diff,
@@ -941,7 +941,6 @@ class ChartWriter:
                                  value_formatter=lambda x: format_number(x),
                                  stack_from_top=True)
         chart.title = title
-        colours = get_distinct_colours()
         ids = stack_data.get_selected_process_ids()
         base_case_id = stack_data.get_base_case_id()
         base_case_task_id = base_case_id.task_id
@@ -1035,8 +1034,6 @@ class ChartWriter:
         if n_events > 0:
             n = 0
             for s in plot_data:
-                if write_colourmap:
-                    self.hotspot_map[s] = colours[n % len(colours)]
                 n += 1
                 data = []
                 for label in plot_data[s]:
