@@ -17,7 +17,6 @@ custom_style_barchart = Style(
   value_label_font_size=20,
   value_font_size=20,
   tooltip_font_size=16,
-
   foreground='#18452e',
   foreground_strong='#53A0E8',
   foreground_subtle='#18452e',
@@ -25,25 +24,6 @@ custom_style_barchart = Style(
   opacity_hover='1.0',
   transition='400ms ease-in',
   colors=get_top_ten_colours())
-
-custom_style_barchart_diff = Style(
-  font_family='googlefont:Roboto',
-  background='transparent',
-  plot_background='transparent',
-  label_font_size=18,
-  title_font_size=20,
-  legend_font_size=12,
-  value_label_font_size=20,
-  value_font_size=20,
-  tooltip_font_size=16,
-
-  foreground='#18452e',
-  foreground_strong='#53A0E8',
-  foreground_subtle='#18452e',
-  opacity='.85',
-  opacity_hover='1.0',
-  transition='400ms ease-in',
-  colors=get_gradient_colours(10))
 
 custom_style_hotspots = Style(
   font_family='googlefont:Roboto',
@@ -55,7 +35,6 @@ custom_style_hotspots = Style(
   value_label_font_size=20,
   value_font_size=20,
   tooltip_font_size=16,
-
   foreground='#18452e',
   foreground_strong='#53A0E8',
   foreground_subtle='#18452e',
@@ -74,7 +53,6 @@ custom_style_timechart = Style(
   value_label_font_size=20,
   value_font_size=20,
   tooltip_font_size=16,
-
   foreground='#18452e',
   foreground_strong='#53A0E8',
   foreground_subtle='#18452e',
@@ -93,7 +71,6 @@ custom_style_scatterplot = Style(
   value_label_font_size=20,
   value_font_size=20,
   tooltip_font_size=16,
-
   foreground='#18452e',
   foreground_strong='#53A0E8',
   foreground_subtle='#18452e',
@@ -933,14 +910,6 @@ class ChartWriter:
     def generate_vertical_stacked_bar_chart_diff(self, stack_data, number_to_rank=10, title=""):
 # Create vertical stacked bar chart\table for the functions with the biggest positive/negative differences
 # compared to base case
-        chart = pygal.StackedBar(style=custom_style_barchart_diff,
-                                 truncate_label=5,
-                                 x_label_rotation=25,
-                                 height=500,
-                                 show_legend=False,
-                                 value_formatter=lambda x: format_number(x),
-                                 stack_from_top=True)
-        chart.title = title
         ids = stack_data.get_selected_process_ids()
         base_case_id = stack_data.get_base_case_id()
         base_case_task_id = base_case_id.task_id
@@ -959,14 +928,21 @@ class ChartWriter:
         n_events = 0
         top_nodes = []
         bottom_nodes = []
+        max_total = 0.0
+        max_label = ""
         for process_id in [proc_id for proc_id in ids if proc_id.label != base_case_id.label]:
             x_data = stack_data.get_original_event_stack_data(process_id)
             x = {}
+            total = 0.0
             for stack in x_data:
                 node = stack.rpartition(";")[2]
                 if node not in x:
                     x[node] = 0.0
                 x[node] += x_data[stack]
+                total += x_data[stack]
+            if total > max_total:
+                max_total = total
+                max_label = process_id.label
             deltas = OrderedDict()
             for s in x:
                 deltas[s] = x[s]
@@ -1012,25 +988,98 @@ class ChartWriter:
                             deltas[s] -= base_case_x[s]
                         else:
                             deltas[s] = -base_case_x[s]
-                    for s in top_nodes:
-                        if s not in plot_data:
-                            plot_data[s] = OrderedDict()
-                        if s in deltas:
-                            plot_data[s][label] = deltas[s]
-                        else:
-                            plot_data[s][label] = 0.0
-                        other -= plot_data[s][label]
-                    for s in bottom_nodes:
-                        if s not in plot_data:
-                            plot_data[s] = OrderedDict()
-                        if s in deltas:
-                            plot_data[s][label] = deltas[s]
-                        else:
-                            plot_data[s][label] = 0.0
-                        other -= plot_data[s][label]
-                    if "other" not in plot_data:
-                        plot_data["other"] = OrderedDict()
-                    plot_data["other"][label] = other
+                            for s in top_nodes:
+                                if s + ": positive diff" not in plot_data:
+                                    plot_data[s + ": positive diff"] = OrderedDict()
+                                    plot_data[s + ": negative diff"] = OrderedDict()
+                                if s in deltas:
+                                    if deltas[s] >= 0.0:
+                                        plot_data[s + ": positive diff"][label] = deltas[s]
+                                        plot_data[s + ": negative diff"][label] = 0.0
+                                    else:
+                                        plot_data[s + ": positive diff"][label] = 0.0
+                                        plot_data[s + ": negative diff"][label] = deltas[s]
+                                else:
+                                    plot_data[s + ": positive diff"][label] = 0.0
+                                    plot_data[s + ": negative diff"][label] = 0.0
+                                other -= plot_data[s + ": positive diff"][label]
+                                other -= plot_data[s + ": negative diff"][label]
+                            for s in bottom_nodes:
+                                if s + ": positive diff" not in plot_data:
+                                    plot_data[s + ": positive diff"] = OrderedDict()
+                                    plot_data[s + ": negative diff"] = OrderedDict()
+                                if s in deltas:
+                                    if deltas[s] >= 0.0:
+                                        plot_data[s + ": positive diff"][label] = deltas[s]
+                                        plot_data[s + ": negative diff"][label] = 0.0
+                                    else:
+                                        plot_data[s + ": positive diff"][label] = 0.0
+                                        plot_data[s + ": negative diff"][label] = deltas[s]
+                                else:
+                                    plot_data[s + ": positive diff"][label] = 0.0
+                                    plot_data[s + ": negative diff"][label] = 0.0
+                                other -= plot_data[s + ": positive diff"][label]
+                                other -= plot_data[s + ": negative diff"][label]
+                            if "other" + ": positive diff" not in plot_data:
+                                plot_data["other" + ": positive diff"] = OrderedDict()
+                                plot_data["other" + ": negative diff"] = OrderedDict()
+                            if other >= 0.0:
+                                plot_data["other" + ": positive diff"][label] = other
+                                plot_data["other" + ": negative diff"][label] = 0.0
+                            else:
+                                plot_data["other" + ": positive diff"][label] = 0.0
+                                plot_data["other" + ": negative diff"][label] = other
+
+                def plot_data_sort(xi, max_total):
+                    # To match data order to order used in pygal:
+                    # Sort from largest +ve to smallest +ve, then from largest -ve to smallest -ve
+                    val = 0.0
+                    for label in xi[1]:
+                        if xi[1][label] > 0.0:
+                            val = max(xi[1][label], val)
+                        elif xi[1][label] < 0.0:
+                            val = - max(abs(xi[1][label]), abs(val))
+                    if val < 0.0:
+                        val = - (max_total + val)
+                    return val
+
+                plot_data = OrderedDict(
+                    sorted(plot_data.items(), key=lambda xi: plot_data_sort(xi, max_total), reverse=True))
+                n_pos = 0
+                n_neg = 0
+                for s in plot_data:
+                    if "positive diff" in s:
+                        n_pos += 1
+                    elif "negative diff" in s:
+                        n_neg += 1
+
+        custom_style_barchart_diff = Style(
+            font_family='googlefont:Roboto',
+            background='transparent',
+            plot_background='transparent',
+            label_font_size=18,
+            title_font_size=20,
+            legend_font_size=12,
+            value_label_font_size=20,
+            value_font_size=20,
+            tooltip_font_size=16,
+            foreground='#18452e',
+            foreground_strong='#53A0E8',
+            foreground_subtle='#18452e',
+            opacity='.85',
+            opacity_hover='1.0',
+            transition='400ms ease-in',
+            colors=get_gradient_colours(n_pos, n_neg))
+
+        chart = pygal.StackedBar(style=custom_style_barchart_diff,
+                                 truncate_label=5,
+                                 x_label_rotation=25,
+                                 height=500,
+                                 show_legend=False,
+                                 value_formatter=lambda x: format_number(x),
+                                 stack_from_top=True)
+        chart.title = title
+
         if n_events > 0:
             n = 0
             for s in plot_data:

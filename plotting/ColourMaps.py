@@ -10,7 +10,8 @@ min_max_colours = ('#0052A5','#00753A','#B21F35','#06A9FC','#009E47','#FF7435')
 
 top_ten = ('#B21F35','#D82735','#FF7435','#FFA135','#FFCB35','#FFF735','#16DD36','#009E47','#00753A','#0052A5','#0079E7','#06A9FC')
 
-def get_gradient_colours(n, return_hex=True):
+def get_gradient_colours(n_pos, n_neg, return_hex=True):
+    n = n_pos
     r = 255
     dn = 210 // (n - 1)
     colours = []
@@ -18,7 +19,7 @@ def get_gradient_colours(n, return_hex=True):
         g = i * dn
         b = i * dn
         colours.append((r, g, b))
-    colours.append((255, 255, 255))
+    n = n_neg
     b = 255
     for i in range(n):
         r = i * dn
