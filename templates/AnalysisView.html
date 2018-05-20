@@ -516,6 +516,7 @@
 <script type="text/javascript">
 
     var selection_mode = "add-remove-process";
+    var descending_sort = false;
 
     function find_text(inputbox) {
         let filter = $(inputbox).prop("value");
@@ -877,7 +878,7 @@
                 let reference_count = parseFloat(reference);
                 let count = parseFloat(entry);
                 let pc = 100.0 * count / reference_count;
-                if ( pc >= 0.01 && pc <= 1000.0 ) {
+                if ( Math.abs(pc) >= 0.01 && Math.abs(pc) <= 1000.0 ) {
                     entry += " (" + pc.toFixed(2) + "%)";
                     $(this).prop('innerHTML', entry);
                 }
@@ -925,6 +926,63 @@
                 }
             });
         });
+    }
+    function add_table_sort_events() {
+        $('.percentages_table').each(function() {
+            let id = $(this).prop("id");
+            $(this).find('tr').each(function(i) {
+                if( i == 0 ) {
+                    let headers = $(this).find('th');
+                    for (let j = 0; j < headers.length; ++j) {
+                        addEvent(headers[j], "click", function() {
+                            sort_table(id, j);
+                        });
+                    }
+                }
+            });
+        });
+    }
+    function sort_table(id, column) {
+        let check_rows = true;
+        let switch_rows = false;
+        let row_index = 0;
+        while (check_rows) {
+            check_rows = false;
+            switch_rows = false;
+            let rows = document.getElementById(id).getElementsByTagName("TR");
+            for (let i = 1; i < rows.length - 2; ++i) {
+                let x = rows[i].getElementsByTagName("TD")[column];
+                let y = rows[i + 1].getElementsByTagName("TD")[column];
+                if (descending_sort) {
+                    if (column == 0) {
+                        switch_rows = x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase();
+                    } else {
+                        let pattern = /[^\s]+/;
+                        let xi = x.innerHTML.match(pattern)[0];
+                        let yi = y.innerHTML.match(pattern)[0];
+                        switch_rows = parseFloat(xi) < parseFloat(yi);
+                    }
+                } else {
+                    if (column == 0) {
+                        switch_rows = x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase();
+                    } else {
+                        let pattern = /[^\s]+/;
+                        let xi = x.innerHTML.match(pattern)[0];
+                        let yi = y.innerHTML.match(pattern)[0];
+                        switch_rows = parseFloat(xi) > parseFloat(yi);
+                    }
+                }
+                if (switch_rows) {
+                    row_index = i;
+                    break;
+                }
+            }
+            if (switch_rows) {
+                rows[row_index].parentNode.insertBefore(rows[row_index + 1], rows[row_index]);
+                check_rows = true;
+            }
+        }
+        descending_sort = !descending_sort;
     }
     function check_all_clusters(thisBox) {
         let num_clusters = document.getElementById("num_clusters").value;
@@ -1222,6 +1280,7 @@
                 append_count_percentages();
                 highlight_reference_column();
                 add_table_tooltips();
+                add_table_sort_events();
                 hideLoaders();
             },
             error: function(error) {
@@ -1286,6 +1345,7 @@
         append_count_percentages();
         highlight_reference_column();
         add_table_tooltips();
+        add_table_sort_events();
     }
     function toggleChevron(e) {
         $(e.target).prevUntil('.panel .panel-default')
