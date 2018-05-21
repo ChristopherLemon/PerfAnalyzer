@@ -10,13 +10,4 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 
 The browser based interface can submit jobs, and display the results using a number of graphical tools and libraries
 (such as flamegraphs and pygal). These elements are combined with the Flask framework to create highly interactive
-representations of the performance data.
-
-Performance data can be gathered for a Linux kernel version of 3.x or later, with the perf package installed and 
-sufficient privileges to set the /proc/sys/kernel/perf_event_paranoid value to a suitable value (preferably to -1 or 0). 
-Performance data can only be gathered on a Linux system, due to the dependency on the perf interface, but the tool
-can still be used on a Windows system to conveniently perform remote profiling of a Linux system.
-The Python environment required to run PerfAnalyzer on Windows or Linux systems, for Python 2.x or Python 3.x is 
-contained in the relevant requirements files. The PyInstaller spec files also allow the creation of a standalone
-directory from which the tool can be run on Windows or Linux. See the build_instructions.txt file for further
-information.
+representations of the performance data. 
