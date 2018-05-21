@@ -988,47 +988,47 @@ class ChartWriter:
                             deltas[s] -= base_case_x[s]
                         else:
                             deltas[s] = -base_case_x[s]
-                            for s in top_nodes:
-                                if s + ": positive diff" not in plot_data:
-                                    plot_data[s + ": positive diff"] = OrderedDict()
-                                    plot_data[s + ": negative diff"] = OrderedDict()
-                                if s in deltas:
-                                    if deltas[s] >= 0.0:
-                                        plot_data[s + ": positive diff"][label] = deltas[s]
-                                        plot_data[s + ": negative diff"][label] = 0.0
-                                    else:
-                                        plot_data[s + ": positive diff"][label] = 0.0
-                                        plot_data[s + ": negative diff"][label] = deltas[s]
-                                else:
-                                    plot_data[s + ": positive diff"][label] = 0.0
-                                    plot_data[s + ": negative diff"][label] = 0.0
+                    for s in top_nodes:
+                        if s + ": positive diff" not in plot_data:
+                            plot_data[s + ": positive diff"] = OrderedDict()
+                            plot_data[s + ": negative diff"] = OrderedDict()
+                        if s in deltas:
+                            if deltas[s] >= 0.0:
+                                plot_data[s + ": positive diff"][label] = deltas[s]
+                                plot_data[s + ": negative diff"][label] = 0.0
                                 other -= plot_data[s + ": positive diff"][label]
-                                other -= plot_data[s + ": negative diff"][label]
-                            for s in bottom_nodes:
-                                if s + ": positive diff" not in plot_data:
-                                    plot_data[s + ": positive diff"] = OrderedDict()
-                                    plot_data[s + ": negative diff"] = OrderedDict()
-                                if s in deltas:
-                                    if deltas[s] >= 0.0:
-                                        plot_data[s + ": positive diff"][label] = deltas[s]
-                                        plot_data[s + ": negative diff"][label] = 0.0
-                                    else:
-                                        plot_data[s + ": positive diff"][label] = 0.0
-                                        plot_data[s + ": negative diff"][label] = deltas[s]
-                                else:
-                                    plot_data[s + ": positive diff"][label] = 0.0
-                                    plot_data[s + ": negative diff"][label] = 0.0
-                                other -= plot_data[s + ": positive diff"][label]
-                                other -= plot_data[s + ": negative diff"][label]
-                            if "other" + ": positive diff" not in plot_data:
-                                plot_data["other" + ": positive diff"] = OrderedDict()
-                                plot_data["other" + ": negative diff"] = OrderedDict()
-                            if other >= 0.0:
-                                plot_data["other" + ": positive diff"][label] = other
-                                plot_data["other" + ": negative diff"][label] = 0.0
                             else:
-                                plot_data["other" + ": positive diff"][label] = 0.0
-                                plot_data["other" + ": negative diff"][label] = other
+                                plot_data[s + ": positive diff"][label] = 0.0
+                                plot_data[s + ": negative diff"][label] = deltas[s]
+                                other -= plot_data[s + ": negative diff"][label]
+                        else:
+                            plot_data[s + ": positive diff"][label] = 0.0
+                            plot_data[s + ": negative diff"][label] = 0.0
+                    for s in bottom_nodes:
+                        if s + ": positive diff" not in plot_data:
+                            plot_data[s + ": positive diff"] = OrderedDict()
+                            plot_data[s + ": negative diff"] = OrderedDict()
+                        if s in deltas:
+                            if deltas[s] >= 0.0:
+                                plot_data[s + ": positive diff"][label] = deltas[s]
+                                plot_data[s + ": negative diff"][label] = 0.0
+                                other -= plot_data[s + ": positive diff"][label]
+                            else:
+                                plot_data[s + ": positive diff"][label] = 0.0
+                                plot_data[s + ": negative diff"][label] = deltas[s]
+                                other -= plot_data[s + ": negative diff"][label]
+                        else:
+                            plot_data[s + ": positive diff"][label] = 0.0
+                            plot_data[s + ": negative diff"][label] = 0.0
+                    if "other" + ": positive diff" not in plot_data:
+                        plot_data["other" + ": positive diff"] = OrderedDict()
+                        plot_data["other" + ": negative diff"] = OrderedDict()
+                    if other >= 0.0:
+                        plot_data["other" + ": positive diff"][label] = other
+                        plot_data["other" + ": negative diff"][label] = 0.0
+                    else:
+                        plot_data["other" + ": positive diff"][label] = 0.0
+                        plot_data["other" + ": negative diff"][label] = other
 
                 def plot_data_sort(xi, max_total):
                     # To match data order to order used in pygal:
