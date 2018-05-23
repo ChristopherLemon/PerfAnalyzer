@@ -3,7 +3,7 @@ build windows redistributable\debug on windows machine
 setup virtual environment
 
 virtualenv perf_profiler
-perf_profiler\bin\activate.bat
+perf_profiler\Scripts\activate.bat
 pip install -r requirements.txt
 
 build redistributable
