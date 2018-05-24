@@ -36,10 +36,6 @@ EventDefinition: Data-TLB-Store-Misses,       dTLB-store-misses,         Data TL
 EventDefinition: Instruction-TLB-Loads,       iTLB-loads,                Instruction TLB,    Samples,   False, 640000
 EventDefinition: Instruction-TLB-Load-Misses, iTLB-load-misses,          Instruction TLB,    Samples,   False, 640000
 
-# Trace event
-EventDefinition: Trace-CPU-Clock,             trace-cpu-clock,                     Trace,              Hz,        True,  500
-EventDefinition: Trace-Cycles,                trace-cycles,                        Trace,              Hz,        True,  500
-
 # Perf Raw Events
 EventDefinition: Reference-Cycles,             r013c,     General,            Samples, False, 640000
 EventDefinition: FP-Packed-Double-Executed,    r1010,     Floating Point,     Samples, True,  640000 
