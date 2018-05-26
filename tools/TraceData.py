@@ -714,10 +714,13 @@ def write_timelines(stack_data):
                 rate = stack_data.sample_rates[task][pid][tid][i]
                 out = "sample-rate;{}/{} {} {}\n".format(str(pid), str(tid), str(time), str(rate))
                 f.write(out.encode())
-            for event in stack_data.secondary_events[task][pid][tid]:
-                for time in stack_data.secondary_events[task][pid][tid][event]:
-                    out = "secondary-event;{}/{} {} {}\n".format(str(pid), str(tid), event, str(time))
-                    f.write(out.encode())
+            if task in stack_data.secondary_events:
+                if pid in stack_data.secondary_events[task]:
+                    if tid in stack_data.secondary_events[task][pid]:
+                        for event in stack_data.secondary_events[task][pid][tid]:
+                            for time in stack_data.secondary_events[task][pid][tid][event]:
+                                out = "secondary-event;{}/{} {} {}\n".format(str(pid), str(tid), event, str(time))
+                                f.write(out.encode())
     f.close()
 
 
