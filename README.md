@@ -11,3 +11,12 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 The browser based interface can submit jobs, and display the results using a number of graphical tools and libraries
 (such as flamegraphs and pygal). These elements are combined with the Flask framework to create highly interactive
 representations of the performance data. 
+
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/EventView.jpg" width="45%">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/EventCounts.jpg" width="45%">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Diff.jpg" width="45%">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/DiffCount.jpg" width="45%">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TraceView.jpg" width="45%">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TimeLine.jpg" width="45%">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Ratio.jpg" width="45%">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Analysis.jpg" width="45%">
