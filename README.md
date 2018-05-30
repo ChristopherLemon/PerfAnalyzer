@@ -29,3 +29,68 @@ representations of the performance data.
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Analysis.jpg" width="45%" title="Event Crossplots">
 </p>
 
+# Setup
+Performance data can be gathered for a Linux kernel version of 3.x or later, with the perf package installed and 
+sufficient privileges to set /proc/sys/kernel/perf_event_paranoid to a suitable value. It is also possible to use PerfAnalyzer on a Windows system to perform remote profiling of a Linux system. The tool can be run within a Python environment, or can be built with PyInstaller to create a standalone directory, which can then simply be copied to the locations required.  
+
+## Linux Setup
+There are some dependencies on lxml, which are required to run within the python environment or to build the standalone version. These can be installed as follows:  
+
+    sudo apt-get install python-lxml  
+    sudo apt-get install libxml2-dev libxslt-dev python-dev  
+
+For python 3, the python3-dev package should be installed instead of python-dev.
+
+**Virtual Environment**
+For Python 2
+
+    virtualenv perf_profiler
+    source ./perf_profiler/bin/activate
+    pip install -r requirements_linux.txt
+
+**Virtual Environment**
+For Python 3
+
+    virtualenv -p python3 perf_profiler
+    source ./perf_profiler/bin/activate
+    pip install -r requirements_linux_py36.txt
+
+**Build redistributable in linux_dist directory**
+
+    pyinstaller --distpath linux_dist server.spec
+
+The version of Glibc on the build machine should not exceed that on the machines to be run on.
+
+## Windows Setup
+
+**Virtual environment**
+For Python 2
+
+    virtualenv perf_profiler
+    perf_profiler\Scripts\activate.bat
+    pip install -r requirements.txt
+
+**Virtual Environment**
+For Python 3
+
+    virtualenv -p python3 perf_profiler
+    perf_profiler\Scripts\activate.bat
+    pip install -r requirements_py36.txt
+
+**Build redistributable in windows_dist directory**
+
+    pyinstaller --distpath windows_dist server.spec
+
+## Perf Setup
+
+If not already installed, perf will need to be installed on the target machine. For Ubuntu: 
+
+    apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
+
+Next the perf_paranoid setting should be set to an appropriate value. Setting it to 0 or -1 gives provides the required functionality.
+
+    sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'
+
+It may also prove useful to see the origin of kernel calls with
+
+    sudo sh -c 'echo 0 >/proc/sys/kernel/kptr_restrict'
