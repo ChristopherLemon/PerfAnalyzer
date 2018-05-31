@@ -18,8 +18,6 @@
     width: 100%;
     height: 100%;
     padding: 0px 0px 0px 0px;
-    margin-top: 6px;
-    margin-bottom: 6px;
 }
 
 table {
@@ -114,6 +112,8 @@ table {
     align-items: stretch;
     border-radius:0px;
     border-color: lightgrey;
+    margin-top: 3px;
+    margin-bottom: 3px;
 }
 
 .flex-column {
