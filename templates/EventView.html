@@ -61,6 +61,8 @@
                                     </div>
                                 </div>
                             {% endif %}
+                        </div>
+                        <div class="aligned-row">
                             <div class="flex-row" style="border-style:none;">
                                 <div class="flex-column" style="width:70%"><input style="margin:1px" class="form-control" id="text_filter" name="text_filter" placeholder="Text Filter: Enter regular expression" value="{{event_model.text_filter}}" oninput="find_text(this)"></div>
                                 <div class="flex-column" style="width:30%"><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="text_btn" name="text_btn" onclick="apply_text_filter()">Apply Text Filter</button></div>
@@ -87,10 +89,12 @@
                             <div class="flex-row">
                                 <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="chart_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
                             </div>
-                            <div class="flex-row table_controls" style="border-style:none;">
-                                <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" placeholder="Regex expression to filter function names" oninput="apply_row_filter(this)"></div>
-                                <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" placeholder="Regex expression to filter process names" oninput="apply_column_filter(this)"></div>
-                                <div class="flex-column" style="width:100%;flex-direction:row-reverse;"><div style="margin-right:12px;" class="pull-right"><i style="color:grey;font-size:18px;"><span>Click on a table column to sort ascending/descending</span></i></div></div>
+                            <div class="aligned-row">
+                                <div class="flex-row table_controls" style="border-style:none;">
+                                    <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" placeholder="Regex expression to filter function names" oninput="apply_row_filter(this)"></div>
+                                    <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" placeholder="Regex expression to filter process names" oninput="apply_column_filter(this)"></div>
+                                    <div class="flex-column" style="width:100%;flex-direction:row-reverse;"><i style="color:grey;font-size:18px;"><span>Click on a table column to sort ascending/descending</span></i></div>
+                                </div>
                             </div>
                             <div class="btn-group chart_controls" data-toggle="buttons" >
                                 <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_selection_mode('add-remove-process')">
@@ -156,9 +160,11 @@
                                 <div class="flex-row">
                                     <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="hotspots_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
                                 </div>
-                                <div class="flex-row table_controls_2" style="border-style:none;">
-                                    <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" placeholder="Regex expression to filter function names" oninput="apply_row_filter(this)"></div>
-                                    <div class="flex-column" style="width:100%;flex-direction:row-reverse;"><div style="margin-right:12px;" class="pull-right"><i style="color:grey;font-size:18px;"><span>Click on a table column to sort ascending/descending</span></i></div></div>
+                                <div class="aligned-row">
+                                    <div class="flex-row table_controls_2" style="border-style:none;">
+                                        <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" placeholder="Regex expression to filter function names" oninput="apply_row_filter(this)"></div>
+                                        <div class="flex-column" style="width:100%;flex-direction:row-reverse;"><i style="color:grey;font-size:18px;"><span>Click on a table column to sort ascending/descending</span></i></div>
+                                    </div>
                                 </div>
                                 <div style="margin-right:12px;" class="pull-right chart_controls_2"><i style="color:grey;font-size:18px;">Click on function to filter on function name</i></div>
                                 <object class="embedded_svg toggle_event_min_max_chart" type="image/svg+xml" data={{event_model.layout.event_min_max_chart}} id="event_min_max_chart" onload="add_min_max_chart_events()"></object>
@@ -196,9 +202,11 @@
                                     <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="scatter_plot_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
                                 </div>
                                 <object class="embedded_svg" type="image/svg+xml" data={{event_model.layout.scatter_plot}} id="scatter_plot"></object>
-                                <div class="flex-row">
-                                    <div class="flex-column" style="width:70%"><input style="margin:1px" class="form-control" id="point_filter" name="point_filter" placeholder="Text Filter: Enter regular expression" value="{{event_model.text_filter}}" oninput="find_points(this)"></div>
-                                    <div class="flex-column" style="width:30%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="point_btn" name="point_btn" onclick="apply_text_filter('point_filter')">Apply Text Filter</button></div>
+                                <div class="aligned-row">
+                                    <div class="flex-row">
+                                        <div class="flex-column" style="width:70%"><input style="margin:1px" class="form-control" id="point_filter" name="point_filter" placeholder="Text Filter: Enter regular expression" value="{{event_model.text_filter}}" oninput="find_points(this)"></div>
+                                        <div class="flex-column" style="width:30%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="point_btn" name="point_btn" onclick="apply_text_filter('point_filter')">Apply Text Filter</button></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -268,8 +276,11 @@
                             <div class="flex-row">
                                 <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="process_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
                             </div>
-                            <div class="flex-row" style="border-style:none;">
-                                <div class="flex-column" style="width:55%"><p>Filter background processes (%)</p><input style="margin:1px" type="number" class="form-control" id="process_filter" name="process_filter" placeholder="Percentage of total" min="0" max="{{100}}" step="0.1" value="0.0" oninput="filter_threads(this)"></div>
+                            <p>Filter background processes (%)</p>
+                            <div class="aligned-row">
+                                <div class="flex-row" style="border-style:none;">
+                                    <div class="flex-column" style="width:55%"><input style="margin:1px" type="number" class="form-control" id="process_filter" name="process_filter" placeholder="Percentage of total" min="0" max="{{100}}" step="0.1" value="0.0" oninput="filter_threads(this)"></div>
+                                </div>
                             </div>
                             <div class="flex-column" style="border-style:none;width:100%;height:100%">
                                 <div class="flex-row" style="margin-left:0">

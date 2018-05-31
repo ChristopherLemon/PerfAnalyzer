@@ -18,6 +18,8 @@
     width: 100%;
     height: 100%;
     padding: 0px 0px 0px 0px;
+    margin-top: 6px;
+    margin-bottom: 6px;
 }
 
 table {
@@ -121,6 +123,12 @@ table {
     border-radius: 0px;
     border-color: lightgrey;
     border-style: none;
+}
+
+.aligned-row
+{
+    margin-left: 12px;
+    margin-right: 12px;
 }
 
 .panel-group .panel {
