@@ -880,14 +880,13 @@ class FlameGraph:
         f.close()
 
     def initialise_sort_by_time(self):
-        stack_regex = re.compile(r"^(.*)\s+?(\d+(?:\.\d*)?)$")
         self.store_data_order()
         def sort_stacks_by_time(a, b):  # Order each level in call stacks in the order of first appearance
-            s_a = re.search(stack_regex, a).group(1)
-            s_b = re.search(stack_regex, b).group(1)
+            s_a, par, secondary = a.rpartition(' ')
+            s_b, par, primary = b.rpartition(' ')
             if self.custom_event_ratio or self.diff:
-                s_a = re.search(stack_regex, s_a).group(1)
-                s_b = re.search(stack_regex, s_b).group(1)
+                s_a, par, secondary = s_a.rpartition(' ')
+                s_b, par, primary = s_b.rpartition(' ')
             stacks_a = s_a.split(";")
             stacks_b = s_b.split(";")
             len_a = len(stacks_a)
@@ -901,16 +900,14 @@ class FlameGraph:
                     return 1
                 if ca < cb:
                     return -1
-                    return -1
             return -1
         return sort_stacks_by_time
 
     def store_data_order(self):
-        stack_regex = re.compile(r"^(.*)\s+?(\d+(?:\.\d*)?)$")
         for line in self.data:
-            r = re.search(stack_regex, line).group(1)
+            r, par, secondary = line.rpartition(' ')
             if self.custom_event_ratio or self.diff:
-                r = re.search(stack_regex, r).group(1)
+                r, par, secondary = r.rpartition(' ')
             parts = r.split(";")
             n = 0
             for s in parts:
