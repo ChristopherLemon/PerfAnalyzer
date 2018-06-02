@@ -42,7 +42,8 @@ Progress of the jobs can be seen in the monitor job progress tab. This polls reg
 <h2 class="underline-title">Trace View</h2>
 View the sample trace for each process and thread in a job, as a function of time. This view can be used to detect parallel synchronization issues and unevenly distributed workloads. Two types of flamegraph can be
 viewed over a dynamically selected time range: cumulative and trace. The cumulative flamegraph displays the total time spent in each call stack in the time range. The trace flamegraph displays each function call as a function of time, and includes the approximate call number to allow easy navigation between consecutive calls of the same function. The
-call number is only approximate because it relies on hardware samples in each function call, and very brief function calls are therefore missed. The resolution can be improved by increasing the sample frequency (Hz) in the settings tab.
+call number is only approximate because it relies on hardware samples in each function call, and very brief function calls are therefore missed. The resolution can be improved by increasing the sample frequency (Hz) in the settings tab. The timelines
+for each process are also displayed, with the cpu activity overlaid. If additional software trace events are enabled, or user defined probe events are added, these events will also be overlaid on the timelines.
 
 <div class="flex-column" style="border-style:none;width:100%;height:100%">
     <div hidden class="row" style="margin-left:0">

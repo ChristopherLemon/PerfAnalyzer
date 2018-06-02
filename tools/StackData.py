@@ -6,7 +6,7 @@ import multiprocessing as mp
 import pickle
 from timeit import default_timer as timer
 from tools.Utilities import natural_sort
-from tools.CustomEvents import event_to_raw_event, raw_event_to_event, get_event_type, check_or_create_custom_stack
+from tools.CustomEvents import event_to_raw_event, raw_event_to_event, get_event_type, create_custom_event_stack, is_composite_event
 from collections import OrderedDict, defaultdict
 from tools.ResultsHandler import get_job_name, get_event_counters
 
@@ -256,7 +256,9 @@ class StackData:
         if data_view == "event": # Load a single event for all processes and threads
             self.event = event_to_raw_event(data_id, self.cpu_definition)
             self.process = None
-            check_or_create_custom_stack(self, results_files, self.event)
+            if is_composite_event(self.event):
+                create_custom_event_stack(self, results_files, self.event)
+                self.event_counters = get_event_counters(path, results_files)  # Update counters with new custom event
         if data_view == "process": # Load all events\threads for a single process
             self.process = data_id
             self.event = None

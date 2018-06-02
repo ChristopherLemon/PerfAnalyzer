@@ -218,7 +218,7 @@ derived_event_map = {derived_events[raw_event]["event"]: raw_event for raw_event
 def get_derived_events():
     return [event for event in derived_event_map]
 
-def check_or_create_custom_stack(stack_data, results_files, raw_event):
+def create_custom_event_stack(stack_data, results_files, raw_event):
     if raw_event == "job-cumulative-counts" or raw_event == "process-cumulative-counts":
         return
     elif is_composite_event(raw_event):
