@@ -94,3 +94,8 @@ Next the perf_paranoid setting should be set to an appropriate value. Setting it
 It may also prove useful to see the origin of kernel calls with
 
     sudo sh -c 'echo 0 >/proc/sys/kernel/kptr_restrict'
+    
+## Browser
+If no browser is specified the system default browser is used. The recommended browser is Chrome/chromium-browser, which can be passed as an optional command line argument.
+
+    perf_analyzer --browser=/path/to/browser
