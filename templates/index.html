@@ -112,6 +112,17 @@
                                 <div class="flex-column" style="border-style:none;width:100%"><p>Copy files before each realization - comma separated list ($ symbols will be replaced with the job name and realization number - may be required to avoid resource contention)</p><input type="text" class="form-control" name="copy_files" id="copy_files" placeholder="file$.ext will be copied to file_JOBNAME_1.ext, file_JOBNAME_2.ext, etc, for each realization" value="{{job_settings["copy_files"]}}"></div>
                             </div>
                             <div class="flex-row">
+                                <div class="flex-column" style="width:30%;height:100%;"><a type="button" style="margin:6px;" class="btn btn-info collapsed collapsible_btn" data-toggle="collapse" data-target="#environment_variables">Set Environment<span class="fa chevron pull-right"></span></a></div>
+                            </div>
+                            <div id=environment_variables class="collapse">
+                                <div class="flex-row" style="margin-left:0">
+                                    <div class="flex-column" style="border-style:none;width:100%"><p>Set Environment Variables</p><input style="width:100%" type="text" class="form-control" name="env_variables" id="env_variables" value="{{job_settings["env_variables"]}}" title="Include all Environment variables" placeholder="Include all Environment variables"></div>
+                                    <div class="flex-column" style="border-style:none;width:100%"><p>Prepend to Path</p><input style="width:100%" type="text" class="form-control" name="bin_path" id=bin_path" value="{{job_settings["bin_path"]}}" title="Prepends to PATH" placeholder="Prepends to PATH"></div>
+                                    <div class="flex-column" style="border-style:none;width:100%"><p>Prepend to Library Path</p><input style="width:100%" class="form-control" type="text" name="lib_path" id=lib_path" value="{{job_settings["lib_path"]}}" title="Prepends to LD_LIBRARY_PATH" placeholder="Prepends to LD_LIBRARY_PATH"></div>
+                                    <div class="flex-column" style="border-style:none;width:100%"><p>Preload Libraries</p><input style="width:100%" type="text" class="form-control" name="preload" id=preload" value="{{job_settings["preload"]}}" title="Sets LD_PRELOAD" placeholder="Sets LD_PRELOAD"></div>
+                                </div>
+                            </div>
+                            <div class="flex-row">
                                 <div class="flex-column" style="border-style:none;width:100%"><input type="submit" class="btn btn-basic" id="run_btn" name="run_btn" value="Submit"></div>
                             </div>
                         </form>
@@ -282,7 +293,7 @@
         function update_processes(inputbox) {
             let n_proc = $(inputbox).prop("value");
             let text =  $('#lsf_params').prop("value");
-            re = /\s+-n\s+\d*\s+/g;
+            re = /\s+-n\s+\d*\s*/g;
             text = text.replace(re," -n " + n_proc + " ");
             $('#lsf_params').prop("value", text);
         }

@@ -7,19 +7,18 @@ import subprocess
 from tools.CustomLogging import setup_basic_logger
 from tools.Utilities import purge
 import tools.GlobalData
-import multiprocessing as mp
 import paramiko
 from paramiko import BadHostKeyException, AuthenticationException, SSHException
 import socket
 import logging
 from tools.ResultsHandler import modify_process_ids, modify_system_wide_process_ids, replace_results_file
 
-def get_lsf_params(processes, processes_per_node, queue="", lib_path=None, preload=None, env_variables=None, bin_path=None):
-    if lib_path:
+def get_lsf_params(lsf_params=None, lib_path=None, preload=None, env_variables=None, bin_path=None):
+    if lsf_params:
         env = get_lsf_env(lib_path, preload, env_variables, bin_path)
+        command = "{} -env {}".format(lsf_params, env)
     else:
-        env = "\"all\""
-    command = "-K -x -q {} -R \"span[ptile={}]\" -n {} -env {}".format(queue, str(processes_per_node), str(processes), env)
+        command = "-K -x -q -R \"span[ptile=1]\" -n 1"
     return command
 
 def get_lsf_env(lib_path, preload, env_variables, bin_path):
@@ -74,10 +73,10 @@ def get_mpirun_appfile(mpi_version=None):
 
 def get_perf_params(system_wide):
     if system_wide:
-        command = "perf record -g -a"
+        command = "perf record --call-graph dwarf -a"
     else:
-        command = "perf record -g"
-    return  command
+        command = "perf record --call-graph dwarf"
+    return command
 
 def get_remove_old_data_command(job_id, system_wide):
     if system_wide:
@@ -176,7 +175,7 @@ class JobHandler:
         self.global_mpirun_params = global_mpirun_params
         self.local_mpirun_params = local_mpirun_params
         self.mpirun_appfile = get_mpirun_appfile(mpirun_version)
-        self.lsf_params = lsf_params
+        self.lsf_params = get_lsf_params(lsf_params, lib_path, preload, env_variables, bin_path)
         self.perf_params = perf_params
         self.use_mpirun = use_mpirun
         self.use_lsf = use_lsf

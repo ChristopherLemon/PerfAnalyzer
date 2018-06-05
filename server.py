@@ -232,6 +232,10 @@ def index():
             tools.GlobalData.job_settings["working_directory_linux"] = request.form["working_directory_linux"]
             tools.GlobalData.job_settings["executable"] = request.form["executable"]
             tools.GlobalData.job_settings["run_duration"] = str(request.form["run_duration"])
+            tools.GlobalData.job_settings["env_variables"] = request.form["env_variables"]
+            tools.GlobalData.job_settings["bin_path"] = request.form["bin_path"]
+            tools.GlobalData.job_settings["lib_path"] = request.form["lib_path"]
+            tools.GlobalData.job_settings["preload"] = request.form["preload"]
             if tools.GlobalData.job_settings["run_duration"] != "":
                 tools.GlobalData.user_settings["dt"] = get_time_interval(tools.GlobalData.job_settings["run_duration"])
             else:
@@ -271,10 +275,10 @@ def index():
                                         tools.GlobalData.user_settings["dt"],
                                         tools.GlobalData.user_settings["max_events_per_run"],
                                         tools.GlobalData.user_settings["proc_attach"],
-                                        tools.GlobalData.user_settings["env_variables"],
-                                        tools.GlobalData.user_settings["bin_path"],
-                                        tools.GlobalData.user_settings["lib_path"],
-                                        tools.GlobalData.user_settings["preload"],
+                                        tools.GlobalData.job_settings["env_variables"],
+                                        tools.GlobalData.job_settings["bin_path"],
+                                        tools.GlobalData.job_settings["lib_path"],
+                                        tools.GlobalData.job_settings["preload"],
                                         tools.GlobalData.job_settings["global_mpirun_params"],
                                         tools.GlobalData.job_settings["local_mpirun_params"],
                                         tools.GlobalData.job_settings["mpirun_version"],

@@ -97,25 +97,6 @@
             </div>
             <div class=row>
                 <div class="flex-column" style="border-style:none;width:100%;height:100%">
-                    <div class="panel panel-default">
-                        <a data-toggle="collapse" data-parent="#accordion" href="#path1">
-                            <div class="panel-heading">
-                                <h4 class="panel-title">
-                                     <strong>Modify System Variables</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
-                                </h4>
-                            </div>
-                        </a>
-                        <div id="path1" class="panel-collapse collapse">
-                            <div class="flex-column" style="border-style:none;width:100%"><p>Set Environment Variables</p><input style="width:100%" type="text" class="form-control" name="env_variables" id="env_variables" value="{{user_settings["env_variables"]}}" title="Include I_MPI_ROOT for mpirun if needed" placeholder="Include I_MPI_ROOT for mpirun if needed"></div>
-                            <div class="flex-column" style="border-style:none;width:100%"><p>Prepend to Path</p><input style="width:100%" type="text" class="form-control" name="bin_path" id=bin_path" value="{{user_settings["bin_path"]}}" title="Include path to perf and MPI or OpenMP if needed" placeholder="Include path to perf and MPI or OpenMP if needed"></div>
-                            <div class="flex-column" style="border-style:none;width:100%"><p>Prepend to Library Path</p><input style="width:100%" class="form-control" type="text" name="lib_path" id=lib_path" value="{{user_settings["lib_path"]}}" title="Include MPI or OpenMP libraries if needed" placeholder="Include MPI or OpenMP libraries if needed"></div>
-                            <div class="flex-column" style="border-style:none;width:100%"><p>Preload Libraries</p><input style="width:100%" type="text" class="form-control" name="preload" id=preload" value="{{user_settings["preload"]}}" title="Include any debug libraries for MPI or OpenMP if needed" placeholder="Include any debug libraries for MPI or OpenMP if needed"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class=row>
-                <div class="flex-column" style="border-style:none;width:100%;height:100%">
                     <row>
                         <div class="flex-column" style="width:100%"><input type="submit" class="btn btn-basic" id="settings_btn" name="settings_btn" value="Update Settings"></div>
                     </row>

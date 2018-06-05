@@ -38,14 +38,6 @@ def settings():
         tools.GlobalData.user_settings["bin_path"] = request.form["bin_path"]
         tools.GlobalData.user_settings["lib_path"] = request.form["lib_path"]
         tools.GlobalData.user_settings["preload"] = request.form["preload"]
-        processes = tools.GlobalData.job_settings["processes"]
-        processes_per_node = tools.GlobalData.job_settings["processes_per_node"]
-        queue = tools.GlobalData.job_settings["queue"]
-        env_variables = tools.GlobalData.user_settings["env_variables"]
-        bin_path = tools.GlobalData.user_settings["bin_path"]
-        lib_path = tools.GlobalData.user_settings["lib_path"]
-        preload = tools.GlobalData.user_settings["preload"]
-        tools.GlobalData.job_settings["lsf_params"] = get_lsf_params(processes, processes_per_node, queue, lib_path, preload, env_variables, bin_path)
         status = "Updated Settings"
     layout["title"] = "Settings " + status
     layout["footer"] = "Loaded Results: " + " & ".join(layout["Results"])
@@ -96,10 +88,6 @@ def initialise_default_user_settings(cpu):
     tools.GlobalData.user_settings["dt"] = 50
     tools.GlobalData.user_settings["max_events_per_run"] = 4
     tools.GlobalData.user_settings["proc_attach"] = 1
-    tools.GlobalData.user_settings["env_variables"] = ""
-    tools.GlobalData.user_settings["bin_path"] = ""
-    tools.GlobalData.user_settings["lib_path"] = ""
-    tools.GlobalData.user_settings["preload"] = ""
     processes = 1
     processes_per_node = 1
     system_wide = False
@@ -111,7 +99,7 @@ def initialise_default_user_settings(cpu):
     tools.GlobalData.job_settings["global_mpirun_params"] = get_global_mpirun_params()
     tools.GlobalData.job_settings["local_mpirun_params"] = get_local_mpirun_params()
     tools.GlobalData.job_settings["mpirun_version"] = get_mpirun_appfile()
-    tools.GlobalData.job_settings["lsf_params"] = get_lsf_params(processes, processes_per_node)
+    tools.GlobalData.job_settings["lsf_params"] = get_lsf_params()
     tools.GlobalData.job_settings["perf_params"] = get_perf_params(system_wide)
     tools.GlobalData.job_settings["use_ssh"] = True
     tools.GlobalData.job_settings["use_lsf"] = True
@@ -126,6 +114,10 @@ def initialise_default_user_settings(cpu):
     tools.GlobalData.job_settings["username"] = ""
     tools.GlobalData.job_settings["password"] = ""
     tools.GlobalData.job_settings["copy_files"] = ""
+    tools.GlobalData.job_settings["env_variables"] = ""
+    tools.GlobalData.job_settings["bin_path"] = ""
+    tools.GlobalData.job_settings["lib_path"] = ""
+    tools.GlobalData.job_settings["preload"] = ""
 
 
 def initialise_empty_user_settings():
@@ -162,6 +154,10 @@ def save_job_data():
     job_data["private_key"] = tools.GlobalData.job_settings["private_key"] # only store path to the private key, but not the actual key or password
     job_data["username"] = tools.GlobalData.job_settings["username"]
     job_data["use_mpirun"] = tools.GlobalData.job_settings["use_mpirun"]
+    job_data["env_variables"] = tools.GlobalData.job_settings["env_variables"]
+    job_data["bin_path"] = tools.GlobalData.job_settings["bin_path"]
+    job_data["lib_path"] = tools.GlobalData.job_settings["lib_path"]
+    job_data["preload"] = tools.GlobalData.job_settings["preload"]
     job_data["cpu"] = tools.GlobalData.user_settings["cpu"]
     job_data["event_counter"] = tools.GlobalData.user_settings["event_counter"]
     job_data["frequency"] = tools.GlobalData.user_settings["frequency"]
@@ -170,10 +166,6 @@ def save_job_data():
     job_data["max_events_per_run"] = tools.GlobalData.user_settings["max_events_per_run"]
     job_data["proc_attach"] = tools.GlobalData.user_settings["proc_attach"]
     job_data["raw_events"] = tools.GlobalData.user_settings["raw_events"]
-    job_data["env_variables"] = tools.GlobalData.user_settings["env_variables"]
-    job_data["bin_path"] = tools.GlobalData.user_settings["bin_path"]
-    job_data["lib_path"] = tools.GlobalData.user_settings["lib_path"]
-    job_data["preload"] = tools.GlobalData.user_settings["preload"]
     if 'run_duration' in tools.GlobalData.job_settings:
         job_data["run_duration"] = tools.GlobalData.job_settings["run_duration"]
     json_file = tools.GlobalData.local_data + os.sep + tools.GlobalData.job_settings["job_name"] + '.settings'
