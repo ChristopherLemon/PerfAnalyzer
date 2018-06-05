@@ -87,7 +87,7 @@ If not already installed, perf will need to be installed on the target machine. 
 
     apt-get install linux-tools-common linux-tools-generic linux-tools-`uname -r`
 
-Next the perf_paranoid setting should be set to an appropriate value. Setting it to 0 or -1 gives provides the required functionality.
+Next the perf_paranoid setting should be set to an appropriate value. Setting it to 0 or -1 provides the required functionality.
 
     sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'
 
