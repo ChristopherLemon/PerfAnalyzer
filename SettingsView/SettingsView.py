@@ -34,10 +34,6 @@ def settings():
         tools.GlobalData.user_settings["dt"] = float(request.form["dt"])
         tools.GlobalData.user_settings["max_events_per_run"] = int(request.form["max_events_per_run"])
         tools.GlobalData.user_settings["proc_attach"] = int(request.form["proc_attach"])
-        tools.GlobalData.user_settings["env_variables"] = request.form["env_variables"]
-        tools.GlobalData.user_settings["bin_path"] = request.form["bin_path"]
-        tools.GlobalData.user_settings["lib_path"] = request.form["lib_path"]
-        tools.GlobalData.user_settings["preload"] = request.form["preload"]
         status = "Updated Settings"
     layout["title"] = "Settings " + status
     layout["footer"] = "Loaded Results: " + " & ".join(layout["Results"])
