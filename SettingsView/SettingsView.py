@@ -1,9 +1,11 @@
 from flask import render_template, request, Blueprint
 import tools.GlobalData
-from tools.PerfEvents import get_available_cpus, get_cpu_definition
+from tools.PerfEvents import get_available_cpus, get_cpu_definition, modify_event_definitions, EventDefinition, initialise_cpu_definitions, get_event_weights, modify_cpus
 from tools.JobHandler import get_global_mpirun_params, get_local_mpirun_params, get_perf_params, get_lsf_params, get_mpirun_appfile
+from collections import OrderedDict
 import json
 import os
+import re
 import copy
 
 layout = {}
@@ -34,7 +36,34 @@ def settings():
         tools.GlobalData.user_settings["dt"] = float(request.form["dt"])
         tools.GlobalData.user_settings["max_events_per_run"] = int(request.form["max_events_per_run"])
         tools.GlobalData.user_settings["proc_attach"] = int(request.form["proc_attach"])
-        status = "Updated Settings"
+    if 'perf_events_btn' in request.form:
+        events = OrderedDict()
+        for name in request.form:
+            match = re.search(r"(.*)_edit_(.*)", name)
+            if match:
+                event = match[1]
+                field = match[2]
+                if event not in events:
+                    events[event] = {"event": "", "raw_event": "", "event_group": "", "event_unit": "", "event_default": "", "event_weight": 0}
+                events[event][field] = request.form[name]
+        event_definitions = []
+        for event in events:
+            event_name = events[event]["event"]
+            raw_event = events[event]["raw_event"]
+            event_group = events[event]["event_group"]
+            event_unit = events[event]["event_unit"]
+            if events[event]["event_default"] == "True":
+                default_event = True
+            else:
+                default_event = False
+            event_counter = int(events[event]["event_weight"])
+            event_definition = EventDefinition(event_name, raw_event, event_group, event_unit, default_event,
+                                               event_counter)
+            event_definitions.append(event_definition)
+        modify_event_definitions(tools.GlobalData.user_settings["cpu"], event_definitions)
+        initialise_cpu_definitions()
+        tools.GlobalData.selected_cpu_definition = get_cpu_definition(tools.GlobalData.user_settings["cpu"])
+        tools.GlobalData.selected_cpu_definition.set_default_active_events()
     layout["title"] = "Settings " + status
     layout["footer"] = "Loaded Results: " + " & ".join(layout["Results"])
     return render_template('settings.html',
@@ -49,7 +78,9 @@ def settings():
                            processes=tools.GlobalData.processes,
                            enabled_modes=tools.GlobalData.enabled_modes,
                            user_settings=tools.GlobalData.user_settings,
-                           available_cpus=get_available_cpus())
+                           available_cpus=get_available_cpus(),
+                           weights = get_event_weights(),
+                           event_definitions=tools.GlobalData.selected_cpu_definition.get_event_definitions())
 
 
 @SettingsView.route('/update_cpu', methods=['GET', 'POST'])
@@ -71,7 +102,9 @@ def update_cpu():
                            processes=tools.GlobalData.processes,
                            enabled_modes=tools.GlobalData.enabled_modes,
                            user_settings=tools.GlobalData.user_settings,
-                           available_cpus=get_available_cpus())
+                           available_cpus=get_available_cpus(),
+                           weights=get_event_weights(),
+                           event_definitions=tools.GlobalData.selected_cpu_definition.get_event_definitions())
 
 def initialise_default_user_settings(cpu):
     tools.GlobalData.user_settings = {}

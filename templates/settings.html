@@ -106,6 +106,152 @@
     </div>
 </div>
 
+<div class="panel-group" id="accordion2">
+    <div class="container">
+        <form id="perf_events_form" action="{{url_for("SettingsView.settings")}}" method="post" style="width:100%">
+            <div class="row">
+                <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                    <div class="panel panel-default">
+                        <a data-toggle="collapse" data-parent="#accordion2" href="#event_table">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">
+                                     <strong>Edit Perf Events</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                </h4>
+                            </div>
+                        </a>
+                        <div id="event_table" class="panel-collapse collapse">
+                            <div class="flex-row">
+                                <div class="flex-column table-container" style="border-style:none;width:100%">
+                                    <div id="table" class="table-editable">
+                                        <table class="table input_table">
+                                            <tr>
+                                                <th>Event Name</th>
+                                                <th>Perf Event</th>
+                                                <th>Event Type</th>
+                                                <th>Event Unit</th>
+                                                <th>Make Default</th>
+                                                <th>Event Rate</th>
+                                                <th></th>
+                                                <th></th>
+                                            </tr>
+                                            {% for definition in event_definitions %}
+                                                <tr>
+                                                    <td>
+                                                        <input type="text" class="table-input-box" name="{{definition.event}}_edit_event" value="{{definition.event}}">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="table-input-box" name="{{definition.event}}_edit_raw_event" value="{{definition.raw_event}}">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" class="table-input-box" name="{{definition.event}}_edit_event_group" value="{{definition.event_group}}">
+                                                    </td>
+                                                    <td>
+                                                        <select name="{{definition.event}}_edit_event_unit" class="selectpicker">
+                                                            {% if definition.unit == "Samples" %}
+                                                                <option value="Samples" selected="selected">Samples</option>
+                                                                <option value="Hz">Hz</option>
+                                                            {% else %}
+                                                                <option value="Samples">Samples</option>
+                                                                <option value="Hz" selected="selected">Hz</option>
+                                                            {% endif %}
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <select name="{{definition.event}}_edit_event_default" class="selectpicker">
+                                                            {% if definition.default %}
+                                                                <option value="True" selected="selected">True</option>
+                                                                <option value="False">False</option>
+                                                            {% else %}
+                                                                <option value="True">True</option>
+                                                                <option value="False" selected="selected">False</option>
+                                                            {% endif %}
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <select name="{{definition.event}}_edit_event_weight" class="selectpicker">
+                                                        {% for i in weights %}
+                                                            {% if i == definition.event_weight %}
+                                                                <option selected="selected" value="{{i}}">{{i}}</option>
+                                                            {% else %}
+                                                                <option value="{{i}}">{{i}}</option>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <span class="table-remove glyphicon glyphicon-remove"></span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="table-up glyphicon glyphicon-arrow-up"></span>
+                                                        <span class="table-down glyphicon glyphicon-arrow-down"></span>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            <tr class="hide">
+                                                <td>
+                                                    <input class="table-input-box" type="text" name="edit_event" value="">
+                                                </td>
+                                                <td>
+                                                    <input class="table-input-box" type="text" name="edit_raw_event" value="">
+                                                </td>
+                                                <td>
+                                                    <input class="table-input-box" type="text" name="edit_event_group" value="">
+                                                </td>
+                                                <td>
+                                                    <select name="edit_event_unit">
+                                                        <option value="Samples">Samples</option>
+                                                        <option value="Hz">Hz</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <select name="edit_event_default">
+                                                        <option value="True">True</option>
+                                                        <option value="False">False</option>
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <select name="edit_event_weight">
+                                                        {% for i in weights %}
+                                                            {% if loop.index == 1 %}
+                                                                <option selected="selected" value="{{i}}">{{i}}</option>
+                                                            {% else %}
+                                                                <option value="{{i}}">{{i}}</option>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <span class="table-remove glyphicon glyphicon-remove"></span>
+                                                </td>
+                                                <td>
+                                                    <span class="table-up glyphicon glyphicon-arrow-up"></span>
+                                                    <span class="table-down glyphicon glyphicon-arrow-down"></span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="aligned-row">
+                                <div class="flex-row" style="border-style:none;">
+                                    <div class="flex-column" style="width:30%"><button style="margin:1px;" type="button" class="btn btn-basic btn-info" onclick="add_row()">Add Event</button></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class=row>
+                <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                    <row>
+                        <div class="flex-column" style="width:100%"><input type="submit" class="btn btn-basic" id="perf_events_btn" name="perf_events_btn" value="Update Perf Events"></div>
+                    </row>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block layoutfooter %}
@@ -158,5 +304,37 @@
     function clear_loaded_data() {
         $("#clear_data_form").submit();
     }
+    var $TABLE = $('#table');
+    var $EXPORT = $('#export');
+    var new_row_count = 0;
+
+    function add_row() {
+        let $clone = $TABLE.find('tr.hide').clone(true).removeClass('hide table-line');
+        let row_id = "new_row_" + new_row_count.toString();
+        $clone.find('input,select').each(function ()
+        {
+            let name = $(this).prop("name");
+            let new_name = row_id + "_" + name;
+            $(this).prop("name", new_name);
+        });
+        $clone.find('select').selectpicker();
+        $TABLE.find('table').append($clone);
+        new_row_count++;
+    }
+
+    $('.table-remove').click(function () {
+      $(this).parents('tr').detach();
+    });
+
+    $('.table-up').click(function () {
+      var $row = $(this).parents('tr');
+      if ($row.index() === 1) return; // Don't go above the header
+      $row.prev().before($row.get(0));
+    });
+
+    $('.table-down').click(function () {
+      var $row = $(this).parents('tr');
+      $row.next().after($row.get(0));
+    });
 </script>
 {% endblock %}

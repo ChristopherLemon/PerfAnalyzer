@@ -239,3 +239,22 @@ a.disabled, a.disabled:hover {
 h2.underline-title {
     border-bottom: 2px solid grey;
 }
+
+@import "compass/css3";
+
+.table-editable {
+  position: relative;
+
+  .glyphicon {
+    font-size: 20px;
+  }
+}
+
+.table-remove {
+  color: #700;
+  cursor: pointer;
+
+  &:hover {
+    color: #f00;
+  }
+}

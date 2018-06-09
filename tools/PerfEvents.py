@@ -3,6 +3,8 @@ from collections import namedtuple, OrderedDict
 from tools.Utilities import round_sig, natural_sort
 from tools.CustomEvents import add_custom_events_to_active_events, raw_event_to_event, get_event_type
 import tools.GlobalData
+from tempfile import mkstemp
+from shutil import move
 import copy
 import os
 import re
@@ -63,6 +65,57 @@ def initialise_cpu_definitions():
             raise Exception("Error reading line: \"" + line.strip() + "\"")
 
 
+def modify_event_definitions(cpu, event_definitions):
+    perf_events_location = tools.GlobalData.perf_events
+    orig_file = os.path.join(perf_events_location, cpu + ".events")
+    fh, abs_path = mkstemp()
+    start_edit = True
+    with open(abs_path, 'wb') as new_file:
+        with open(orig_file, 'r') as result:
+            for line in result:
+                match = re.search("EventDefinition", line)
+                if match:
+                    if start_edit:
+                        start_edit = False
+                        for definition in event_definitions:
+                            event_name = definition.event
+                            raw_event = definition.raw_event
+                            event_group = definition.event_group
+                            event_unit = definition.unit
+                            if definition.default:
+                                default_event = "True"
+                            else:
+                                default_event = "False"
+                            event_counter = str(definition.event_weight)
+                            l = ", ".join(["EventDefinition: " + event_name, raw_event, event_group, event_unit, default_event, event_counter]) + "\n"
+                            new_file.write(l.encode())
+                else:
+                    new_file.write(line.encode())
+    os.close(fh)
+    os.remove(orig_file)
+    move(abs_path, orig_file)
+
+
+def modify_cpus(cpus):
+    perf_events_location = tools.GlobalData.perf_events
+    old_cpus = []
+    for f in os.listdir(perf_events_location):
+        cpu, dot, ext = f.rpartition(".")
+        if ext == "events":
+            if cpu not in cpus:
+                old_cpus.append(cpu)
+                filename = os.path.join(perf_events_location, f)
+                os.remove(filename)
+    for cpu in cpus:
+        if cpu not in old_cpus:
+            filename = os.path.join(perf_events_location, cpu + ".events")
+            open(filename, 'rw')
+            os.close(filename)
+
+def get_event_weights():
+    return [1, 10, 100, 1000, 10000, 20000, 40000, 80000, 160000, 320000, 640000, 1280000, 2560000, 5120000]
+
+
 class CpuDefinition:
 
     def __init__(self, cpu_name, available_events, roofline_events=None):
@@ -81,6 +134,9 @@ class CpuDefinition:
         active_events = self.get_active_events()
         if event not in active_events:
             self.active_events.append(EventDefinition(event, raw_event, event_group, unit, default, event_weight))
+
+    def get_event_definitions(self):
+        return self.available_events
 
     def set_default_active_events(self):
         self.active_events = []
