@@ -28,8 +28,8 @@ def modify_process_ids(orig_pid, orig_file):
             tids[t] = str(n)
             n += 1
     fh, abs_path = mkstemp()
-    with open(abs_path,'wb') as new_file:
-        with open(orig_file,'r') as result:
+    with open(abs_path,'wb') as new_file:  # Output file is binary
+        with open(orig_file,'r') as result:  # Input file is text
             for line in result:
                 match = re.search(process_id_regex, line)
                 if match:

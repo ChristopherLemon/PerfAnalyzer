@@ -70,8 +70,8 @@ def modify_event_definitions(cpu, event_definitions):
     orig_file = os.path.join(perf_events_location, cpu + ".events")
     fh, abs_path = mkstemp()
     start_edit = True
-    with open(abs_path, 'wb') as new_file:
-        with open(orig_file, 'rb') as result:
+    with open(abs_path, 'wb') as new_file:  # Output file is binary
+        with open(orig_file, 'rb') as result:  # Input file is binary
             for line in result:
                 line = line.decode()
                 match = re.search("EventDefinition", line)
