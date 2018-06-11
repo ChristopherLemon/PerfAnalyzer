@@ -41,8 +41,8 @@ def settings():
         for name in request.form:
             match = re.search(r"(.*)_edit_(.*)", name)
             if match:
-                event = match[1]
-                field = match[2]
+                event = match.group(1)
+                field = match.group(2)
                 if event not in events:
                     events[event] = {"event": "", "raw_event": "", "event_group": "", "event_unit": "", "event_default": "", "event_weight": 0}
                 events[event][field] = request.form[name]

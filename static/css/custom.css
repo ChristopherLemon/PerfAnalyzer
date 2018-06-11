@@ -258,3 +258,8 @@ h2.underline-title {
     color: #f00;
   }
 }
+
+.table-input-box {
+    border: none;
+    background-color: inherit;
+}

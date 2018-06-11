@@ -71,8 +71,9 @@ def modify_event_definitions(cpu, event_definitions):
     fh, abs_path = mkstemp()
     start_edit = True
     with open(abs_path, 'wb') as new_file:
-        with open(orig_file, 'r') as result:
+        with open(orig_file, 'rb') as result:
             for line in result:
+                line = line.decode()
                 match = re.search("EventDefinition", line)
                 if match:
                     if start_edit:
