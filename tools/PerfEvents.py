@@ -70,10 +70,9 @@ def modify_event_definitions(cpu, event_definitions):
     orig_file = os.path.join(perf_events_location, cpu + ".events")
     fh, abs_path = mkstemp()
     start_edit = True
-    with open(abs_path, 'wb') as new_file:  # Output file is binary
-        with open(orig_file, 'rb') as result:  # Input file is binary
+    with open(abs_path, 'w') as new_file:
+        with open(orig_file, 'r') as result:
             for line in result:
-                line = line.decode()
                 match = re.search("EventDefinition", line)
                 if match:
                     if start_edit:
@@ -89,29 +88,13 @@ def modify_event_definitions(cpu, event_definitions):
                                 default_event = "False"
                             event_counter = str(definition.event_weight)
                             l = ", ".join(["EventDefinition: " + event_name, raw_event, event_group, event_unit, default_event, event_counter]) + "\n"
-                            new_file.write(l.encode())
+                            new_file.write(l)
                 else:
-                    new_file.write(line.encode())
+                    new_file.write(line)
     os.close(fh)
     os.remove(orig_file)
     move(abs_path, orig_file)
 
-
-def modify_cpus(cpus):
-    perf_events_location = tools.GlobalData.perf_events
-    old_cpus = []
-    for f in os.listdir(perf_events_location):
-        cpu, dot, ext = f.rpartition(".")
-        if ext == "events":
-            if cpu not in cpus:
-                old_cpus.append(cpu)
-                filename = os.path.join(perf_events_location, f)
-                os.remove(filename)
-    for cpu in cpus:
-        if cpu not in old_cpus:
-            filename = os.path.join(perf_events_location, cpu + ".events")
-            open(filename, 'rw')
-            os.close(filename)
 
 def get_event_weights():
     return [1, 10, 100, 1000, 10000, 20000, 40000, 80000, 160000, 320000, 640000, 1280000, 2560000, 5120000]

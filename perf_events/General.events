@@ -10,18 +10,6 @@ EventDefinition: Cycles,                      cycles,                    General
 EventDefinition: Instructions,                instructions,              General,            Samples,   True,  2560000
 EventDefinition: CPU-Clock,                   cpu-clock,                 Software,           Hz,        False, 199
 EventDefinition: Task-Clock,                  task-clock,                Software,           Hz,        False, 199
-EventDefinition: L1-Dcache-Loads,             L1-dcache-loads,           Data Access,        Samples,   True,  640000
-EventDefinition: L1-Dcache-Stores,            L1-dcache-stores,          Data Access,        Samples,   True,  640000
-EventDefinition: L1-Dcache-Prefetch-Misses,   L1-dcache-prefetch-misses, Prefetch,           Samples,   False, 640000
-EventDefinition: L1-Icache-Load-Misses,       L1-icache-load-misses,     Instruction Access, Samples,   False, 640000
-EventDefinition: LLC-Loads,                   LLC-loads,                 Data Access,        Samples,   True,  80000
-EventDefinition: LLC-Load-Misses,             LLC-load-misses,           Data Access,        Samples,   True,  80000
-EventDefinition: LLC-Stores,                  LLC-stores,                Data Access,        Samples,   True,  80000
-EventDefinition: LLC-Store-Misses,            LLC-store-misses,          Data Access,        Samples,   True,  80000
-EventDefinition: LLC-Prefetches,              LLC-prefetches,            Prefetch,           Samples,   False, 80000
-EventDefinition: LLC-Prefetch-Misses,         LLC-prefetch-misses,       Prefetch,           Samples,   False, 80000
-EventDefinition: Stalled-Cycles-Frontend,     stalled-cycles-frontend,   General,            Samples,   False, 1280000
-EventDefinition: Stalled-Cycles-Backend,      stalled-cycles-backend,    General,            Samples,   False, 1280000
 EventDefinition: Context-Switches,            context-switches,          Software,           Samples,   False, 1
 EventDefinition: CPU-Migrations,              cpu-migrations,            Software,           Samples,   False, 1
 EventDefinition: Page-Faults,                 page-faults,               Software,           Samples,   False, 1
@@ -33,10 +21,14 @@ EventDefinition: Data-TLB-Stores,             dTLB-stores,               Data TL
 EventDefinition: Data-TLB-Store-Misses,       dTLB-store-misses,         Data TLB,           Samples,   False, 640000
 EventDefinition: Instruction-TLB-Loads,       iTLB-loads,                Instruction TLB,    Samples,   False, 640000
 EventDefinition: Instruction-TLB-Load-Misses, iTLB-load-misses,          Instruction TLB,    Samples,   False, 640000
-
+EventDefinition: Loads-Retired, mem_uops_retired.all_stores,          Data Access,    Samples,   False, 1280000
+EventDefinition: Loads-Retired, mem_uops_retired.all_loads,           Data Access,    Samples,   False, 1280000
+EventDefinition: L1-Hit-Loads-Retired, mem_uops_retired.l1_hit,          Data Access,    Samples,   False, 1280000
+EventDefinition: L2-Hit-Loads-Retired, mem_uops_retired.l2_hit,          Data Access,    Samples,   False, 40000
+EventDefinition: LLC-Hit-Loads-Retired, mem_uops_retired.llc_hit,          Data Access,    Samples,   False, 40000
+EventDefinition: LLC-Miss-Loads-Retired, mem_uops_retired.llc_miss,          Data Access,    Samples,   False, 40000
 EventDefinition: Local-DRAM, mem_load_uops_llc_miss_retired.local_dram, Data Access, Samples, False, 10000
-EventDefinition: Loads-Retired, mem_uops_retired.all_loads, Data Access, Samples, False, 640000
-EventDefinition: Loads-Misaligned, misalign_mem_ref.loads, Data Access, Samples, False, 80000
+EventDefinition: Loads-Misaligned, misalign_mem_ref.loads, Data Access, Samples, False, 40000
 EventDefinition: Remote-DRAM, mem_load_uops_llc_miss_retired.remote_dram, Data Access, Samples, False, 1000
 EventDefinition: Syscall-brk, syscalls:sys_enter_brk, Software, Samples, False, 1
 EventDefinition: Syscall-mmap, syscalls:sys_enter_mmap, Software, Samples, False, 1
