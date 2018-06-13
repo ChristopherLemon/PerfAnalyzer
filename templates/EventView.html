@@ -65,7 +65,7 @@
                         <div class="aligned-row">
                             <div class="flex-row" style="border-style:none;">
                                 <div class="flex-column" style="width:70%"><input style="margin:1px" class="form-control" id="text_filter" name="text_filter" placeholder="Text Filter: Enter regular expression" value="{{event_model.text_filter}}" oninput="find_text(this)"></div>
-                                <div class="flex-column" style="width:30%"><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="text_btn" name="text_btn" onclick="apply_text_filter()">Apply Text Filter</button></div>
+                                <div class="flex-column" style="width:30%"><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="text_btn" name="text_btn" onclick="apply_text_filter('text_filter')">Apply Text Filter</button></div>
                             </div>
                         </div>
                     </div>
@@ -205,7 +205,7 @@
                                 <div class="aligned-row">
                                     <div class="flex-row">
                                         <div class="flex-column" style="width:70%"><input style="margin:1px" class="form-control" id="point_filter" name="point_filter" placeholder="Text Filter: Enter regular expression" value="{{event_model.text_filter}}" oninput="find_points(this)"></div>
-                                        <div class="flex-column" style="width:30%"><br><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="point_btn" name="point_btn" onclick="apply_text_filter('point_filter')">Apply Text Filter</button></div>
+                                        <div class="flex-column" style="width:30%"><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="point_btn" name="point_btn" onclick="apply_text_filter('point_filter')">Apply Text Filter</button></div>
                                     </div>
                                 </div>
                             </div>
@@ -1095,8 +1095,8 @@
         update_all_charts(label, x);
         $('#text_filter').prop('value', filter);
     }
-    function apply_text_filter(e) {
-        let filter = $('#text_filter').prop('value');
+    function apply_text_filter(id) {
+        let filter = $(document.getElementById(id)).prop("value");
         label = "Match " + filter;
         let vals = {"text_filter":filter};
         let x = JSON.stringify(vals);
