@@ -120,7 +120,8 @@ The results summary contains information on the profiler settings used for the l
 Allows the user to change the processor model, the monitored events, and parameters for the execution environment.
 
 <h3>Perf Events</h3>
-Perf events for each cpu type are defined in the <i>cpu</i>.events files. These can be found in the location <i>path_to_perf_profiler</i>/perf_events folder, and can be modified to include extra cpus, or events. Information for creating
-events can be found in the Intel® 64 and IA-32 Architectures Software Developer’s Manual.
+Perf events for can be defined in the <i>cpu</i>.events files. These can be stored in the location <i>path_to_perf_profiler</i>/perf_events folder. These can often change between perf versions, so may need to be modified. The events can
+be edited by changing the event files, or by modifying the Edit Perf Events table in the Settings View. Information for creating
+events can be found in the Intel® 64 and IA-32 Architectures Software Developer’s Manual, and from the perf list command.
 
 {% endblock %}

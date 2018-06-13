@@ -1,6 +1,6 @@
 from flask import render_template, request, Blueprint
 import tools.GlobalData
-from tools.PerfEvents import get_available_cpus, get_cpu_definition, modify_event_definitions, EventDefinition, initialise_cpu_definitions, get_event_weights, modify_cpus
+from tools.PerfEvents import get_available_cpus, get_cpu_definition, modify_event_definitions, EventDefinition, initialise_cpu_definitions, get_event_weights
 from tools.JobHandler import get_global_mpirun_params, get_local_mpirun_params, get_perf_params, get_lsf_params, get_mpirun_appfile
 from collections import OrderedDict
 import json
