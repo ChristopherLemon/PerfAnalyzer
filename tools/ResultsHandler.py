@@ -240,7 +240,8 @@ def get_run_summary(path, results_files):
                 elif re.match("system_wide", line):
                     run_parameters[job]["system_wide"] = True
                 else:
-                    job_process, par, raw_event = line.strip().rpartition('_')
+                    match = re.match("(.*proc(all|[0-9]+))_(.*)", line.strip())
+                    raw_event = match.group(3)
                     if raw_event in run_numbers[job]:
                         run_number = str(run_numbers[job][raw_event])
                         filename = path + os.sep + line.strip()
