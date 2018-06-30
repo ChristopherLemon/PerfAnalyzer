@@ -29,7 +29,7 @@ def get_lsf_env(lib_path, preload, env_variables, bin_path):
     if len(lib_path_env) > 0:
         env += ',LD_LIBRARY_PATH={}:$LD_LIBRARY_PATH'.format(lib_path_env)
     if len(preload_env) > 0:
-        env += ',LD_PRELOAD={}:$LD_PRELOAD'.format(preload_env)
+        env += ',LD_PRELOAD={}'.format(preload_env)
     if len(env_variables) > 0:
         env += ',{}'.format(env_variables)
     if len(bin_path_env) > 0:
