@@ -480,9 +480,6 @@ class JobHandler:
                 config_path = local_data + os.sep + config_name
                 self.mpi_config_files.append(config_name)
                 mpi_config_file = open(config_path,'wb')
-                if self.global_mpirun_params != "":
-                    command = self.global_mpirun_params + "\n"
-                    mpi_config_file.write(command.encode())
                 if self.system_wide:
                     for nid in range(0, num_nodes):
                         mpirun_command = "-np 1 " + self.local_mpirun_params
@@ -527,9 +524,9 @@ class JobHandler:
                     out_file = self.job_id + "run" + str(n_group) + ".out"
                     err_file = self.job_id + "run" + str(n_group) + ".err"
                     lsf_command += " -e " + err_file + " -o " + out_file
-                    command = lsf_command + " mpirun " + self.mpirun_appfile + " " + config_name
+                    command = lsf_command + " mpirun " + self.global_mpirun_params + " " + self.mpirun_appfile + " " + config_name
                 else:
-                    command = "mpirun " + self.mpirun_appfile + " " + config_name
+                    command = "mpirun " + self.global_mpirun_params + " " + self.mpirun_appfile + " " + config_name
             else:
                 event_list = ",".join(events)
                 perf_out_file = get_perf_out_file_name(self.job_id, 0, n_group, self.system_wide)

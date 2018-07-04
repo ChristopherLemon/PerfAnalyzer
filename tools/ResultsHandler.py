@@ -69,6 +69,7 @@ def modify_system_wide_process_ids(orig_file):
             n += 1
     fs = {}
     last_time = ""
+    start_time = ""
     with open(orig_file, 'r') as result:
         for line in result:
             match = re.search(process_id_regex, line)
@@ -79,12 +80,15 @@ def modify_system_wide_process_ids(orig_file):
                 new_file = re.sub("host" + host, "host" + host + "_proc" + pid, orig_file)
                 if new_file not in fs:
                     fs[new_file] = open(new_file, 'wb')
+                    fs[new_file].write(start_time.encode())
                     fs[new_file].write(last_time.encode())
                 fs[new_file].write(line.encode())
             elif line[0:2] == "t=":
                 last_time = line
                 for f in fs:
                     fs[f].write(line.encode())
+            elif re.match("start-time", line):
+                start_time = line
     for f in fs:
         fs[f].close()
     remove(orig_file)
@@ -121,7 +125,7 @@ def replace_results_file(local_data, results_file, job_id):
                 else:  # ignore original results files
                     break
         for f in os.listdir(local_data):
-            if re.search(job_id + "_host(\d+)_proc", f):  # populate new file with seperate results for each process
+            if re.search(job_id + "_host(\d+)_proc", f):  # populate new file with separate results for each process
                 fname = f + "\n"
                 new_results_file.write(fname.encode())
     close(fh)
