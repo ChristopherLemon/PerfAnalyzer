@@ -285,7 +285,7 @@ class JobHandler:
             try:
                 hostname = job_settings["server"]
                 port = 22
-                match = re.match("(.+):([0-9]+)")
+                match = re.match("(.+):([0-9]+)", hostname)
                 if match():
                     hostname = match.group(1)
                     port = int(match.group(2))
@@ -320,7 +320,7 @@ class JobHandler:
         try:
             hostname = job_settings["server"]
             port = 22
-            match = re.match("(.+):([0-9]+)")
+            match = re.match("(.+):([0-9]+)", hostname)
             if match():
                 hostname = match.group(1)
                 port = int(match.group(2))
@@ -342,7 +342,7 @@ class JobHandler:
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             hostname = job_settings["server"]
             port = 22
-            match = re.match("(.+):([0-9]+)")
+            match = re.match("(.+):([0-9]+)", hostname)
             if match():
                 hostname = match.group(1)
                 port = int(match.group(2))
@@ -377,7 +377,7 @@ class JobHandler:
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             hostname = job_settings["server"]
             port = 22
-            match = re.match("(.+):([0-9]+)")
+            match = re.match("(.+):([0-9]+)", hostname)
             if match():
                 hostname = match.group(1)
                 port = int(match.group(2))
