@@ -73,9 +73,9 @@ def get_mpirun_appfile(mpi_version=None):
 
 def get_perf_params(system_wide):
     if system_wide:
-        command = "perf record --call-graph dwarf -a"
+        command = "perf record -g -a"
     else:
-        command = "perf record --call-graph dwarf"
+        command = "perf record -g"
     return command
 
 def get_remove_old_data_command(job_id, system_wide):
