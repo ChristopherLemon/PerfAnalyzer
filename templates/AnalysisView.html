@@ -1384,12 +1384,14 @@
             $(this).prop("innerHTML", message);
             $(this).show();
         });
+        $("body").css("cursor", "progress");
     }
     function hideLoaders() {
         setTimeout(hideLoaderTimeout, 2500);
         $('.loader').each(function() {
             $(this).prop('innerHTML', "Data Update Complete");
         });
+        $("body").css("cursor", "default");
     }
     function hideLoaderTimeout(loader) {
         $('.loader').each(function() {
