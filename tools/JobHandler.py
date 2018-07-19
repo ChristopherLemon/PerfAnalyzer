@@ -283,11 +283,17 @@ class JobHandler:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             try:
+                hostname = job_settings["server"]
+                port = 22
+                match = re.match("(.+):([0-9]+)")
+                if match():
+                    hostname = match.group(1)
+                    port = int(match.group(2))
                 if len(job_settings["private_key"]) > 0:
                     key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
-                    client.connect(job_settings["server"], username=job_settings["username"], pkey=key)
+                    client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
                 else:
-                    client.connect(job_settings["server"], username=job_settings["username"],
+                    client.connect(hostname, port=port, username=job_settings["username"],
                                    password=job_settings["password"])
                 perf_event_paranoid_out = self.execute_command("cat /proc/sys/kernel/perf_event_paranoid", client=client,
                                                            return_output=True)
@@ -312,11 +318,17 @@ class JobHandler:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
+            hostname = job_settings["server"]
+            port = 22
+            match = re.match("(.+):([0-9]+)")
+            if match():
+                hostname = match.group(1)
+                port = int(match.group(2))
             if len(job_settings["private_key"]) > 0:
                 key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
-                client.connect(job_settings["server"], username=job_settings["username"], pkey=key)
+                client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
             else:
-                client.connect(job_settings["server"], username=job_settings["username"], password=job_settings["password"])
+                client.connect(hostname, port=port, username=job_settings["username"], password=job_settings["password"])
             client.close()
             return ""
         except (BadHostKeyException, AuthenticationException,
@@ -328,11 +340,17 @@ class JobHandler:
         if self.use_ssh:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            hostname = job_settings["server"]
+            port = 22
+            match = re.match("(.+):([0-9]+)")
+            if match():
+                hostname = match.group(1)
+                port = int(match.group(2))
             if len(job_settings["private_key"]) > 0:
                 key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
-                client.connect(job_settings["server"], username=job_settings["username"], pkey=key)
+                client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
             else:
-                client.connect(job_settings["server"], username=job_settings["username"], password=job_settings["password"])
+                client.connect(hostname, port=port, username=job_settings["username"], password=job_settings["password"])
             stfp = client.open_sftp()
         else:
             client = None
@@ -357,11 +375,17 @@ class JobHandler:
             self.scriptwriting_logger.info(u" Open ssh connection")
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            hostname = job_settings["server"]
+            port = 22
+            match = re.match("(.+):([0-9]+)")
+            if match():
+                hostname = match.group(1)
+                port = int(match.group(2))
             if len(job_settings["private_key"]) > 0:
                 key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
-                client.connect(job_settings["server"], username=job_settings["username"], pkey=key)
+                client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
             else:
-                client.connect(job_settings["server"],username=job_settings["username"],password=job_settings["password"])
+                client.connect(hostname, port=port, username=job_settings["username"],password=job_settings["password"])
             self.scriptwriting_logger.info(u" Open stfp connection")
             stfp = client.open_sftp()
         else:
