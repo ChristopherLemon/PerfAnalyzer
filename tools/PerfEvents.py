@@ -283,6 +283,7 @@ class CpuDefinition:
 
     def get_enabled_modes(self):
         trace_enabled = False
+        events_enabled = False
         roofline_anaylsis_enabled = False
         active_raw_events = self.get_active_raw_events()
         active_events = self.get_active_events()
@@ -290,6 +291,8 @@ class CpuDefinition:
         for event in active_events:
             if event_group_map[event] == "Trace":
                 trace_enabled = True
+            else:
+                events_enabled = True
         if self.roofline_events:
             loads = set(self.roofline_events["Memory"]).intersection(set(active_raw_events))
             flops = set(self.roofline_events["Flops"]).intersection(set(active_raw_events))
@@ -298,7 +301,8 @@ class CpuDefinition:
         general_analysis_enabled = len(self.get_active_raw_events()) > 1 and self.base_event in active_events
         return {"roofline_analysis": roofline_anaylsis_enabled,
                 "general_analysis": general_analysis_enabled,
-                "trace": trace_enabled}
+                "trace": trace_enabled,
+                "events": events_enabled}
 
 
 def get_available_cpus():

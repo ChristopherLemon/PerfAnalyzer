@@ -97,63 +97,69 @@
                     <li>
                         <a href="#"><i class="fa fa-area-chart fa-fw"></i> Event View <span class="fa arrow"></span></a>
                         <ul class="nav nav-second-level">
-                            {% for group in all_event_groups %}
-                                {% if group != "Trace" %}
-                                <li>
-                                    <a href="#">{{group}} <span class="listcount"></span><span class="fa arrow"></span></a>
-                                    <ul class="nav nav-third-level">
-                                    {% for event in events %}
-                                        {% if event_group_map[event]==group %}
-                                        <li>
-                                            <a href={{url_for("EventView.event_view",event=event)}}>{{event}}</a>
-                                        </li>
-                                        {% endif %}
-                                    {% endfor %}
-                                    </ul>
-                                </li>
-                                {% endif %}
-                            {% endfor %}
+                            {% if enabled_modes["events"] %}
+                                {% for group in all_event_groups %}
+                                    {% if group != "Trace" %}
+                                    <li>
+                                        <a href="#">{{group}} <span class="listcount"></span><span class="fa arrow"></span></a>
+                                        <ul class="nav nav-third-level">
+                                        {% for event in events %}
+                                            {% if event_group_map[event]==group %}
+                                            <li>
+                                                <a href={{url_for("EventView.event_view",event=event)}}>{{event}}</a>
+                                            </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                        </ul>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
                         </ul>
                     </li>
                     <li>
                         <a href="#"><i class="fa fa-bar-chart fa-fw"></i> Process View <span class="fa arrow"></span></a>
                         <ul class="nav nav-second-level">
-                            {% for job in processes %}
-                            <li>
-                                <a href="#">{{job}} <span class="listcount"></span><span class="fa arrow"></span></a>
-                                <ul class="nav nav-third-level">
-                                {% for process in processes[job] %}
-                                    {% if "all" not in process %}
-                                        {% set process_choice = [job, process]|join("_") %}
-                                         <li>
-                                            <a href={{url_for("ProcessView.process_view",process=process_choice)}}>{{process}}</a>
-                                        </li>
-                                    {% endif %}
+                            {% if enabled_modes["trace"] %}
+                                {% for job in processes %}
+                                <li>
+                                    <a href="#">{{job}} <span class="listcount"></span><span class="fa arrow"></span></a>
+                                    <ul class="nav nav-third-level">
+                                    {% for process in processes[job] %}
+                                        {% if "all" not in process %}
+                                            {% set process_choice = [job, process]|join("_") %}
+                                             <li>
+                                                <a href={{url_for("ProcessView.process_view",process=process_choice)}}>{{process}}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </ul>
+                                </li>
                                 {% endfor %}
-                                </ul>
-                            </li>
-                             {% endfor %}
+                            {% endif %}
                         </ul>
                     </li>
                     <li>
                         <a href="#"><i class="fa fa-line-chart fa-fw"></i> Analysis View <span class="fa arrow"></span></a>
                         <ul class="nav nav-second-level">
-                            {% if enabled_modes["roofline_analysis"] %}
-                                {% set enabled_roofline = "" %}
-                            {% else %}
-                                {% set enabled_roofline = "disabled" %}
+                            {% if enabled_modes["trace"] %}
+                                {% if enabled_modes["roofline_analysis"] %}
+                                    {% set enabled_roofline = "" %}
+                                {% else %}
+                                    {% set enabled_roofline = "disabled" %}
+                                {% endif %}
+                                {% if enabled_modes["general_analysis"] %}
+                                    {% set enabled_general = "" %}
+                                {% else %}
+                                    {% set enabled_general = "disabled" %}
+                                {% endif %}
+                                <li>
+                                    <a class="{{enabled_roofline}}" href={{url_for("AnalysisView.roofline_analysis")}}>Roofline Analysis</a>
+                                </li>
+                                <li>
+                                    <a class="{{enabled_general}}" href={{url_for("AnalysisView.general_analysis")}}>General Analysis</a>
+                                </li>
                             {% endif %}
-                            {% if enabled_modes["general_analysis"] %}
-                                {% set enabled_general = "" %}
-                            {% else %}
-                                {% set enabled_general = "disabled" %}
-                            {% endif %}
-                            <li>
-                                <a class="{{enabled_roofline}}" href={{url_for("AnalysisView.roofline_analysis")}}>Roofline Analysis</a>
-                            </li>
-                            <li>
-                                <a class="{{enabled_general}}" href={{url_for("AnalysisView.general_analysis")}}>General Analysis</a>
-                            </li>
                         </ul>
                     </li>
                     <li>
