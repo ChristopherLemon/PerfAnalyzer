@@ -345,8 +345,12 @@ def add_custom_events_to_active_events(cpu_definition, raw_events):
         elif is_derived_event(raw_event):
             event = derived_events[raw_event]["event"]
             make_custom_event(cpu_definition, "derived", event)
-        else:
+        elif is_composite_event(raw_event):
             composite_events.append(raw_event)
+        else:  # Unmatched event - just add it
+            event_group = "General"
+            unit = "Samples"
+            cpu_definition.add_active_event(raw_event, raw_event, event_group, unit, False, 0)
     # Deal with sums
     if len(composite_events) > 0:
         active_raw_events = cpu_definition.get_active_raw_events()
