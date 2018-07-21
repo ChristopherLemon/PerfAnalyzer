@@ -88,7 +88,7 @@
                             {% if enabled_modes["trace"] %}
                                 {% for job in jobs %}
                                     <li>
-                                        <a href={{url_for("TraceView.trace_view",job=job)}}>{{job}}</a>
+                                        <a class="href_progress" href={{url_for("TraceView.trace_view",job=job)}}>{{job}}</a>
                                     </li>
                                 {% endfor %}
                             {% endif %}
@@ -106,7 +106,7 @@
                                         {% for event in events %}
                                             {% if event_group_map[event]==group %}
                                             <li>
-                                                <a href={{url_for("EventView.event_view",event=event)}}>{{event}}</a>
+                                                <a class="href_progress" href={{url_for("EventView.event_view",event=event)}}>{{event}}</a>
                                             </li>
                                             {% endif %}
                                         {% endfor %}
@@ -129,7 +129,7 @@
                                         {% if "all" not in process %}
                                             {% set process_choice = [job, process]|join("_") %}
                                              <li>
-                                                <a href={{url_for("ProcessView.process_view",process=process_choice)}}>{{process}}</a>
+                                                <a class="href_progress" href={{url_for("ProcessView.process_view",process=process_choice)}}>{{process}}</a>
                                             </li>
                                         {% endif %}
                                     {% endfor %}
@@ -154,22 +154,22 @@
                                     {% set enabled_general = "disabled" %}
                                 {% endif %}
                                 <li>
-                                    <a class="{{enabled_roofline}}" href={{url_for("AnalysisView.roofline_analysis")}}>Roofline Analysis</a>
+                                    <a class="{{enabled_roofline}} href_progress" href={{url_for("AnalysisView.roofline_analysis")}}>Roofline Analysis</a>
                                 </li>
                                 <li>
-                                    <a class="{{enabled_general}}" href={{url_for("AnalysisView.general_analysis")}}>General Analysis</a>
+                                    <a class="{{enabled_general}} href_progress" href={{url_for("AnalysisView.general_analysis")}}>General Analysis</a>
                                 </li>
                             {% endif %}
                         </ul>
                     </li>
                     <li>
-                        <a href={{url_for("CustomEventsView.add_custom_event")}}><i class="fa fa-plus-circle fa-fw"></i>Create Custom Event</a>
+                        <a class="href_progress" href={{url_for("CustomEventsView.add_custom_event")}}><i class="fa fa-plus-circle fa-fw"></i>Create Custom Event</a>
                     </li>
                     <li>
-                        <a href={{url_for("run_summary")}}><i class="fa fa-tasks fa-fw"></i>Results Summary</a>
+                        <a class="href_progress" href={{url_for("run_summary")}}><i class="fa fa-tasks fa-fw"></i>Results Summary</a>
                     </li>
                     <li>
-                        <a href={{url_for("SettingsView.settings")}}><i class="fa fa-cog fa-fw"></i> Settings</a>
+                        <a class="href_progress" href={{url_for("SettingsView.settings")}}><i class="fa fa-cog fa-fw"></i> Settings</a>
                     </li>
                 </ul>
             </div>
@@ -211,6 +211,9 @@
         {% endblock %}
 
         <script type="text/javascript">
+
+            $("body").css("cursor", "default");
+
             function addLoadEvent(func) {
                 var oldonload = window.onload;
                 if (typeof window.onload != 'function') {
@@ -224,12 +227,32 @@
                     }
                 }
             }
+            function addEvent(obj, evType, fn) {
+                if (obj.addEventListener) {
+                    obj.addEventListener(evType, fn, false);
+                    return true;
+                } else if (obj.attachEvent) {
+                    let r = obj.attachEvent("on" + evType, fn);
+                    return r;
+                } else {
+                    alert("Handler could not be attached");
+                }
+            }
             addLoadEvent(count_all_list_entries);
             function count_all_list_entries() {
                 $('.listcount').each(function() {
                     let n = $(this).parent().next('.nav').find('a[href]').length;
                     $(this).prop('innerHTML','(' + n.toString() + ')');
                 });
+            }
+            addLoadEvent(href_progress_events);
+            function href_progress_events() {
+                let hrefs = document.getElementsByClassName('href_progress');
+                for (let i=0; i<hrefs.length; ++i) {
+                    addEvent(hrefs[i], "click", function() {
+                        $("body").css("cursor", "progress");
+                    });
+                }
             }
         </script>
 
