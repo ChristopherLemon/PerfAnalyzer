@@ -227,17 +227,6 @@
                     }
                 }
             }
-            function addEvent(obj, evType, fn) {
-                if (obj.addEventListener) {
-                    obj.addEventListener(evType, fn, false);
-                    return true;
-                } else if (obj.attachEvent) {
-                    let r = obj.attachEvent("on" + evType, fn);
-                    return r;
-                } else {
-                    alert("Handler could not be attached");
-                }
-            }
             addLoadEvent(count_all_list_entries);
             function count_all_list_entries() {
                 $('.listcount').each(function() {
@@ -249,7 +238,7 @@
             function href_progress_events() {
                 let hrefs = document.getElementsByClassName('href_progress');
                 for (let i=0; i<hrefs.length; ++i) {
-                    addEvent(hrefs[i], "click", function() {
+                    hrefs[i].addEventListener("click", function() {
                         $("body").css("cursor", "progress");
                     });
                 }
