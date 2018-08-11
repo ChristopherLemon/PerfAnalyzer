@@ -286,7 +286,7 @@ class JobHandler:
                 hostname = job_settings["server"]
                 port = 22
                 match = re.match("(.+):([0-9]+)", hostname)
-                if match():
+                if match:
                     hostname = match.group(1)
                     port = int(match.group(2))
                 if len(job_settings["private_key"]) > 0:
@@ -321,7 +321,7 @@ class JobHandler:
             hostname = job_settings["server"]
             port = 22
             match = re.match("(.+):([0-9]+)", hostname)
-            if match():
+            if match:
                 hostname = match.group(1)
                 port = int(match.group(2))
             if len(job_settings["private_key"]) > 0:
@@ -343,7 +343,7 @@ class JobHandler:
             hostname = job_settings["server"]
             port = 22
             match = re.match("(.+):([0-9]+)", hostname)
-            if match():
+            if match:
                 hostname = match.group(1)
                 port = int(match.group(2))
             if len(job_settings["private_key"]) > 0:
@@ -378,7 +378,7 @@ class JobHandler:
             hostname = job_settings["server"]
             port = 22
             match = re.match("(.+):([0-9]+)", hostname)
-            if match():
+            if match:
                 hostname = match.group(1)
                 port = int(match.group(2))
             if len(job_settings["private_key"]) > 0:
