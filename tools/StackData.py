@@ -350,10 +350,10 @@ class StackData:
         self.selected_ids = selected_ids
         self.set_base_case(base_case, self.selected_ids)
         if not self.data_update_required(start, stop):
-            self.text_filter = text_filter
+            self.text_filter = re.escape(text_filter)
             self.compute_totals()
             return
-        self.text_filter = text_filter
+        self.text_filter = re.escape(text_filter)
         self.filtered_stacks = {}
         self.filtered_stacks_x = {}
         self.filtered_stacks_y = {}

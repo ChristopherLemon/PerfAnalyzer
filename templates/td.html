@@ -9,16 +9,16 @@
 <h2 class="underline-title">Job submission</h2>
 
 <h3>Run Options</h3>
-Jobs can be submitted using any combination of mpi, lsf, and ssh. This allows a great deal of flexibility to run locally, or to submit jobs to different hosts, clusters, and remote servers.
+Jobs can be submitted using any combination of mpi, lsf, and ssh. This allows a great deal of flexibility to run locally, or to submit jobs to different hosts, clusters, or remote servers.
 
 <h3>Hardware Event Counters</h3>
 Jobs can be submitted to monitor an application using Linux perf events. By default, when multiple events are monitored, several runs may be performed. This is to prevent multiplexing of events, so that the resulting data
 can be easily understood. Different event counters are assigned to each event based on the estimated run time (provided by the user), and a crude estimate of the expected frequency of the event (not provided by the user). These
 event counters are therefore set appropriately for each event to avoid an excessively large sample data set, whilst obtaining enough samples to obtain statistically robust data within each function.
-If the approximate run time is not supplied by the user, the event counters will be set to a single value, which can be contolled by the <i>events per sample</i> parameter in the settings menu.
+If the approximate run time is not supplied by the user, the event counters will be set to a single value, which can be controlled by the <i>events per sample</i> parameter in the settings menu.
 
 <h3>Application Profiling</h3>
-In the standard mode a profiling job is submitted by attaching perf to each process of the application. All threads will be monitored for each process of the application, and profiling data is obtained for
+In the standard mode a profile job is submitted by attaching perf to each process of the application. All threads will be monitored for each process of the application, and profiling data is obtained for
 each of the individual processes/threads. The permissions required to run perf correctly depend on the value set in /proc/sys/kernel/perf_event_paranoid. It is recommended to run with
 /proc/sys/kernel/perf_event_paranoid equal to either -1 or 0 for application profiling (i.e. sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'),
 to avoid the need to run perf as root. To associate kernel function calls with the applications call sites the value of /proc/sys/kernel/kptr_restrict should be set to 0.
@@ -36,8 +36,15 @@ Results can be viewed by loading one or more of the results files from the locat
 to allow automatic differencing of the profiles.
 Results with a large number of processes/threads and events will increase the overhead of viewing the associated data.
 
+<h3>Convert HPCToolkKit Database</h3>
+A database created by HPCToolKit can be converted for use the PerfAnalyzer tool. This only works for standard profiles run with HPCToolKit, and not with trace profiles.
+The base directory for the database should be selected, and the directory structure will be copied locally. If the profile was performed with a code structure analysis, the database
+will contain accurate loop and source line analysis. The database can be converted using either Procedure, loop, or source level analysis, and the resulting flamegraphs and
+charts are displayed at the corresponding level of detail. The flamegraph is also linked to a display of the source code from the database, to allow easy navigation between profiled
+hotspots and the responsible code.
+
 <h3>Monitor Job Progress</h3>
-Progress of the jobs can be seen in the monitor job progress tab. This polls regularly to see when a job has been completed.
+Progress of the jobs can be seen in the monitor job progress tab. Any job submission errors will be reported in detail, and the progress of each submitted job is polled regularly to report when each job has been completed.
 
 <h2 class="underline-title">Trace View</h2>
 View the sample trace for each process and thread in a job, as a function of time. This view can be used to detect parallel synchronization issues and unevenly distributed workloads. Two types of flamegraph can be

@@ -25,7 +25,7 @@ table {
     border-spacing: 0;
     empty-cells: show;
 }
-table td, .percentages_table th {
+table td, th {
     border-left: 1px solid #cbcbcb;
     border-width: 0 0 0 1px;
     margin: 0;
@@ -67,22 +67,24 @@ tfoot tr th {
     color:#fbf9f9;
 }
 
-tbody tr:nth-child(even) {
-    background-color: #e2e2e2;
-}
-tbody tr:nth-child(odd) {
-   background-color:white;
-}
-.highlight_reference {
-  background-color: rgba(255,255,0,0.12);
-}
-
-tbody tr {
-    border: 1px solid #cbcbcb;
-}
-
 table {
     margin:auto;
+}
+
+.source-table-container {
+    margin:12px auto;
+    margin-left:12px;
+    margin-right:12px;
+    overflow:hidden;
+    overflow-x:scroll;
+    overflow-y:scroll;
+}
+
+.source-table-container pre {
+    background-color:white;
+    border-style:none;
+    padding:0px;
+    margin:0px;
 }
 
 .table-container {
@@ -91,6 +93,20 @@ table {
     margin-right:12px;
     overflow:hidden;
     overflow-x:scroll;
+}
+
+.table-container tbody tr:nth-child(even) {
+    background-color: #e2e2e2;
+}
+.table-container tbody tr:nth-child(odd) {
+   background-color:white;
+}
+.table-container .highlight_reference {
+  background-color: rgba(255,255,0,0.12);
+}
+
+.table-container tbody tr {
+    border: 1px solid #cbcbcb;
 }
 
 

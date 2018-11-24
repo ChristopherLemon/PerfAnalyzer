@@ -684,7 +684,7 @@ class FlameGraph:
                 if delta > self.upper_delta:
                     self.upper_delta = delta
                 self.mean_samples2 += float(samples2)
-            stack = stack.strip("<>/()")
+            stack = stack.strip("<>/")
             if samples2:
                 self.exclusive_time = int(samples2)
             else:

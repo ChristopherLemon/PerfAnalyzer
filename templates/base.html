@@ -120,46 +120,42 @@
                     <li>
                         <a href="#"><i class="fa fa-bar-chart fa-fw"></i> Process View <span class="fa arrow"></span></a>
                         <ul class="nav nav-second-level">
-                            {% if enabled_modes["trace"] %}
-                                {% for job in processes %}
-                                <li>
-                                    <a href="#">{{job}} <span class="listcount"></span><span class="fa arrow"></span></a>
-                                    <ul class="nav nav-third-level">
-                                    {% for process in processes[job] %}
-                                        {% if "all" not in process %}
-                                            {% set process_choice = [job, process]|join("_") %}
-                                             <li>
-                                                <a class="href_progress" href={{url_for("ProcessView.process_view",process=process_choice)}}>{{process}}</a>
-                                            </li>
-                                        {% endif %}
-                                    {% endfor %}
-                                    </ul>
-                                </li>
+                            {% for job in processes %}
+                            <li>
+                                <a href="#">{{job}} <span class="listcount"></span><span class="fa arrow"></span></a>
+                                <ul class="nav nav-third-level">
+                                {% for process in processes[job] %}
+                                    {% if "all" not in process %}
+                                        {% set process_choice = [job, process]|join("_") %}
+                                         <li>
+                                            <a class="href_progress" href={{url_for("ProcessView.process_view",process=process_choice)}}>{{process}}</a>
+                                        </li>
+                                    {% endif %}
                                 {% endfor %}
-                            {% endif %}
+                                </ul>
+                            </li>
+                            {% endfor %}
                         </ul>
                     </li>
                     <li>
                         <a href="#"><i class="fa fa-line-chart fa-fw"></i> Analysis View <span class="fa arrow"></span></a>
                         <ul class="nav nav-second-level">
-                            {% if enabled_modes["trace"] %}
-                                {% if enabled_modes["roofline_analysis"] %}
-                                    {% set enabled_roofline = "" %}
-                                {% else %}
-                                    {% set enabled_roofline = "disabled" %}
-                                {% endif %}
-                                {% if enabled_modes["general_analysis"] %}
-                                    {% set enabled_general = "" %}
-                                {% else %}
-                                    {% set enabled_general = "disabled" %}
-                                {% endif %}
-                                <li>
-                                    <a class="{{enabled_roofline}} href_progress" href={{url_for("AnalysisView.roofline_analysis")}}>Roofline Analysis</a>
-                                </li>
-                                <li>
-                                    <a class="{{enabled_general}} href_progress" href={{url_for("AnalysisView.general_analysis")}}>General Analysis</a>
-                                </li>
+                            {% if enabled_modes["roofline_analysis"] %}
+                                {% set enabled_roofline = "" %}
+                            {% else %}
+                                {% set enabled_roofline = "disabled" %}
                             {% endif %}
+                            {% if enabled_modes["general_analysis"] %}
+                                {% set enabled_general = "" %}
+                            {% else %}
+                                {% set enabled_general = "disabled" %}
+                            {% endif %}
+                            <li>
+                                <a class="{{enabled_roofline}} href_progress" href={{url_for("AnalysisView.roofline_analysis")}}>Roofline Analysis</a>
+                            </li>
+                            <li>
+                                <a class="{{enabled_general}} href_progress" href={{url_for("AnalysisView.general_analysis")}}>General Analysis</a>
+                            </li>
                         </ul>
                     </li>
                     <li>

@@ -1,9 +1,12 @@
 import os
+import re
 import errno
 import logging
 import webbrowser
 import argparse
+import pathlib
 from tools.CustomLogging import setup_main_logger
+from tools.HPCExperiment import HPCExperimentHandler, HPCResultsHandler, is_HPC_result
 from werkzeug.utils import secure_filename
 from tools.JobHandler import JobHandler
 from tools.ResultsHandler import get_results_info, get_jobs, get_cpu, get_run_summary
@@ -26,7 +29,7 @@ app = Flask(__name__)
 tools.GlobalData.root_directory = app.root_path
 tools.GlobalData.local_data = os.path.join(tools.GlobalData.root_directory, 'results')
 UPLOAD_FOLDER = os.path.relpath(tools.GlobalData.local_data, os.getcwd())
-ALLOWED_EXTENSIONS = set(['results', 'settings'])
+ALLOWED_EXTENSIONS = set(['results', 'settings', 'xml'])
 
 log_stream = StringIO()
 submitted_jobs = []
@@ -103,7 +106,12 @@ def allowed_file(filename):
 
 
 def is_results_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1] == 'results'
+    found = '.' in filename and filename.rsplit('.', 1)[1] == 'results'
+    return found
+
+def is_HPC_experiment_file(filename):
+    found = re.match(".*experiment.*\.xml", filename)
+    return found
 
 
 @app.route('/results/<filename>')
@@ -124,7 +132,10 @@ def index():
     global initialise
     if request.method == 'POST':
         # Load requested results - just check which events can be found in requested results files at this point
-        if 'btn' in request.form:
+        load_perf_data = 'perf_btn' in request.form
+        load_hpc_data = 'hpc_btn' in request.form
+        if load_perf_data or load_hpc_data:
+            experiment_file = None
             allfiles = request.files.getlist("file[]")
             reset_data_structures()
             for foundfile in allfiles:
@@ -140,12 +151,50 @@ def index():
                                            job_settings=tools.GlobalData.job_settings,
                                            user_settings=tools.GlobalData.user_settings,
                                            enabled_modes=tools.GlobalData.enabled_modes)
-                if foundfile and allowed_file(foundfile.filename):
+                if (load_perf_data and allowed_file(foundfile.filename)) or load_hpc_data:
                     filename = secure_filename(foundfile.filename)
-                    if is_results_file(foundfile.filename):
-                        results_file = filename
+                    if load_hpc_data:
+                        if not os.path.exists(os.path.join(tools.GlobalData.local_data, foundfile.filename)):
+                            path_to_dir = pathlib.Path(
+                                pathlib.Path(tools.GlobalData.local_data) / pathlib.Path(foundfile.filename)).parent
+                            pathlib.Path(path_to_dir).mkdir(parents=True, exist_ok=True)
+                            try:
+                                foundfile.save(str(path_to_dir / pathlib.Path(foundfile.filename).name))
+                            except Exception as e:
+                                main_logger.info(u" Failed copy: " + str(path_to_dir / pathlib.Path(foundfile.filename).name))
+                        if is_HPC_experiment_file(foundfile.filename):
+                            experiment_file = str(pathlib.Path(pathlib.Path(tools.GlobalData.local_data) / pathlib.Path(foundfile.filename)))
+                    elif is_results_file(filename):
+                        results_file = os.path.basename(foundfile.filename)
                         if results_file not in tools.GlobalData.results_files:
-                            tools.GlobalData.results_files.append(results_file)
+                            tools.GlobalData.results_files.append(filename)
+            if experiment_file:
+                analysis_level = request.form["analysis_level"]
+                if re.match("Line", analysis_level):
+                    include_loops = True
+                    include_statements = True
+                elif re.match("Loop", analysis_level):
+                    include_loops = True
+                    include_statements = False
+                else:  # "Procedure"
+                    include_loops = False
+                    include_statements = False
+                hpc_experiment = HPCExperimentHandler(tools.GlobalData.local_data, experiment_file)
+                results = hpc_experiment.create_results(include_loops, include_statements)
+                main_logger.info(u"Created HPC Experiment results: " + hpc_experiment.get_results_file_name()
+                                 + " from Experiment " + hpc_experiment.get_experiment_file_name())
+                results_file = os.path.basename(results)
+                if results_file not in tools.GlobalData.results_files:
+                    tools.GlobalData.results_files.append(results_file)
+                tools.GlobalData.hpc_results.append(HPCResultsHandler(tools.GlobalData.local_data, results_file))
+                main_logger.info(u"Loaded HPC Experiment results: " + results_file)
+            else:
+                for results_file in tools.GlobalData.results_files:
+                    full_path = os.path.join(tools.GlobalData.local_data, results_file)
+                    if is_HPC_result(full_path):
+                        tools.GlobalData.hpc_results.append(HPCResultsHandler(tools.GlobalData.local_data, results_file))
+                        main_logger.info(u"Loaded HPC Experiment results: " + results_file)
+
             purge(tools.GlobalData.local_data, "_compressed")
             layout["Results"] = tools.GlobalData.results_files
             main_logger.info(u"Loaded Results " + ", ".join(tools.GlobalData.results_files))
@@ -375,6 +424,7 @@ def clear_loaded_data():
     cpu = get_default_cpu()
     tools.GlobalData.results_files = []
     tools.GlobalData.processes = []
+    tools.GlobalData.hpc_results = []
     tools.GlobalData.enabled_modes = None
     tools.GlobalData.enabled_modes = {"roofline_analysis": False, "general_analysis": False}
     tools.GlobalData.loaded_cpu_definition = get_cpu_definition(cpu)
@@ -513,6 +563,6 @@ if __name__ == "__main__":
         browser_path = os.path.normpath(browser)
         webbrowser.register('custom_browser', None, webbrowser.BackgroundBrowser(browser_path), 1)
         webbrowser.get('custom_browser').open_new_tab(url)
-    app.run(debug=False, host=host, port=int(port))
+    app.run(debug=False, use_reloader=False, host=host, port=int(port))
 
 

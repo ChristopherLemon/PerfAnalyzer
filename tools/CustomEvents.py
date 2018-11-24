@@ -245,9 +245,9 @@ def event_to_raw_event(event, cpu_definition):
     event_map = cpu_definition.get_available_event_map(event_to_raw_event=True)
     r1, par, r2 = event.partition(" / ")
     if r1 != "":
-        e1 = "-plus-".join([event_map[e] for e in re.split(" \+ ", r1)])
+        e1 = "-plus-".join([event_map[e] if e in event_map else e for e in re.split(" \+ ", r1)])
     if r2 != "":
-        e2 = "-plus-".join([event_map[e] for e in re.split(" \+ ", r2)])
+        e2 = "-plus-".join([event_map[e] if e in event_map else e for e in re.split(" \+ ", r2)])
         return e1 + "-divide-" + e2
     else:
         return e1
@@ -262,9 +262,9 @@ def raw_event_to_event(raw_event, cpu_definition):
     event_map = cpu_definition.get_available_event_map(event_to_raw_event=False)
     r1, par, r2 = raw_event.partition("-divide-")
     if r1 != "":
-        e1 = " + ".join([event_map[e] for e in re.split("-plus-", r1)])
+        e1 = " + ".join([event_map[e] if e in event_map else e for e in re.split("-plus-", r1)])
     if r2 != "":
-        e2 = " + ".join([event_map[e] for e in re.split("-plus-", r2)])
+        e2 = " + ".join([event_map[e] if e in event_map else e for e in re.split("-plus-", r2)])
         return e1 + " / " + e2
     else:
         return e1

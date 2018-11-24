@@ -1,5 +1,6 @@
 selected_cpu_definition = None
 loaded_cpu_definition = None
+hpc_results = []
 results_files = []
 jobs = []
 processes = []

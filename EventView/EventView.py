@@ -1,11 +1,12 @@
 from plotting.svgGraph import ChartWriter
 from flask import render_template, request, jsonify, Blueprint
 from tools.Utilities import purge, timestamp
-from tools.StackData import StackData
+from tools.StackData import StackData, get_job
 import tools.GlobalData
 from plotting.FlameGraphUtils import FlameGraph
 from tools.StackData import write_flamegraph_stacks
 from .EventModel import EventModel
+from plotting.SourceCode import generate_source_code_table, generate_empty_table
 import re
 import os
 
@@ -76,6 +77,7 @@ def event_view():
     event_model.layout.flamegraph = get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
     event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = get_min_max_chart(event, svgchart)
     event_model.layout.timechart = get_timechart(event, custom_event_ratio, svgchart)
+    event_model.layout.source_code_table, event_model.layout.source_code_line = get_source_code("")
 # Setup general layout
     ids = all_stack_data[event].get_all_process_ids()
     event_model.layout.diff = not custom_event_ratio
@@ -182,6 +184,15 @@ def update_flamegraph_ids():
     return jsonify(event_model.layout.to_dict())
 
 
+@EventView.route('/update_source_code', methods=['GET', 'POST'])
+def update_source_code():
+    global event_model
+    data = request.get_json()
+    source_symbol = data["source_symbol"]
+    event_model.layout.source_code_table, event_model.layout.source_code_line = get_source_code(source_symbol)
+    return jsonify(event_model.layout.to_dict())
+
+
 @EventView.route('/update_flamegraph_mode', methods=['GET', 'POST'])
 def update_flamegraph_mode():
     global event_model
@@ -235,6 +246,16 @@ def get_flamegraph(flamegraph_type, event, custom_event_ratio, diff):
     svgfile = tools.GlobalData.local_data + os.sep + flamegraph_filename
     svgfile = os.path.relpath(svgfile, EventView.template_folder)
     return svgfile
+
+
+def get_source_code(symbol):
+    job_id = get_job(event_model.reference_id)
+    for i in range(len(tools.GlobalData.hpc_results)):
+        if job_id == tools.GlobalData.hpc_results[i].get_job_id():
+            source_code_table, source_code_line = generate_source_code_table(all_stack_data[event_model.event], symbol, tools.GlobalData.hpc_results[i])
+            return source_code_table, source_code_line
+    source_code_table, source_code_line = generate_empty_table()
+    return source_code_table, source_code_line
 
 
 def get_barchart(event, diff, svgchart):
