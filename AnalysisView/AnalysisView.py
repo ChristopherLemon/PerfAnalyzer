@@ -3,6 +3,7 @@ from flask import render_template, request, jsonify, Blueprint
 from tools.Utilities import purge, timestamp, replace_operators
 from tools.StackData import StackData, get_job, get_process, get_pid, get_tid, get_event, make_label
 from plotting.ColourMaps import get_cluster_plot_colours, get_top_ten_colours
+from plotting.SourceCode import generate_source_code_table, generate_empty_table
 import tools.GlobalData
 from plotting.FlameGraphUtils import FlameGraph
 from tools.StackData import write_flamegraph_stacks
@@ -35,7 +36,7 @@ AnalysisView = Blueprint('AnalysisView', __name__, template_folder='templates', 
 
 @AnalysisView.route('/general_analysis', methods=['GET', 'POST'])
 def general_analysis():
-    # Request handler for general analysis. Performs k-means++ cluster analysis on 2-D scatterplot
+    # Request handler for general analysis.
     # of event data (event1 vs event2)
     global all_stack_data
     global all_analysis_data
@@ -106,6 +107,7 @@ def general_analysis():
     if analysis_model.num_custom_event_ratios > 0:
         analysis_model.layout.event_ratios_chart = get_custom_barchart(analysis_model.process_list, svgchart)
     analysis_model.layout.flamegraph = get_flamegraph(analysis_data, analysis_model.process_list, analysis_model.flamegraph_mode)
+    analysis_model.layout.source_code_table, analysis_model.layout.source_code_line = get_source_code("")
 # Setup general layout
     analysis_model.layout.title = "Analysis: General"
     analysis_model.layout.footer = "Loaded Results: " + " & ".join(analysis_model.layout.results)
@@ -124,7 +126,7 @@ def general_analysis():
 
 @AnalysisView.route('/roofline_analysis', methods=['GET', 'POST'])
 def roofline_analysis():
-    # Request handler for general analysis. Performs k-means++ cluster analysis on 2-D scatterplot
+    # Request handler for roofline analysis.
     # of event data (event1 vs event2)
     global all_stack_data
     global all_analysis_data
@@ -194,6 +196,7 @@ def roofline_analysis():
     analysis_model.layout.event_ratios_chart = None
     analysis_model.num_custom_event_ratios = 0
     analysis_model.layout.flamegraph = get_flamegraph(analysis_data, analysis_model.process_list, analysis_model.flamegraph_mode)
+    analysis_model.layout.source_code_table, analysis_model.layout.source_code_line = get_source_code("")
 # Setup general layout
     analysis_model.layout.title = "Analysis: Roofline"
     analysis_model.layout.footer = "Loaded Results: " + " & ".join(analysis_model.layout.results)
@@ -303,9 +306,9 @@ def get_new_chart():
         scatter_plot = get_hotspot_scatter_plot(analysis_data, analysis_type, event1, event2, svgchart, centred, log_scale)
     return scatter_plot
 
-@AnalysisView.route('/update_kmeans_cluster_parameters', methods=['GET', 'POST'])
-def update_kmeans_cluster_parameters():
-# Update chart for custom analysis or roofline analysis when the k-means parameters have been changed
+@AnalysisView.route('/update_cluster_parameters', methods=['GET', 'POST'])
+def update_cluster_parameters():
+# Update chart for custom analysis or roofline analysis when the cluster parameters have been changed
     global all_analysis_data
     global svgchart
     global analysis_model
@@ -560,6 +563,15 @@ def update_flamegraph_ids():
     return jsonify(analysis_model.layout.to_dict())
 
 
+@AnalysisView.route('/update_source_code', methods=['GET', 'POST'])
+def update_source_code():
+    global event_model
+    data = request.get_json()
+    source_symbol = data["source_symbol"]
+    analysis_model.layout.source_code_table, analysis_model.layout.source_code_line = get_source_code(source_symbol)
+    return jsonify(analysis_model.layout.to_dict())
+
+
 @AnalysisView.route('/update_flamegraph_mode', methods=['GET', 'POST'])
 def update_flamegraph_mode():
     global svgchart
@@ -584,6 +596,19 @@ def update_flamegraph_mode():
                                  append_cluster_labels=append_cluster_labels, event1=raw_event1, event2=raw_event2, xlower=xlower, xupper=xupper, ylower=ylower, yupper=yupper)
     analysis_model.layout.flamegraph = get_flamegraph(analysis_data, process_list, analysis_model.flamegraph_mode)
     return jsonify(analysis_model.layout.to_dict())
+
+
+def get_source_code(symbol):
+    if re.match(".*\[\[cluster", symbol):
+        symbol = symbol.rpartition("[[cluster")[0]
+    job_id = get_job(analysis_model.reference_id)
+    for i in range(len(tools.GlobalData.hpc_results)):
+        if job_id == tools.GlobalData.hpc_results[i].get_job_id():
+            source_code_table, source_code_line = generate_source_code_table(all_stack_data[analysis_model.reference_process], symbol, tools.GlobalData.hpc_results[i])
+            return source_code_table, source_code_line
+    source_code_table, source_code_line = generate_empty_table()
+    return source_code_table, source_code_line
+
 
 
 def get_barchart(process_list, svgchart):

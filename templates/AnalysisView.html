@@ -71,6 +71,31 @@
                 </div>
             </div>
         {% endif %}
+        {% if analysis_model.layout.source_code_table %}
+        <form action="" method="post" id="source_code" >
+            <div class="container">
+                <div class="row">
+                    <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                        <div class="panel panel-default">
+                            <a data-toggle="collapse" data-parent="#accordion" href="#source_file_collapse">
+                                <div class="panel-heading">
+                                    <h4 class="panel-title">
+                                         <strong>Source Code</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                    </h4>
+                                </div>
+                            </a>
+                            <div id="source_file_collapse" class="panel-collapse collapse">
+                                <div class="flex-row">
+                                    <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="source_code_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
+                                </div>
+                                <div class="source-table-container" id="source_code_table">{{analysis_model.layout.source_code_table|safe}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    {% endif %}
         {% if analysis_model.layout.event_totals_chart %}
             <div class="container">
                 <div class="row">
@@ -223,14 +248,14 @@
                                                     {% endfor %}
                                                 </select>
                                             </div>
-                                            <div class="flex-column" style="width:30%">Apply Changes:<button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="modify_plot_btn" name="kmeans_btn" onclick="modify_plot(this)">Load New Events</button></div>
+                                            <div class="flex-column" style="width:30%">Apply Changes:<button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="modify_plot_btn" name="cluster_update_btn" onclick="modify_plot(this)">Load New Events</button></div>
                                         </div>
                                     </div>
                                 {% endif %}
                                 <div class="aligned-row">
                                     <div class="flex-row" id="cluster_controls" hidden>
                                         <div class="flex-column" style="width:70%"><p>Number of Clusters:</p><input style="margin:1px" type="number" class="form-control" id="num_clusters" name="num_clusters" placeholder="Integer>0" min="1" max="{{colours|length}}" value={{analysis_model.num_clusters}}></div>
-                                        <div class="flex-column" style="width:30%"><p>Apply Changes:</p><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="kmeans_btn" name="kmeans_btn" onclick="update_cluster_parameters(this)">Run New Cluster Analysis</button></div>
+                                        <div class="flex-column" style="width:30%"><p>Apply Changes:</p><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="cluster_update_btn" name="cluster_update_btn" onclick="update_cluster_parameters(this)">Run New Cluster Analysis</button></div>
                                     </div>
                                 </div>
                             </div>
@@ -742,7 +767,7 @@
         let num_clusters = document.getElementById("num_clusters").value;
         document.getElementById("num_clusters")
         vals = {"num_clusters":num_clusters};
-        goto_url = "{{url_for('AnalysisView.update_kmeans_cluster_parameters')}}"
+        goto_url = "{{url_for('AnalysisView.update_cluster_parameters')}}"
         if (input_ok ) {
             let x = JSON.stringify(vals);
             let data = {json:x};
@@ -1033,7 +1058,44 @@
             }
         }
         info_box.innerHTML = info;
+        let pattern = /[^\s]+/;
+        let filter = info.match(pattern)[0];
+        if( filter == "all" ) {
+            filter = ""; // match anything
+        }
+        let vals = {"source_symbol":filter};
+        let x = JSON.stringify(vals);
+        get_source_code(x);
     }
+
+    function get_source_code(x) {
+        goto_url = "{{url_for('AnalysisView.update_source_code')}}"
+        showLoaders("Loading Selected Data");
+        $.ajax({
+            url:goto_url,
+            contentType: 'application/json;charset=UTF-8',
+            data:x,
+            type: 'POST',
+            success: function(response) {
+                console.log(response);
+                document.getElementById("source_code_table").innerHTML = response.source_code_table;
+                line_num = response.source_code_line;
+                let source = $('#source_code')
+                $(source).focus();
+                let w = $(window);
+                let row = $('#source_code_table').find('tr').eq( line_num );
+                if (row.length){
+                    $('html,body').animate({scrollTop: row.offset().top - (w.height()/2)}, 1000 );
+                   // w.scrollTop( row.offset().top - (w.height()/2) );
+                }
+                hideLoaders();
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+
     function add_barchart_events(id) {
         let event_chart = document.getElementById(id);
         let chart = getSubDocument(event_chart);

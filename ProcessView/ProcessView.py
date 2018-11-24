@@ -4,8 +4,9 @@ from tools.Utilities import purge, timestamp
 from tools.StackData import StackData
 import tools.GlobalData
 from plotting.FlameGraphUtils import FlameGraph
-from tools.StackData import write_flamegraph_stacks
+from tools.StackData import write_flamegraph_stacks, get_job
 from .ProcessModel import ProcessModel
+from plotting.SourceCode import generate_source_code_table, generate_empty_table
 import os
 
 all_stack_data = {}
@@ -70,6 +71,7 @@ def process_view():
         process_model.layout.event_ratios_chart = get_custom_barchart(process, svgchart)
     process_model.layout.flamegraph = get_flamegraph(process)
     process_model.layout.event_time_series, process_model.layout.event_ratio_time_series = get__timechart(process, svgchart)
+    process_model.layout.source_code_table, process_model.layout.source_code_line = get_source_code("")
 # Setup general layout
     ids = all_stack_data[process].get_all_process_ids()
     process_model.layout.diff = True
@@ -176,6 +178,15 @@ def update_flamegraph_ids():
     return jsonify(process_model.layout.to_dict())
 
 
+@ProcessView.route('/update_source_code', methods=['GET', 'POST'])
+def update_source_code():
+    global process_model
+    data = request.get_json()
+    source_symbol = data["source_symbol"]
+    process_model.layout.source_code_table, process_model.layout.source_code_line = get_source_code(source_symbol)
+    return jsonify(process_model.layout.to_dict())
+
+
 def update_process_model(process):
     global process_model
     process_model.text_filter = ""
@@ -209,6 +220,16 @@ def get_flamegraph(process, custom_event_ratio=False, flamegraph_event_type="ori
     svgfile = tools.GlobalData.local_data + os.sep + flamegraph_filename
     svgfile = os.path.relpath(svgfile, ProcessView.template_folder)
     return svgfile
+
+
+def get_source_code(symbol):
+    job_id = get_job(process_model.reference_id)
+    for i in range(len(tools.GlobalData.hpc_results)):
+        if job_id == tools.GlobalData.hpc_results[i].get_job_id():
+            source_code_table, source_code_line = generate_source_code_table(all_stack_data[process_model.process], symbol, tools.GlobalData.hpc_results[i])
+            return source_code_table, source_code_line
+    source_code_table, source_code_line = generate_empty_table()
+    return source_code_table, source_code_line
 
 
 def get_barchart(process, svgchart):

@@ -56,6 +56,31 @@
             </div>
         </div>
     {% endif %}
+    {% if process_model.layout.source_code_table %}
+        <form action="" method="post" id="source_code" >
+            <div class="container">
+                <div class="row">
+                    <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                        <div class="panel panel-default">
+                            <a data-toggle="collapse" data-parent="#accordion" href="#source_file_collapse">
+                                <div class="panel-heading">
+                                    <h4 class="panel-title">
+                                         <strong>Source Code</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                    </h4>
+                                </div>
+                            </a>
+                            <div id="source_file_collapse" class="panel-collapse collapse">
+                                <div class="flex-row">
+                                    <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="source_code_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
+                                </div>
+                                <div class="source-table-container" id="source_code_table">{{process_model.layout.source_code_table|safe}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    {% endif %}
     {% if process_model.layout.event_totals_chart %}
         <div class="container">
             <div class="row">
@@ -646,7 +671,44 @@
             }
         }
         info_box.innerHTML = info;
+        let pattern = /[^\s]+/;
+        let filter = info.match(pattern)[0];
+        if( filter == "all" ) {
+            filter = ""; // match anything
+        }
+        let vals = {"source_symbol":filter};
+        let x = JSON.stringify(vals);
+        get_source_code(x);
     }
+
+    function get_source_code(x) {
+        goto_url = "{{url_for('ProcessView.update_source_code')}}"
+        showLoaders("Loading Selected Data");
+        $.ajax({
+            url:goto_url,
+            contentType: 'application/json;charset=UTF-8',
+            data:x,
+            type: 'POST',
+            success: function(response) {
+                console.log(response);
+                document.getElementById("source_code_table").innerHTML = response.source_code_table;
+                line_num = response.source_code_line;
+                let source = $('#source_code')
+                $(source).focus();
+                let w = $(window);
+                let row = $('#source_code_table').find('tr').eq( line_num );
+                if (row.length){
+                    $('html,body').animate({scrollTop: row.offset().top - (w.height()/2)}, 1000 );
+                   // w.scrollTop( row.offset().top - (w.height()/2) );
+                }
+                hideLoaders();
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+
     // Get point in global SVG space
     function cursorPoint(evt){
       pt.x = evt.clientX; pt.y = evt.clientY;
