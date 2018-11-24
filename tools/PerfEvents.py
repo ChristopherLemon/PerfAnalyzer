@@ -19,7 +19,6 @@ EventDefinition = namedtuple('EventDefinition',
                               'event_weight'])
 
 event_definitions = OrderedDict()
-roofline_events = {}
 
 def initialise_cpu_definitions():
     perf_events_location = tools.GlobalData.perf_events
@@ -32,7 +31,6 @@ def initialise_cpu_definitions():
         f = cpus[cpu]
         full_filename = os.path.join(perf_events_location, f)
         event_definitions[cpu] = []
-        has_roofline_events = False
         try:
             with open(full_filename,'r') as result:
                 for line in result:
@@ -51,16 +49,6 @@ def initialise_cpu_definitions():
                             event_definition = EventDefinition("Trace-" + event_name, "trace-" + raw_event, "Trace", event_unit,
                                                                default_event, event_counter)
                             event_definitions[cpu].append(event_definition)
-                    if re.findall("RoofLineEvents", line):
-                        has_roofline_events = True
-                        roofline_events[cpu] = {'All': None,
-                                                'Flops': None,
-                                                'Time': '',
-                                                'Memory': None}
-                    if has_roofline_events:
-                        id, par, l = line.partition(":")
-                        if id in ["All", "Flops", "Memory", "Time"]:
-                            roofline_events[cpu][id] = [e.strip() for e in l.split(",")]
         except Exception as e:
             raise Exception("Error reading line: \"" + line.strip() + "\"")
 
@@ -87,8 +75,9 @@ def modify_event_definitions(cpu, event_definitions):
                             else:
                                 default_event = "False"
                             event_counter = str(definition.event_weight)
-                            l = ", ".join(["EventDefinition: " + event_name, raw_event, event_group, event_unit, default_event, event_counter]) + "\n"
-                            new_file.write(l)
+                            if not re.match("Trace", event_name):
+                                l = ", ".join(["EventDefinition: " + event_name, raw_event, event_group, event_unit, default_event, event_counter]) + "\n"
+                                new_file.write(l)
                 else:
                     new_file.write(line)
     os.close(fh)
@@ -102,12 +91,11 @@ def get_event_weights():
 
 class CpuDefinition:
 
-    def __init__(self, cpu_name, available_events, roofline_events=None):
+    def __init__(self, cpu_name, available_events):
         self.base_event = "Cycles"
         self.cpu_name = cpu_name
         self.available_events = available_events
         self.active_events = []
-        self.roofline_events = roofline_events
 
     def copy_to_active_event(self, event):
         for event_definition in self.available_events:
@@ -284,7 +272,6 @@ class CpuDefinition:
     def get_enabled_modes(self):
         trace_enabled = False
         events_enabled = False
-        roofline_anaylsis_enabled = False
         active_raw_events = self.get_active_raw_events()
         active_events = self.get_active_events()
         event_group_map = self.get_active_event_group_map()
@@ -293,14 +280,8 @@ class CpuDefinition:
                 trace_enabled = True
             else:
                 events_enabled = True
-        if self.roofline_events:
-            loads = set(self.roofline_events["Memory"]).intersection(set(active_raw_events))
-            flops = set(self.roofline_events["Flops"]).intersection(set(active_raw_events))
-            time = set(self.roofline_events["Time"]).intersection(set(active_raw_events))
-            roofline_anaylsis_enabled = (len(loads) > 0 and len(flops) > 0 and len(time) > 0)
         general_analysis_enabled = len(self.get_active_raw_events()) > 1 and self.base_event in active_events
-        return {"roofline_analysis": roofline_anaylsis_enabled,
-                "general_analysis": general_analysis_enabled,
+        return { "general_analysis": general_analysis_enabled,
                 "trace": trace_enabled,
                 "events": events_enabled}
 
@@ -313,10 +294,7 @@ def get_default_cpu():
     return "General"
 
 def get_cpu_definition(cpu, raw_events = None):
-    if cpu in roofline_events:
-        cpu_definition = CpuDefinition(cpu, event_definitions[cpu], roofline_events[cpu])
-    else:
-        cpu_definition = CpuDefinition(cpu, event_definitions[cpu])
+    cpu_definition = CpuDefinition(cpu, event_definitions[cpu])
     if raw_events:
         add_custom_events_to_active_events(cpu_definition, raw_events)
     return cpu_definition

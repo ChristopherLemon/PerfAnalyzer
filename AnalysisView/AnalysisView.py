@@ -7,7 +7,7 @@ from plotting.SourceCode import generate_source_code_table, generate_empty_table
 import tools.GlobalData
 from plotting.FlameGraphUtils import FlameGraph
 from tools.StackData import write_flamegraph_stacks
-from tools.DataAnalysis import RooflineAnalysis, GeneralAnalysis
+from tools.DataAnalysis import GeneralAnalysis
 from tools.CustomEvents import event_to_raw_event, raw_event_to_event
 from .AnalysisModel import AnalysisModel
 from collections import OrderedDict
@@ -124,95 +124,6 @@ def general_analysis():
                            colours=colours)
 
 
-@AnalysisView.route('/roofline_analysis', methods=['GET', 'POST'])
-def roofline_analysis():
-    # Request handler for roofline analysis.
-    # of event data (event1 vs event2)
-    global all_stack_data
-    global all_analysis_data
-    analysis_model.analysis_type = "roofline"
-    analysis_type = analysis_model.analysis_type
-    analysis_data, cluster_events = get_analysis(analysis_type)
-    analysis_model.layout.results = tools.GlobalData.results_files
-    analysis_model.event1, analysis_model.event2 = initialise_analysis_model_cluster_data(analysis_data, analysis_type)
-    analysis_model.base_event = tools.GlobalData.loaded_cpu_definition.get_base_event()
-    base_event = analysis_model.base_event
-    events = [raw_event_to_event(e, tools.GlobalData.loaded_cpu_definition) for e in cluster_events["All"]]
-    if base_event in all_stack_data:
-        update_analysis_model_base_event_data(base_event, events)
-# Load base event to generate complete list of available processes - for selection of required processes
-    if base_event in all_stack_data:
-        all_stack_data[base_event].read_data(start=all_stack_data[base_event].start,
-                                             stop=all_stack_data[base_event].stop,
-                                             text_filter=analysis_model.text_filter,
-                                             selected_ids=analysis_model.base_event_selected_ids)
-    else:
-        all_stack_data[base_event] = StackData(tools.GlobalData.results_files,
-                                               tools.GlobalData.local_data,
-                                               tools.GlobalData.loaded_cpu_definition,
-                                               data_view="event",
-                                               data_id=base_event,
-                                               debug=tools.GlobalData.debug,
-                                               n_proc=tools.GlobalData.n_proc)
-        update_analysis_model_base_event_data(base_event, events)
-# Now load selected events on each of the selected processes
-    for process in analysis_model.process_list:
-        if process in all_stack_data:
-            update_analysis_model_process_data(process)
-            all_stack_data[process].read_data(start=all_stack_data[process].start,
-                                              stop=all_stack_data[process].stop,
-                                              text_filter=analysis_model.text_filter,
-                                              selected_ids=analysis_model.selected_ids[process],
-                                              base_case=analysis_model.reference_id)
-        else:
-            all_stack_data[process] = StackData(tools.GlobalData.results_files,
-                                                tools.GlobalData.local_data,
-                                                tools.GlobalData.loaded_cpu_definition,
-                                                data_view="process",
-                                                data_id=process,
-                                                debug=tools.GlobalData.debug,
-                                                n_proc=tools.GlobalData.n_proc)
-            update_analysis_model_process_data(process)
-            # Update process ids and reference id
-            all_stack_data[process].set_selected_process_ids(analysis_model.selected_ids[process])
-            all_stack_data[process].set_base_case("", analysis_model.selected_ids[process])
-            ids = [all_stack_data[process].get_base_case_id()]
-            all_stack_data[process].set_flamegraph_process_ids(ids)
-        analysis_data.add_data(all_stack_data[process], process)
- # Setup General plot utility
-   # colours = get_cluster_plot_colours(return_hex=False)
-    colours = get_top_ten_colours(return_hex=False)
-    centred = (analysis_model.centred_scatter_plot == "centred")
-    append_cluster_labels = (analysis_model.flamegraph_mode == "clusters")
-    event1 = analysis_model.event1
-    event2 = analysis_model.event2
-    log_scale = analysis_model.log_scale
-    analysis_model.cluster_labels = run_analysis(analysis_data, analysis_type, event1, event2, centred, append_cluster_labels, log_scale)
-# Prepare plots
-    purge(tools.GlobalData.local_data, ".svg")
-    analysis_model.layout.reference_id = analysis_model.reference_id
-    analysis_model.layout.scatter_plot = get_hotspot_scatter_plot(analysis_data, analysis_type, event1, event2, svgchart, centred, log_scale)
-    analysis_model.layout.event_totals_chart, analysis_model.layout.event_totals_table = get_barchart(analysis_model.process_list, svgchart)
-    analysis_model.layout.event_ratios_chart = None
-    analysis_model.num_custom_event_ratios = 0
-    analysis_model.layout.flamegraph = get_flamegraph(analysis_data, analysis_model.process_list, analysis_model.flamegraph_mode)
-    analysis_model.layout.source_code_table, analysis_model.layout.source_code_line = get_source_code("")
-# Setup general layout
-    analysis_model.layout.title = "Analysis: Roofline"
-    analysis_model.layout.footer = "Loaded Results: " + " & ".join(analysis_model.layout.results)
-    ids = all_stack_data[base_event].get_all_process_ids()
-    return render_template('AnalysisView.html',
-                           events=events,
-                           event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
-                           all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
-                           jobs=tools.GlobalData.jobs,
-                           processes=tools.GlobalData.processes,
-                           analysis_model=analysis_model,
-                           enabled_modes=tools.GlobalData.enabled_modes,
-                           ids=ids,
-                           colours=colours)
-
-
 def initialise_analysis_model_cluster_data(analysis_data, analysis_type):
     events_dict = OrderedDict([(raw_event_to_event(event, tools.GlobalData.loaded_cpu_definition), event) for event in
                                analysis_data.get_events()])
@@ -308,7 +219,7 @@ def get_new_chart():
 
 @AnalysisView.route('/update_cluster_parameters', methods=['GET', 'POST'])
 def update_cluster_parameters():
-# Update chart for custom analysis or roofline analysis when the cluster parameters have been changed
+# Update chart when the cluster parameters have been changed
     global all_analysis_data
     global svgchart
     global analysis_model
@@ -659,29 +570,19 @@ def get_custom_barchart(process_list, svgchart):
 def get_analysis(analysis_type):
     # determine type of analysis, and create on first use
     new_analysis = analysis_type not in all_analysis_data
-    if analysis_type == 'roofline':
-        if new_analysis:
-            analysis_data = RooflineAnalysis()
-            all_analysis_data['roofline'] = analysis_data
-            cluster_events = tools.GlobalData.loaded_cpu_definition.roofline_events
-            analysis_data.set_events(cluster_events)
+    if new_analysis:
+        analysis_data = GeneralAnalysis()
+        all_analysis_data['general'] = analysis_data
+    else:
+        analysis_data = all_analysis_data['general']
+    cluster_events = {"All": [], "Ratios": []}  # Re-populate, as custom events may have been added
+    for event in tools.GlobalData.loaded_cpu_definition.get_active_events():
+        if re.match(".* / .*", event):
+            e1, par, e2 = event.partition(" / ")
+            cluster_events["Ratios"].append([event_to_raw_event(e1, tools.GlobalData.loaded_cpu_definition), event_to_raw_event(e2, tools.GlobalData.loaded_cpu_definition)])
         else:
-            analysis_data = all_analysis_data['roofline']
-            cluster_events = analysis_data.get_cluster_events()
-    else:  # analysis_type == 'general':
-        if new_analysis:
-            analysis_data = GeneralAnalysis()
-            all_analysis_data['general'] = analysis_data
-        else:
-            analysis_data = all_analysis_data['general']
-        cluster_events = {"All": [], "Ratios": []}  # Re-populate, as custom events may have been added
-        for event in tools.GlobalData.loaded_cpu_definition.get_active_events():
-            if re.match(".* / .*", event):
-                e1, par, e2 = event.partition(" / ")
-                cluster_events["Ratios"].append([event_to_raw_event(e1, tools.GlobalData.loaded_cpu_definition), event_to_raw_event(e2, tools.GlobalData.loaded_cpu_definition)])
-            else:
-                cluster_events["All"].append(event_to_raw_event(event, tools.GlobalData.loaded_cpu_definition))
-        analysis_data.set_events(cluster_events)
+            cluster_events["All"].append(event_to_raw_event(event, tools.GlobalData.loaded_cpu_definition))
+    analysis_data.set_events(cluster_events)
     return analysis_data, cluster_events
 
 
@@ -757,36 +658,21 @@ def get_cluster_plot(analysis_data, analysis_type, event1, event2, svgchart, cen
     else:
         yt = event1
         xt = event2
-    if analysis_type == "general":
-        raw_event1 = event_to_raw_event(event1, tools.GlobalData.loaded_cpu_definition)
-        raw_event2 = event_to_raw_event(event2, tools.GlobalData.loaded_cpu_definition)
-        chart = svgchart.generate_cluster_plot(analysis_data,
-                                               analysis_model.process_list,
-                                               raw_event1,
-                                               raw_event2,
-                                               centred,
-                                               xlower=xlower,
-                                               ylower=ylower,
-                                               xupper=xupper,
-                                               yupper=yupper,
-                                               yt=yt,
-                                               xt=xt,
-                                               title=cluster_chart_title)
-        chart.render_to_file(output_file)
-    if analysis_type == "roofline":
-        chart = svgchart.generate_cluster_plot(analysis_data,
-                                                analysis_model.process_list,
-                                                0,
-                                                1,
-                                                centred,
-                                                xlower=xlower,
-                                                ylower=ylower,
-                                                xupper=xupper,
-                                                yupper=yupper,
-                                                yt=yt,
-                                                xt=xt,
-                                                title=cluster_chart_title)
-        chart.render_to_file(output_file)
+    raw_event1 = event_to_raw_event(event1, tools.GlobalData.loaded_cpu_definition)
+    raw_event2 = event_to_raw_event(event2, tools.GlobalData.loaded_cpu_definition)
+    chart = svgchart.generate_cluster_plot(analysis_data,
+                                           analysis_model.process_list,
+                                           raw_event1,
+                                           raw_event2,
+                                           centred,
+                                           xlower=xlower,
+                                           ylower=ylower,
+                                           xupper=xupper,
+                                           yupper=yupper,
+                                           yt=yt,
+                                           xt=xt,
+                                           title=cluster_chart_title)
+    chart.render_to_file(output_file)
     svgfile = tools.GlobalData.local_data + os.sep + cluster_plot_filename
     svgfile = os.path.relpath(svgfile, AnalysisView.template_folder)
     return svgfile
@@ -802,40 +688,23 @@ def get_hotspot_scatter_plot(analysis_data, analysis_type, event1, event2, svgch
     else:
         yt = event1
         xt = event2
-    if analysis_type == "general":
-        raw_event1 = event_to_raw_event(event1, tools.GlobalData.loaded_cpu_definition)
-        raw_event2 = event_to_raw_event(event2, tools.GlobalData.loaded_cpu_definition)
-        chart = svgchart.generate_hotspot_scatter_plot(analysis_data,
-                                                       analysis_model.process_list,
-                                                       analysis_model.reference_process,
-                                                       analysis_model.reference_id,
-                                                       raw_event1,
-                                                       raw_event2,
-                                                       centred,
-                                                       xlower=xlower,
-                                                       ylower=ylower,
-                                                       xupper=xupper,
-                                                       yupper=yupper,
-                                                       yt=yt,
-                                                       xt=xt,
-                                                       title=cluster_chart_title)
-        chart.render_to_file(output_file)
-    if analysis_type == "roofline":
-        chart = svgchart.generate_hotspot_scatter_plot(analysis_data,
-                                                        analysis_model.process_list,
-                                                        analysis_model.reference_process,
-                                                        analysis_model.reference_id,
-                                                        0,
-                                                        1,
-                                                        centred,
-                                                        xlower=xlower,
-                                                        ylower=ylower,
-                                                        xupper=xupper,
-                                                        yupper=yupper,
-                                                        yt=yt,
-                                                        xt=xt,
-                                                        title=cluster_chart_title)
-        chart.render_to_file(output_file)
+    raw_event1 = event_to_raw_event(event1, tools.GlobalData.loaded_cpu_definition)
+    raw_event2 = event_to_raw_event(event2, tools.GlobalData.loaded_cpu_definition)
+    chart = svgchart.generate_hotspot_scatter_plot(analysis_data,
+                                                   analysis_model.process_list,
+                                                   analysis_model.reference_process,
+                                                   analysis_model.reference_id,
+                                                   raw_event1,
+                                                   raw_event2,
+                                                   centred,
+                                                   xlower=xlower,
+                                                   ylower=ylower,
+                                                   xupper=xupper,
+                                                   yupper=yupper,
+                                                   yt=yt,
+                                                   xt=xt,
+                                                   title=cluster_chart_title)
+    chart.render_to_file(output_file)
     svgfile = tools.GlobalData.local_data + os.sep + scatter_plot_filename
     svgfile = os.path.relpath(svgfile, AnalysisView.template_folder)
     return svgfile

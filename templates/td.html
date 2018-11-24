@@ -110,11 +110,8 @@ View all of the events for all of the threads observed for a selected process. T
 and for comparisons of different events within a process.
 
 <h2 class="underline-title">Analysis View</h2>
-There are two types of analysis. Roofline analysis uses the floating point events, memory access events, and the number of cycles to display the rate of arithmetic operations vs the rate of
-memory access operations. This requires the use of processor specific raw events, which are only available if the correct cpu is selected in the settings view. General analysis is a
-generalisation of the roofline analysis, and allows the viewing of arbitrary events plotted against each other. The functions can be grouped according to the ratio of the selected events, to help identify functions with particular numerical properties.
-The analysis view allows the viewing of multiple processes/threads, multiple events, and multiple sets of results
-simultaneously.
+General analysis allows for the viewing of arbitrary events plotted against each other. The functions can be grouped according to the ratio of the selected events, to help identify functions with particular numerical properties.
+The analysis view allows the viewing of multiple processes/threads, multiple events, and multiple sets of results simultaneously.
 
 <h2 class="underline-title">Custom Events</h2>
 Several types of custom events can be created. The most useful is the custom event ratio, which can be used for the analysis of many properties such as memory bandwidth, floating point operations, and instructions per cycle. It is also possible to sum multiple events,
