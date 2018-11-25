@@ -45,7 +45,7 @@ def initialise_cpu_definitions():
                         event_counter = int(data[5].strip())
                         event_definition = EventDefinition(event_name, raw_event, event_group, event_unit, default_event, event_counter)
                         event_definitions[cpu].append(event_definition)
-                        if event_group == "Software":
+                        if event_group == "Software" or event_name == "Cycles":
                             event_definition = EventDefinition("Trace-" + event_name, "trace-" + raw_event, "Trace", event_unit,
                                                                default_event, event_counter)
                             event_definitions[cpu].append(event_definition)
@@ -212,13 +212,16 @@ class CpuDefinition:
         if len(trace_events) > 0:
             if "trace-cpu-clock" in trace_events:
                 trace_event = "trace-cpu-clock"
+                trace_flag = "-F"
             elif "trace-task-clock" in active_event_counters:
                 trace_event = "trace-task-clock"
+                trace_flag = "-F"
             else:
-                trace_event = trace_events[0]
+                trace_event = "trace-cycles"
+                trace_flag = "-c"
             ordered_trace_events = [trace_event] + [event for event in trace_events if event != trace_event]
             trace_counter = active_event_counters[inverse_map[trace_event]]
-            group = {"flag": "-F", "events": ordered_trace_events, "event_counter": trace_counter, "event_type": "Trace"}
+            group = {"flag": trace_flag, "events": ordered_trace_events, "event_counter": trace_counter, "event_type": "Trace"}
             perf_event_groups.append(copy.deepcopy(group))
         group = {"flag": "-F", "events": [], "event_counter": 0, "event_type": "Standard"}
         n = 0

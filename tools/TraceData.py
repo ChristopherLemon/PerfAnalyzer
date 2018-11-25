@@ -42,7 +42,7 @@ class TraceDataID:
 
 class ReadTraceTask:
 
-    def __init__(self, task_id, filename, job, process_name, event, raw_event, event_type, counter, time_scale):
+    def __init__(self, task_id, filename, job, process_name, event, raw_event, event_type, counter, time_scale, sample_weight):
         self.task_id = task_id
         self.filename = filename
         self.job = job
@@ -52,7 +52,7 @@ class ReadTraceTask:
         self.event_type = event_type
         self.event_counter = counter
         self.time_scale = time_scale
-        self.sample_weight = 1.0 / float(self.event_counter) # add correction for edges of each sample
+        self.sample_weight = sample_weight
         self.trace_data = {}
         self.start_time = -1.0
         self.totals = {}
@@ -223,6 +223,12 @@ class TraceData:
                             event = raw_event_to_event(raw_event, self.cpu_definition)
                             counter = self.event_counters[job][raw_event]
                             event_type = "trace"
+                            if re.match("clock", raw_event):
+                                self.trace_event_type = "clock"
+                                self.sample_weight = 1.0 / float(counter)  # Convert from Hz to seconds
+                            else:
+                                self.trace_event_type = "counter"
+                                self.sample_weight = 1.0
                             task_id = process + "_" + event
                             self.tasks[task_id] = ReadTraceTask(task_id,
                                                                 full_path,
@@ -232,7 +238,8 @@ class TraceData:
                                                                 raw_event,
                                                                 event_type,
                                                                 counter,
-                                                                self.time_scale)
+                                                                self.time_scale,
+                                                                self.sample_weight)
 
     def read_data(self, start=-0.0000001, stop=sys.float_info.max, selected_ids=[], initialise=False):
         self.start = start
@@ -386,6 +393,8 @@ class TraceData:
                             if match:
                                 t1_out = min(t1_out, start)
                                 t2_out = max(t2_out, end)
+                                if t2_out - t1_out < 0.0000001:  # Single sample within slice
+                                    t2_out = t1_out + self.sample_weight
                                 found = True
                             if found:
                                 exit_search = re.search(exit_regex, trace)
@@ -526,6 +535,9 @@ class TraceData:
                 if tid != "all": # One id for each thread of the application
                     process_ids.append(process_id)
         return process_ids
+
+    def get_trace_event_type(self):
+        return self.trace_event_type
 
     def reset_hotspots(self, n=10):
         self.hotspots = {}

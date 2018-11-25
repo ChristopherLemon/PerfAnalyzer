@@ -201,6 +201,11 @@ def get_flamegraph(flamegraph_type, job, start, stop):
     else:
         augmented = False
         sort_by_time = True
+    event_type = all_stack_data[job].get_trace_event_type()
+    if event_type == "clock":
+        unit = "&#x03BC;s"  # xml unicode: micro-seconds
+    else:
+        unit = "events"
     hotspots = all_stack_data[job].get_hotspots(augmented=augmented)
     colors = get_top_ten_colours()
     color_map = {h: colors[hotspots[h]] for h in hotspots}
@@ -209,7 +214,7 @@ def get_flamegraph(flamegraph_type, job, start, stop):
                flamegraph_filename,
                color_map=color_map,
                sort_by_time=sort_by_time,
-               unit="&#x03BC;s") # xml unicode: micro-seconds
+               unit=unit)
     svgfile = tools.GlobalData.local_data + os.sep + flamegraph_filename
     svgfile = os.path.relpath(svgfile, TraceView.template_folder)
     return svgfile

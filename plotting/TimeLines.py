@@ -487,7 +487,7 @@ class TimeLines:
                 for event, time in self.secondary_events[pid][tid]:
                     xi = x1 + (time - self.min_time) * scale_time
                     yi = y1
-                    xj = xi + 1
+                    xj = xi + 3
                     yj = yi + frameheight
                     if event not in colors:
                         nc = len(colors)
