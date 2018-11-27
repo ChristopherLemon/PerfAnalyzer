@@ -1,32 +1,38 @@
 # PerfAnalyzer
 
-PerfAnalyzer is a lightweight browser based tool for analyzing code performance. The tool can utilize the Linux perf  
-hardware event counters and trace events to provide a wealth of information about the performance characteristics of the code. 
+PerfAnalyzer is a browser based tool designed to analyze code performance. The tool utilizes Linux perf hardware event counters and software events, and provides a graphical interface to handle job submission and visualization of performance data. Flamegraphs, charts, and tables are displayed to aid understanding. These elements are combined with the Flask framework to create highly interactive representations of the performance data. Databases created by HPCToolKit can also be interpreted, to create loop or source line level flamegraphs, which can then be used to navigate the associated source code.
 
 The PerfAnalyzer tool is designed for use with high performance codes: it can monitor all processes and 
 threads of an application, or it can monitor activity on each processor of the underlying system. Jobs can be submitted 
 using the Message Parsing Interface (MPI), queueing systems such as LSF, and SSH. This permits both local and
 remote profiling of an application, perhaps running on a cluster or a cloud server.
 
-The browser based interface can submit jobs, and display the results using a number of graphical tools and libraries
-(such as flamegraphs and pygal). These elements are combined with the Flask framework to create highly interactive
-representations of the performance data. 
+
 
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/EventView.jpg" width="45%" title="Event FlameGraph">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/EventCounts.jpg" width="45%" title="Event Counts">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Loop level flamegraph">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/hotspots.png" width="45%" title="Hotspots">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Diff.jpg" width="45%" title="Flamegraph Diff">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/DiffCount.jpg" width="45%" title="Diff Counts">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/source.png" width="45%" title="Source code analysis">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/threads.png" width="45%" title="Thread selection">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TraceView.jpg" width="45%" title="Flamegraph Trace">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TimeLine.jpg" width="45%" title="Event Time Series">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TraceView.jpg" width="45%" title="Flamegraph time trace">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TimeLine.jpg" width="45%" title="Event time series">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Ratio.jpg" width="45%" title="Flamegraph for event ratios">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Analysis.jpg" width="45%" title="Event Crossplots">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diff.png" width="45%" title="Flamegraph difference plot">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diffplot.png" width="45%" title="Difference plot">
+</p>
+<p>
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/min_max2.png" width="45%" title="Min/max across threads">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Summary.png" width="45%" title="Run Summary">
+</p>
+
+<p>
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/custom.png" width="45%" title="Flamegraph for event ratio">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/scatter.png" width="45%" title="Event Crossplots">
 </p>
 
 # Setup
