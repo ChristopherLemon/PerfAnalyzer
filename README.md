@@ -10,16 +10,16 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 
 
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Event FlameGraph">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/hotspots.png" width="45%" title="Event Counts">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Loop level flameGraph">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/hotspots.png" width="45%" title="Hotspots">
 </p>
 <p>
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/source.png" width="45%" title="Souce code analysis">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/threads.png" width="45%" title="Thread selection">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Diff.jpg" width="45%" title="Flamegraph Diff">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/DiffCount.jpg" width="45%" title="Diff Counts">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diff.png" width="45%" title="Flamegraph difference plot">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diffplot.png" width="45%" title="Diff Counts">
 </p>
 <p>
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TraceView.jpg" width="45%" title="Flamegraph Trace">
