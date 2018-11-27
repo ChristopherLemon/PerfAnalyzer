@@ -31,8 +31,8 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 </p>
 
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Ratio.jpg" width="45%" title="Flamegraph for event ratio">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Analysis.jpg" width="45%" title="Event Crossplots">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/custom.png" width="45%" title="Flamegraph for event ratio">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/scatter.png" width="45%" title="Event Crossplots">
 </p>
 
 # Setup
