@@ -26,12 +26,12 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diffplot.png" width="45%" title="Difference plot">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/min_max2.png" width="45%" title="Flamegraph difference plot">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Summary.png" width="45%" title="Difference plot">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/min_max2.png" width="45%" title="Min/max accros threads">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Summary.png" width="45%" title="Run Summary">
 </p>
 
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Ratio.jpg" width="45%" title="Flamegraph for event ratios">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Ratio.jpg" width="45%" title="Flamegraph for event ratio">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Analysis.jpg" width="45%" title="Event Crossplots">
 </p>
 
