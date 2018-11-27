@@ -21,11 +21,17 @@ class HPCExperimentHandler:
         self.job_id = pathlib.Path(experiment).parent.name
 
     def create_results(self, include_loops=True, include_statements=False ):
-        self.results_file = os.path.join(self.results_dir, self.job_id) + ".results"
+        if include_statements:
+            self.detail = "lines"
+        elif include_loops:
+            self.detail = "loops"
+        else:
+            self.detail = "functions"
+        self.results_file = os.path.join(self.results_dir, self.job_id) + "_" + self.detail +".results"
         f = open(self.results_file, "wb")
         f.write("cpu_id:General\n".encode())
         f.write("time_interval:1.00\n".encode())
-        hpc_experiment = HPCExperiment(self.results_dir, self.job_id)
+        hpc_experiment = HPCExperiment(self.results_dir, self.job_id + "_" + self.detail)
         hpc_experiment.read_experiment(self.experiment_file, include_loops, include_statements)
         hpc_experiment.process_experiment()
         metrics = hpc_experiment.get_metrics()
