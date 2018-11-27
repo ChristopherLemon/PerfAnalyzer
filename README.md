@@ -10,21 +10,26 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 
 
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Loop level flameGraph">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Loop level flamegraph">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/hotspots.png" width="45%" title="Hotspots">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/source.png" width="45%" title="Souce code analysis">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/source.png" width="45%" title="Source code analysis">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/threads.png" width="45%" title="Thread selection">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diff.png" width="45%" title="Flamegraph difference plot">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diffplot.png" width="45%" title="Diff Counts">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TraceView.jpg" width="45%" title="Flamegraph time trace">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TimeLine.jpg" width="45%" title="Event time series">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TraceView.jpg" width="45%" title="Flamegraph Trace">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TimeLine.jpg" width="45%" title="Event Time Series">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diff.png" width="45%" title="Flamegraph difference plot">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diffplot.png" width="45%" title="Difference plot">
 </p>
+<p>
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/min_max2.png" width="45%" title="Flamegraph difference plot">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Summary.png" width="45%" title="Difference plot">
+</p>
+
 <p>
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Ratio.jpg" width="45%" title="Flamegraph for event ratios">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Analysis.jpg" width="45%" title="Event Crossplots">
