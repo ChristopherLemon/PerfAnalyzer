@@ -26,7 +26,7 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diffplot.png" width="45%" title="Difference plot">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/min_max2.png" width="45%" title="Min/max across threads">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Home.png" width="45%" title="PerfAnalyzer">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Summary.png" width="45%" title="Run Summary">
 </p>
 
