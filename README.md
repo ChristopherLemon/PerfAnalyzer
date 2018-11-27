@@ -10,8 +10,12 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 
 
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/EventView.jpg" width="45%" title="Event FlameGraph">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/EventCounts.jpg" width="45%" title="Event Counts">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Event FlameGraph">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/hotspots.png" width="45%" title="Event Counts">
+</p>
+<p>
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/source.png" width="45%" title="Souce code analysis">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/threads.png" width="45%" title="Thread selection">
 </p>
 <p>
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Diff.jpg" width="45%" title="Flamegraph Diff">
