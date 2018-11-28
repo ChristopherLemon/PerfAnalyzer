@@ -132,8 +132,7 @@ class SVGPackage:
         values = {'width': width, 'height': height}
         svg_header = string.Template("""<?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg version="1.1" width="100%" height="100%" onload="init(evt)" viewBox="0 0 $width $height" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, and http://www.brendangregg.com/flamegraphs.html for examples. -->""")
+<svg version="1.1" width="100%" height="100%" onload="init(evt)" viewBox="0 0 $width $height" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">""")
         self.svg.append(svg_header.substitute(values) + "\n")
 
     def include(self, content):
@@ -483,8 +482,14 @@ class TimeLines:
         colors = {}
         for pid in sorted(self.secondary_events.keys()):
             for tid in sorted(self.secondary_events[pid].keys()):
+                n_events = len(self.secondary_events[pid][tid])
+                step = max(1, n_events // 800)
+                n = 0
                 x1 = xpad
                 for event, time in self.secondary_events[pid][tid]:
+                    n = n + 1
+                    if n_events % step != 0:
+                        continue
                     xi = x1 + (time - self.min_time) * scale_time
                     yi = y1
                     xj = xi + 3
