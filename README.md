@@ -1,6 +1,6 @@
 # PerfAnalyzer
 
-PerfAnalyzer is a browser based tool designed to analyze code performance. The tool utilizes Linux perf hardware event counters and software events, and provides a graphical interface to handle job submission and visualization of performance data. Flamegraphs, charts, and tables are displayed to aid understanding. These elements are combined with the Flask framework to create highly interactive representations of the performance data. Databases created by HPCToolKit can also be interpreted, to create loop or source line level flamegraphs, which can then be used to navigate the associated source code.
+PerfAnalyzer is a browser based performance analysis tool which utilizes Linux perf to monitor hardware event counters, software events, and trace events. The tool provides a graphical user interface to handle job submission and visualization of performance profiles. Flamegraphs, charts, and tables are displayed to aid understanding. These elements are combined with the Flask framework to create highly interactive representations of the data. Databases created by HPCToolKit can also be interpreted, to create loop or source line level flamegraphs, which can then be used to navigate the associated source code.
 
 The PerfAnalyzer tool is designed for use with high performance codes: it can monitor all processes and 
 threads of an application, or it can monitor activity on each processor of the underlying system. Jobs can be submitted 
