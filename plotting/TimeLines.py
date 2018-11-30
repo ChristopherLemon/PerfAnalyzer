@@ -463,47 +463,51 @@ class TimeLines:
         self.im.line(xpad, y1, x1, y1)
 
         y1 = ypad1
-        for pid in sorted(self.sample_rates.keys()):
-            for tid in sorted(self.sample_rates[pid].keys()):
-                x1 = xpad
-                path_coords = []
-                for time, rate in self.sample_rates[pid][tid]:
-                    norm_rate = 0.0
-                    if self.max_sample_rate > 0.0:
-                        norm_rate = rate / self.max_sample_rate
-                    xi = x1 + 0.5 * widthpertime
-                    yi = y1 + (1.0 - norm_rate) * frameheight
-                    path_coords.append((xi, yi))
-                    x1 += widthpertime
-                self.im.polyline(path_coords)
-                y1 += frameheight + 2 * framepad
+        for pid in sorted(self.timelines.keys()):
+            if pid in self.sample_rates:
+                for tid in sorted(self.timelines[pid].keys()):
+                    if tid in self.sample_rates[pid]:
+                        x1 = xpad
+                        path_coords = []
+                        for time, rate in self.sample_rates[pid][tid]:
+                            norm_rate = 0.0
+                            if self.max_sample_rate > 0.0:
+                                norm_rate = rate / self.max_sample_rate
+                            xi = x1 + 0.5 * widthpertime
+                            yi = y1 + (1.0 - norm_rate) * frameheight
+                            path_coords.append((xi, yi))
+                            x1 += widthpertime
+                        self.im.polyline(path_coords)
+                        y1 += frameheight + 2 * framepad
 
         y1 = ypad1
         colors = {}
-        for pid in sorted(self.secondary_events.keys()):
-            for tid in sorted(self.secondary_events[pid].keys()):
-                n_events = len(self.secondary_events[pid][tid])
-                step = max(1, n_events // 800)
-                n = 0
-                x1 = xpad
-                for event, time in self.secondary_events[pid][tid]:
-                    n = n + 1
-                    if n_events % step != 0:
-                        continue
-                    xi = x1 + (time - self.min_time) * scale_time
-                    yi = y1
-                    xj = xi + 3
-                    yj = yi + frameheight
-                    if event not in colors:
-                        nc = len(colors)
-                        colors[event] = cluster_plot_colours[nc]
-                    color = colors[event]
-                    t = '{:.6f}'.format(float(time))
-                    nameattr = Attributes(event + " " + t)
-                    self.im.group_start(nameattr)
-                    self.im.filled_rectangle(xi, yi, xj, yj, color, "rx=\"0\" ry=\"0\"")
-                    self.im.group_end(nameattr)
-                y1 += frameheight + 2 * framepad
+        for pid in sorted(self.timelines.keys()):
+            if pid in self.secondary_events:
+                for tid in sorted(self.timelines[pid].keys()):
+                    if tid in self.secondary_events[pid]:
+                        n_events = len(self.secondary_events[pid][tid])
+                        step = max(1, n_events // 800)
+                        n = 0
+                        x1 = xpad
+                        for event, time in self.secondary_events[pid][tid]:
+                            n = n + 1
+                            if n_events % step != 0:
+                                continue
+                            xi = x1 + (time - self.min_time) * scale_time
+                            yi = y1
+                            xj = xi + 3
+                            yj = yi + frameheight
+                            if event not in colors:
+                                nc = len(colors)
+                                colors[event] = cluster_plot_colours[nc]
+                            color = colors[event]
+                            t = '{:.6f}'.format(float(time))
+                            nameattr = Attributes(event + " " + t)
+                            self.im.group_start(nameattr)
+                            self.im.filled_rectangle(xi, yi, xj, yj, color, "rx=\"0\" ry=\"0\"")
+                            self.im.group_end(nameattr)
+                        y1 += frameheight + 2 * framepad
 
         self.write_timelines()
 
