@@ -1,6 +1,6 @@
 # PerfAnalyzer
 
-PerfAnalyzer is a browser based performance analysis tool which utilizes Linux perf to monitor hardware event counters, software events, and trace events. The tool provides a graphical user interface to handle job submission and visualization of performance profiles. Flamegraphs, charts, and tables are displayed to aid understanding. These elements are combined with the Flask framework to create highly interactive representations of the data. Databases created by HPCToolKit can also be interpreted, to create loop or source line level flamegraphs, which can then be used to navigate the associated source code.
+PerfAnalyzer is a browser based performance analysis tool which utilizes Linux perf to monitor hardware event counters, software events, and trace events. The tool provides a graphical user interface to handle job submission and visualization of performance profiles using flamegraphs, charts, and tables. These elements are combined with the Flask framework to create highly interactive representations of the data. Databases created by HPCToolKit can also be interpreted, to create loop or source line level flamegraphs, which can then be used to navigate the associated source code.
 
 The PerfAnalyzer tool is designed for use with high performance codes: it can monitor all processes and 
 threads of an application, or it can monitor activity on each processor of the underlying system. Jobs can be submitted 
@@ -37,22 +37,13 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 
 # Setup
 Performance data can be gathered for a Linux kernel version of 3.x or later, with the perf package installed and 
-sufficient privileges to set /proc/sys/kernel/perf_event_paranoid to a suitable value. It is also possible to use PerfAnalyzer on a Windows system to perform remote profiling of a Linux system. The tool can be run within a Python environment, or can be built with PyInstaller to create a standalone directory, which can then simply be copied to the locations required.  
+sufficient privileges to set /proc/sys/kernel/perf_event_paranoid to a suitable value. It is also possible to use PerfAnalyzer on a Windows system to perform remote profiling of a Linux system. The tool can be run within a Python 3 environment, or can be built with PyInstaller to create a standalone directory, which can then simply be copied to the locations required.  
 
 ## Linux Setup
 There are some dependencies on lxml, which are required to run within the python environment or to build the standalone version. These can be installed as follows:  
 
     sudo apt-get install python-lxml  
-    sudo apt-get install libxml2-dev libxslt-dev python-dev  
-
-For python 3, the python3-dev package should be installed instead of python-dev.
-
-**Virtual Environment**
-For Python 2
-
-    virtualenv perf_profiler
-    source ./perf_profiler/bin/activate
-    pip install -r requirements_linux.txt
+    sudo apt-get install libxml2-dev libxslt-dev python3-dev  
 
 **Virtual Environment**
 For Python 3
@@ -68,13 +59,6 @@ For Python 3
 The version of Glibc on the build machine should not exceed that on the machines to be run on.
 
 ## Windows Setup
-
-**Virtual environment**
-For Python 2
-
-    virtualenv perf_profiler
-    perf_profiler\Scripts\activate.bat
-    pip install -r requirements.txt
 
 **Virtual Environment**
 For Python 3
