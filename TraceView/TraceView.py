@@ -224,6 +224,7 @@ def get_timelines(job, start, stop):
     all_stack_data[job].generate_timelines(start, stop)
     write_timelines(all_stack_data[job])
     intervals = all_stack_data[job].get_num_timeline_intervals()
+    event_map = tools.GlobalData.loaded_cpu_definition.get_available_event_map(event_to_raw_event=False)
     timelines_trace_filename = all_stack_data[job].get_timelines_filename()
     timelines_filename = timestamp("timelines.svg")
     hotspots = all_stack_data[job].get_hotspots(augmented=True)
@@ -233,6 +234,7 @@ def get_timelines(job, start, stop):
               timelines_trace_filename,
               timelines_filename,
               intervals,
+              event_map,
               color_map=color_map)
     svgfile = tools.GlobalData.local_data + os.sep + timelines_filename
     svgfile = os.path.relpath(svgfile, TraceView.template_folder)

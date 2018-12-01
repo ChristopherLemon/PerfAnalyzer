@@ -84,7 +84,7 @@ class ReadTraceTask:
                 if match:
                     pid = match.group(2)
                     tid = match.group(3)
-                    match2 = re.match("secondary-event;(.*):(.*):\s*(.*)", line)
+                    match2 = re.match("secondary-event;([^:]+):(.*):\s*(.*)", line)
                     if match2:
                         event = match2.group(2)
                         samples = match2.group(3)

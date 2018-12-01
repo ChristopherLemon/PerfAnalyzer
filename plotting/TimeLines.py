@@ -261,7 +261,7 @@ def precision(t, range):
 
 class TimeLines:
 
-    def __init__(self, working_dir, in_file, out_file, intervals,
+    def __init__(self, working_dir, in_file, out_file, intervals, event_map,
                  color_map=None,
                  has_color_map=False,
                  imagewidth=1200,
@@ -277,6 +277,7 @@ class TimeLines:
         self.working_dir = working_dir
         self.in_file = self.working_dir + os.sep + in_file
         self.out_file = self.working_dir + os.sep + out_file
+        self.event_map = event_map
         self.has_color_map = has_color_map
         self.data = []
         self.nlevels = 0
@@ -487,13 +488,15 @@ class TimeLines:
                 for tid in sorted(self.timelines[pid].keys()):
                     if tid in self.secondary_events[pid]:
                         n_events = len(self.secondary_events[pid][tid])
-                        step = max(1, n_events // 800)
+                        step = max(1, n_events // 400)
                         n = 0
                         x1 = xpad
                         for event, time in self.secondary_events[pid][tid]:
                             n = n + 1
-                            if n_events % step != 0:
+                            if n % step != 0:
                                 continue
+                            if event in self.event_map:
+                                event = self.event_map[event]
                             xi = x1 + (time - self.min_time) * scale_time
                             yi = y1
                             xj = xi + 3

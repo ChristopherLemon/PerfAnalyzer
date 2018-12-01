@@ -131,7 +131,7 @@ sub remember_stack {
 }
 
 sub record_trace {
-    my ($primary_event,$stack,$pid,$tid,$elapsed_time) = @_;
+    my ($primary_event,$stack,$exe_name,$pid,$tid,$elapsed_time) = @_;
     $nlines++;
     if ($primary_event eq $trace_event) {
         my $id = $pid . "-" . $tid;
@@ -150,7 +150,7 @@ sub record_trace {
         }
     }
     else {
-        my $id = "-" .$pid . "/" . $tid . ":" . $primary_event;
+        my $id = $exe_name . "-" .$pid . "/" . $tid . ":" . $primary_event;
         if (not exists $event_sample{$id}) {
             $event_sample{$id} = "";
         }
@@ -223,6 +223,7 @@ my @stack;
 my $pname;
 my $pname_sum_threads;
 my $pname_sum_processes;
+my $exe_name;
 my $m_pid;
 my $m_tid;
 my $m_cid;
@@ -262,20 +263,20 @@ while (defined($_ = <>)) {
 			}
 		}
         if ($trace_event ne "") {
-            record_trace($primary_event,join(";", @stack), $m_pid, $m_tid, $time - $start_time) if @stack;
+            record_trace($primary_event,join(";", @stack), $exe_name, $m_pid, $m_tid, $time - $start_time) if @stack;
         } else {
 		    remember_stack($primary_event,join(";", @stack), 1) if @stack;
         }
         if ($accumulate) {
             splice(@stack, 0, 1, $pname_sum_threads);
             if ($trace_event ne "") {
-                record_trace($primary_event,join(";", @stack), $m_pid, "all", $time - $start_time) if @stack;
+                record_trace($primary_event,join(";", @stack), $exe_name,  $m_pid, "all", $time - $start_time) if @stack;
             } else {
 			    remember_stack($primary_event,join(";", @stack), 1) if @stack;
             }
             splice(@stack, 0, 1, $pname_sum_processes);
             if ($trace_event ne "") {
-                record_trace($primary_event,join(";", @stack), "all", "all", $time - $start_time) if @stack;
+                record_trace($primary_event,join(";", @stack), $exe_name,  "all", "all", $time - $start_time) if @stack;
             } else {
                 remember_stack($primary_event,join(";", @stack), 1) if @stack;
             }
@@ -321,6 +322,7 @@ while (defined($_ = <>)) {
 		# eg, "java 12688/12764 6544038.708352: cpu-clock:"
 		# eg, "V8 WorkerThread 24636/25607 [000] 94564.109216: cycles:"
 		# other combinations possible
+		$exe_name = $1;
         $primary_event = $5;
 		if ($3) {
 			($m_pid, $m_tid) = ($2, $3);
