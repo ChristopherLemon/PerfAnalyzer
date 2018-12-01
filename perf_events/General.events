@@ -4,7 +4,7 @@
 # Event Weights = [1, 10, 100, 1000, 10000, 20000, 40000, 80000, 160000, 320000, 640000, 1280000, 2560000, 5120000]
 
 # Event Definitions
-# Name,  Raw Perf Event,  Event Group,  Event Unit,  Default Event,  Event Counter
+# Name,  Raw Perf Event,  Event Group,  Event Unit,  Event Counter
 
 EventDefinition: Cycles, cycles, General, Samples, 2560000
 EventDefinition: Instructions, instructions, General, Samples, 2560000
