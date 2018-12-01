@@ -6,34 +6,19 @@
 # Event Definitions
 # Name,  Raw Perf Event,  Event Group,  Event Unit,  Default Event,  Event Counter
 
-EventDefinition: Cycles, cycles, General, Samples, True, 2560000
-EventDefinition: Instructions, instructions, General, Samples, True, 2560000
-EventDefinition: CPU-Clock, cpu-clock, Software, Hz, False, 1
-EventDefinition: Task-Clock, task-clock, Software, Hz, False, 1
-EventDefinition: Context-Switches, context-switches, Software, Samples, False, 1
-EventDefinition: CPU-Migrations, cpu-migrations, Software, Samples, False, 1
-EventDefinition: Page-Faults, page-faults, Software, Samples, False, 1
-EventDefinition: Branch-Loads, branch-loads, Branch Instruction, Samples, False, 640000
-EventDefinition: Branch-Load-Misses, branch-load-misses, Branch Instruction, Samples, False, 640000
-EventDefinition: Data-TLB-Loads, dTLB-loads, Data TLB, Samples, False, 640000
-EventDefinition: Data-TLB-Load-Misses, dTLB-load-misses, Data TLB, Samples, False, 640000
-EventDefinition: Data-TLB-Stores, dTLB-stores, Data TLB, Samples, False, 640000
-EventDefinition: Data-TLB-Store-Misses, dTLB-store-misses, Data TLB, Samples, False, 640000
-EventDefinition: Instruction-TLB-Loads, iTLB-loads, Instruction TLB, Samples, False, 640000
-EventDefinition: Instruction-TLB-Load-Misses, iTLB-load-misses, Instruction TLB, Samples, False, 640000
-EventDefinition: Loads-Retired, mem_uops_retired.all_loads, Data Access, Samples, False, 1280000
-EventDefinition: Stores-Retired, mem_uops_retired.all_stores, Data Access, Samples, False, 1280000
-EventDefinition: L1-Hit-Loads-Retired, mem_load_uops_retired.l1_hit, Data Access, Samples, False, 1280000
-EventDefinition: L1-FB-Hit-Loads-Retired, mem_load_uops_retired.fb_hit, Data Access, Samples, False, 1280000
-EventDefinition: L2-Hit-Loads-Retired, mem_load_uops_retired.l2_hit, Data Access, Samples, False, 40000
-EventDefinition: LLC-Hit-Loads-Retired, mem_load_uops_retired.llc_hit, Data Access, Samples, False, 40000
-EventDefinition: LLC-Miss-Loads-Retired, mem_load_uops_retired.llc_miss, Data Access, Samples, False, 40000
-EventDefinition: L1-Data-Line-Replacement, l1d.replacement, Data Access, Samples, False, 640000
-EventDefinition: L1-Data-Miss-FB-Full, l1d_pend_miss.fb_full, Data Access, Samples, False, 1280000
-EventDefinition: Local-DRAM, mem_load_uops_llc_miss_retired.local_dram, Data Access, Samples, False, 10000
-EventDefinition: Loads-Misaligned, misalign_mem_ref.loads, Data Access, Samples, False, 40000
-EventDefinition: Remote-DRAM, mem_load_uops_llc_miss_retired.remote_dram, Data Access, Samples, False, 1000
-EventDefinition: Syscall-brk, syscalls:sys_enter_brk, Software, Samples, False, 1
-EventDefinition: Syscall-mmap, syscalls:sys_enter_mmap, Software, Samples, False, 1
-EventDefinition: Remote_LLC_Hit_Hitm, offcore_response.all_data_rd.llc_hit.hitm_other_core, Data Access, Samples, False, 1000
-EventDefinition: Remote-LLC_Miss_HitM, offcore_response.all_reads.llc_miss.remote_hitm, Data Access, Samples, False, 1000
+EventDefinition: Cycles, cycles, General, Samples, 2560000
+EventDefinition: Instructions, instructions, General, Samples, 2560000
+EventDefinition: CPU-Clock, cpu-clock, Software, Hz, 1
+EventDefinition: Task-Clock, task-clock, Software, Hz, 1
+EventDefinition: Context-Switches, context-switches, Software, Samples, 1
+EventDefinition: CPU-Migrations, cpu-migrations, Software, Samples, 1
+EventDefinition: Page-Faults, page-faults, Software, Samples, 1
+EventDefinition: Branch-Loads, branch-loads, Branch Instruction, Samples, 640000
+EventDefinition: Branch-Load-Misses, branch-load-misses, Branch Instruction, Samples, 640000
+EventDefinition: Data-TLB-Loads, dTLB-loads, Data TLB, Samples, 640000
+EventDefinition: Data-TLB-Load-Misses, dTLB-load-misses, Data TLB, Samples, 640000
+EventDefinition: Instruction-TLB-Loads, iTLB-loads, Instruction TLB, Samples, 640000
+EventDefinition: Instruction-TLB-Load-Misses, iTLB-load-misses, Instruction TLB, Samples, 640000
+EventDefinition: L1-DCache-Loads, L1-dcache-loads, Data Access, Samples, 1280000
+EventDefinition: LLC-Loads, LLC-loads, Data Access, Samples, 40000
+EventDefinition: LLC-Load-Misses, LLC-load-misses, Data Access, Samples, 40000

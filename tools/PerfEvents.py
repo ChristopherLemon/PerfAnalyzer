@@ -15,7 +15,6 @@ EventDefinition = namedtuple('EventDefinition',
                               'raw_event',
                               'event_group',
                               'unit',
-                              'default',
                               'event_weight'])
 
 event_definitions = OrderedDict()
@@ -41,13 +40,12 @@ def initialise_cpu_definitions():
                         raw_event = data[1].strip()
                         event_group = data[2].strip()
                         event_unit = data[3].strip()
-                        default_event = (data[4].strip() == 'True')
-                        event_counter = int(data[5].strip())
-                        event_definition = EventDefinition(event_name, raw_event, event_group, event_unit, default_event, event_counter)
+                        event_counter = int(data[4].strip())
+                        event_definition = EventDefinition(event_name, raw_event, event_group, event_unit, event_counter)
                         event_definitions[cpu].append(event_definition)
                         if event_group == "Software" or event_name == "Cycles":
                             event_definition = EventDefinition("Trace-" + event_name, "trace-" + raw_event, "Trace", event_unit,
-                                                               default_event, event_counter)
+                                                               event_counter)
                             event_definitions[cpu].append(event_definition)
         except Exception as e:
             raise Exception("Error reading line: \"" + line.strip() + "\"")
@@ -70,13 +68,9 @@ def modify_event_definitions(cpu, event_definitions):
                             raw_event = definition.raw_event
                             event_group = definition.event_group
                             event_unit = definition.unit
-                            if definition.default:
-                                default_event = "True"
-                            else:
-                                default_event = "False"
                             event_counter = str(definition.event_weight)
                             if not re.match("Trace", event_name):
-                                l = ", ".join(["EventDefinition: " + event_name, raw_event, event_group, event_unit, default_event, event_counter]) + "\n"
+                                l = ", ".join(["EventDefinition: " + event_name, raw_event, event_group, event_unit, event_counter]) + "\n"
                                 new_file.write(l)
                 else:
                     new_file.write(line)
@@ -102,17 +96,17 @@ class CpuDefinition:
             if event_definition.event == event:
                 self.active_events.append(event_definition)
 
-    def add_active_event(self, event, raw_event, event_group, unit, default=False, event_weight=0):
+    def add_active_event(self, event, raw_event, event_group, unit, event_weight=0):
         active_events = self.get_active_events()
         if event not in active_events:
-            self.active_events.append(EventDefinition(event, raw_event, event_group, unit, default, event_weight))
+            self.active_events.append(EventDefinition(event, raw_event, event_group, unit, event_weight))
 
     def get_event_definitions(self):
         return self.available_events
 
     def set_default_active_events(self):
         self.active_events = []
-        default_raw_events = self.get_default_events(raw_events=True)
+        default_raw_events = self.get_default_events()
         for raw_event in default_raw_events:
             event = raw_event_to_event(raw_event, self)
             self.copy_to_active_event(event)
@@ -129,12 +123,8 @@ class CpuDefinition:
     def get_base_event(self):
         return self.base_event
 
-    def get_default_events(self, raw_events=False):
-        if raw_events:
-            available_event_map = self.get_available_event_map(event_to_raw_event=True)
-            return [available_event_map[event_definition.event] for event_definition in self.available_events if event_definition.default]
-        else:
-            return [event_definition.event for event_definition in self.available_events if event_definition.default]
+    def get_default_events(self):
+        return ["cpu-clock"]
 
     def get_available_event_group_map(self):
         return {event_definition.event: event_definition.event_group for event_definition in self.available_events}

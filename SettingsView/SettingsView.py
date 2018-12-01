@@ -44,7 +44,7 @@ def settings():
                 event = match.group(1)
                 field = match.group(2)
                 if event not in events:
-                    events[event] = {"event": "", "raw_event": "", "event_group": "", "event_unit": "", "event_default": "", "event_weight": 0}
+                    events[event] = {"event": "", "raw_event": "", "event_group": "", "event_unit": "",  "event_weight": 0}
                 events[event][field] = request.form[name]
         event_definitions = []
         for event in events:
@@ -52,12 +52,8 @@ def settings():
             raw_event = events[event]["raw_event"]
             event_group = events[event]["event_group"]
             event_unit = events[event]["event_unit"]
-            if events[event]["event_default"] == "True":
-                default_event = True
-            else:
-                default_event = False
             event_counter = int(events[event]["event_weight"])
-            event_definition = EventDefinition(event_name, raw_event, event_group, event_unit, default_event,
+            event_definition = EventDefinition(event_name, raw_event, event_group, event_unit,
                                                event_counter)
             event_definitions.append(event_definition)
         modify_event_definitions(tools.GlobalData.user_settings["cpu"], event_definitions)

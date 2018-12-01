@@ -125,12 +125,11 @@
                                     <div id="table" class="table-editable">
                                         <table class="table input_table">
                                             <tr>
-                                                <th title="Event name for visualization">Event Name</th>
-                                                <th title="Event name for perf command line">Perf Event</th>
-                                                <th title="Assign event to an event set">Event Type</th>
+                                                <th title="Event name for visualization">Display Event Name</th>
+                                                <th title="Event name for perf command line">Perf Raw Event Name</th>
+                                                <th title="Assign event to an event group">Event Group</th>
                                                 <th title="Samples for event counters, Hz for clocks">Event Unit</th>
-                                                <th title="Set event as a default event">Make Default</th>
-                                                <th title="Approx number of events per millisecond">Event Rate</th>
+                                                <th title="Approx number of events per millisecond">Approx Event Rate (per ms)</th>
                                                 <th></th>
                                                 <th></th>
                                             </tr>
@@ -153,17 +152,6 @@
                                                             {% else %}
                                                                 <option value="Samples">Samples</option>
                                                                 <option value="Hz" selected="selected">Hz</option>
-                                                            {% endif %}
-                                                        </select>
-                                                    </td>
-                                                    <td>
-                                                        <select name="{{definition.event}}_edit_event_default" class="selectpicker">
-                                                            {% if definition.default %}
-                                                                <option value="True" selected="selected">True</option>
-                                                                <option value="False">False</option>
-                                                            {% else %}
-                                                                <option value="True">True</option>
-                                                                <option value="False" selected="selected">False</option>
                                                             {% endif %}
                                                         </select>
                                                     </td>
@@ -201,12 +189,6 @@
                                                     <select name="edit_event_unit">
                                                         <option value="Samples">Samples</option>
                                                         <option value="Hz">Hz</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <select name="edit_event_default">
-                                                        <option value="True">True</option>
-                                                        <option value="False">False</option>
                                                     </select>
                                                 </td>
                                                 <td>
