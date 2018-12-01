@@ -373,7 +373,7 @@ class TraceData:
             p = n + 2
         else:
             m = n - 1
-            p = n - 2
+            p = n
         t1_out = sys.maxsize
         t2_out = -sys.maxsize
         f_out = function_name + "_[[call_" + str(m) + "]]"
@@ -393,12 +393,13 @@ class TraceData:
                             if match:
                                 t1_out = min(t1_out, start)
                                 t2_out = max(t2_out, end)
-                                if t2_out - t1_out < 0.0000001:  # Single sample within slice
-                                    t2_out = t1_out + self.sample_weight
                                 found = True
                             if found:
                                 exit_search = re.search(exit_regex, trace)
                                 if exit_search:
+                                    if t2_out - t1_out < 0.0000001:  # Single sample
+                                        t2_out = start
+                                        t1_out = t1_out - 0.0000001
                                     return f_out, t1_out, t2_out
         if not found:
             t1_out = t1
