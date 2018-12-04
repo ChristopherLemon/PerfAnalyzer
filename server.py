@@ -263,19 +263,19 @@ def index():
                 tools.GlobalData.job_settings["use_lsf"] = True
                 tools.GlobalData.job_settings["lsf_params"] = request.form["lsf_params"]
                 tools.GlobalData.job_settings["queue"] = request.form["queue"]
+                tools.GlobalData.job_settings["processes_per_node"] = int(request.form["processes_per_node"])
             else:
                 tools.GlobalData.job_settings["use_lsf"] = False
+                tools.GlobalData.job_settings["processes_per_node"] = 1
             if 'use_mpirun' in request.form:
                 tools.GlobalData.job_settings["use_mpirun"] = True
                 tools.GlobalData.job_settings["global_mpirun_params"] = request.form["global_mpirun_params"]
                 tools.GlobalData.job_settings["local_mpirun_params"] = request.form["local_mpirun_params"]
                 tools.GlobalData.job_settings["mpirun_version"] = request.form["mpirun_version"]
                 tools.GlobalData.job_settings["processes"] = int(request.form["processes"])
-                tools.GlobalData.job_settings["processes_per_node"] = int(request.form["processes_per_node"])
             else:
                 tools.GlobalData.job_settings["use_mpirun"] = False
                 tools.GlobalData.job_settings["processes"] = 1
-                tools.GlobalData.job_settings["processes_per_node"] = 1
             tools.GlobalData.job_settings["run_parallel"] = ('run_parallel' in request.form)
             tools.GlobalData.job_settings["run_system_wide"] = ('run_system_wide' in request.form)
             tools.GlobalData.job_settings["run_as_root"] = ('run_as_root' in request.form)
