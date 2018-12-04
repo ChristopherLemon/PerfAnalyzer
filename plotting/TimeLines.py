@@ -479,7 +479,9 @@ class TimeLines:
                             path_coords.append((xi, yi))
                             x1 += widthpertime
                         self.im.polyline(path_coords)
-                        y1 += frameheight + 2 * framepad
+                    y1 += frameheight + 2 * framepad
+            else:
+                 y1 += frameheight + 2 * framepad
 
         y1 = ypad1
         colors = {}
@@ -510,7 +512,9 @@ class TimeLines:
                             self.im.group_start(nameattr)
                             self.im.filled_rectangle(xi, yi, xj, yj, color, "rx=\"0\" ry=\"0\"")
                             self.im.group_end(nameattr)
-                        y1 += frameheight + 2 * framepad
+                    y1 += frameheight + 2 * framepad
+            else:
+                 y1 += frameheight + 2 * framepad
 
         self.write_timelines()
 
