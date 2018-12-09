@@ -8,7 +8,7 @@ import pathlib
 from tools.CustomLogging import setup_main_logger
 from tools.HPCExperiment import HPCExperimentHandler, HPCResultsHandler, is_HPC_result
 from werkzeug.utils import secure_filename
-from tools.JobHandler import JobHandler
+from tools.JobHandler import JobHandler, Job
 from tools.ResultsHandler import get_results_info, get_jobs, get_cpu, get_run_summary
 from tools.Utilities import purge, format_percentage, format_number, replace_operators, get_datetime, \
     get_datetime_diff, abs_path_to_rel_path, natural_sort
@@ -134,8 +134,10 @@ def index():
         # Load requested results - just check which events can be found in requested results files at this point
         load_perf_data = 'perf_btn' in request.form
         load_hpc_data = 'hpc_btn' in request.form
-        if load_perf_data or load_hpc_data:
+        load_profile_data = 'profile_btn' in request.form
+        if load_profile_data or load_hpc_data or load_perf_data:
             experiment_file = None
+            perf_data_files = []
             allfiles = request.files.getlist("file[]")
             reset_data_structures()
             for foundfile in allfiles:
@@ -151,7 +153,7 @@ def index():
                                            job_settings=tools.GlobalData.job_settings,
                                            user_settings=tools.GlobalData.user_settings,
                                            enabled_modes=tools.GlobalData.enabled_modes)
-                if (load_perf_data and allowed_file(foundfile.filename)) or load_hpc_data:
+                if (load_profile_data and allowed_file(foundfile.filename)) or load_hpc_data or load_perf_data:
                     filename = secure_filename(foundfile.filename)
                     if load_hpc_data:
                         if not os.path.exists(os.path.join(tools.GlobalData.local_data, foundfile.filename)):
@@ -168,6 +170,15 @@ def index():
                         results_file = os.path.basename(foundfile.filename)
                         if results_file not in tools.GlobalData.results_files:
                             tools.GlobalData.results_files.append(filename)
+                    elif load_perf_data:
+                        perf_data_files.append(filename)
+                        perf_working_directory = request.form['path_to_perf_data']
+
+            if len(perf_data_files) > 0:
+                jobhandler = JobHandler(tools.GlobalData.root_directory)
+                results = jobhandler.convert_perf_data(perf_data_files, tools.GlobalData.local_data, perf_working_directory)
+                tools.GlobalData.results_files.append(results)
+
             if experiment_file:
                 analysis_level = request.form["analysis_level"]
                 if re.match("Line", analysis_level):
@@ -310,38 +321,41 @@ def index():
                                            enabled_modes=tools.GlobalData.enabled_modes)
             status = 'Submitted Jobs: '
             main_logger.info(u"Preparing job " + tools.GlobalData.job_settings["job_name"])
-            jobhandler = JobHandler(tools.GlobalData.job_settings["job_name"],
-                                    tools.GlobalData.job_settings["copy_files"],
-                                    tools.GlobalData.job_settings["run_parallel"],
-                                    tools.GlobalData.job_settings["run_system_wide"],
-                                    tools.GlobalData.job_settings["run_as_root"],
-                                    tools.GlobalData.job_settings["processes"],
-                                    tools.GlobalData.job_settings["processes_per_node"],
-                                    tools.GlobalData.job_settings["executable"],
-                                    tools.GlobalData.job_settings["arguments"],
-                                    tools.GlobalData.job_settings["working_directory_linux"],
-                                    tools.GlobalData.root_directory,
-                                    tools.GlobalData.job_settings["run_duration"],
-                                    tools.GlobalData.job_settings["queue"],
-                                    tools.GlobalData.selected_cpu_definition,
-                                    tools.GlobalData.selected_cpu_definition.get_active_raw_events(),
-                                    tools.GlobalData.user_settings["event_counter"],
-                                    tools.GlobalData.user_settings["frequency"],
-                                    tools.GlobalData.user_settings["dt"],
-                                    tools.GlobalData.user_settings["max_events_per_run"],
-                                    tools.GlobalData.user_settings["proc_attach"],
-                                    tools.GlobalData.job_settings["env_variables"],
-                                    tools.GlobalData.job_settings["bin_path"],
-                                    tools.GlobalData.job_settings["lib_path"],
-                                    tools.GlobalData.job_settings["preload"],
-                                    tools.GlobalData.job_settings["global_mpirun_params"],
-                                    tools.GlobalData.job_settings["local_mpirun_params"],
-                                    tools.GlobalData.job_settings["mpirun_version"],
-                                    tools.GlobalData.job_settings["lsf_params"],
-                                    tools.GlobalData.job_settings["perf_params"],
-                                    tools.GlobalData.job_settings["use_mpirun"],
-                                    tools.GlobalData.job_settings["use_lsf"],
-                                    tools.GlobalData.job_settings["use_ssh"])
+
+            job = Job(tools.GlobalData.job_settings["job_name"],
+                      tools.GlobalData.job_settings["copy_files"],
+                      tools.GlobalData.job_settings["run_parallel"],
+                      tools.GlobalData.job_settings["run_system_wide"],
+                      tools.GlobalData.job_settings["run_as_root"],
+                      tools.GlobalData.job_settings["processes"],
+                      tools.GlobalData.job_settings["processes_per_node"],
+                      tools.GlobalData.job_settings["executable"],
+                      tools.GlobalData.job_settings["arguments"],
+                      tools.GlobalData.job_settings["working_directory_linux"],
+                      tools.GlobalData.job_settings["run_duration"],
+                      tools.GlobalData.job_settings["queue"],
+                      tools.GlobalData.selected_cpu_definition,
+                      tools.GlobalData.selected_cpu_definition.get_active_raw_events(),
+                      tools.GlobalData.user_settings["event_counter"],
+                      tools.GlobalData.user_settings["frequency"],
+                      tools.GlobalData.user_settings["dt"],
+                      tools.GlobalData.user_settings["max_events_per_run"],
+                      tools.GlobalData.user_settings["proc_attach"],
+                      tools.GlobalData.job_settings["env_variables"],
+                      tools.GlobalData.job_settings["bin_path"],
+                      tools.GlobalData.job_settings["lib_path"],
+                      tools.GlobalData.job_settings["preload"],
+                      tools.GlobalData.job_settings["global_mpirun_params"],
+                      tools.GlobalData.job_settings["local_mpirun_params"],
+                      tools.GlobalData.job_settings["mpirun_version"],
+                      tools.GlobalData.job_settings["lsf_params"],
+                      tools.GlobalData.job_settings["perf_params"],
+                      tools.GlobalData.job_settings["use_mpirun"],
+                      tools.GlobalData.job_settings["use_lsf"],
+                      tools.GlobalData.job_settings["use_ssh"])
+
+            jobhandler = JobHandler(tools.GlobalData.root_directory, job)
+
             if tools.GlobalData.job_settings["use_ssh"]:
                 e = jobhandler.check_connection(tools.GlobalData.job_settings)
                 if e != "":
@@ -360,7 +374,7 @@ def index():
                                            job_settings=tools.GlobalData.job_settings,
                                            user_settings=tools.GlobalData.user_settings,
                                            enabled_modes=tools.GlobalData.enabled_modes)
-            failed_paths = jobhandler.get_failed_paths(tools.GlobalData.job_settings)
+            failed_paths = jobhandler.get_failed_paths(job, tools.GlobalData.job_settings)
             if len(failed_paths) > 0:
                 for path in failed_paths:
                     main_logger.info(u"Job " + tools.GlobalData.job_settings["job_name"] + ": "

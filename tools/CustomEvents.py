@@ -350,7 +350,7 @@ def add_custom_events_to_active_events(cpu_definition, raw_events):
         else:  # Unmatched event - just add it
             event_group = "General"
             unit = "Samples"
-            cpu_definition.add_active_event(raw_event, raw_event, event_group, unit, False, 0)
+            cpu_definition.add_active_event(raw_event, raw_event, event_group, unit, 0)
     # Deal with sums
     if len(composite_events) > 0:
         active_raw_events = cpu_definition.get_active_raw_events()
@@ -366,7 +366,7 @@ def add_custom_events_to_active_events(cpu_definition, raw_events):
                     event1, event2 = split_raw_event(raw_event, cpu_definition)
                     event1 = raw_event_to_event(event1, cpu_definition)
                     unit = active_event_units[event1]
-                    cpu_definition.add_active_event(event, raw_event, event_group, unit, False, 0)
+                    cpu_definition.add_active_event(event, raw_event, event_group, unit, 0)
     # Deal with ratios (possibly of sums)
     if found_custom_event_ratio:
         active_raw_events = cpu_definition.get_active_raw_events()
@@ -386,5 +386,5 @@ def add_custom_events_to_active_events(cpu_definition, raw_events):
                         unit = "Dimensionless"
                     else:
                         unit = unit1 + " / " + unit2
-                    cpu_definition.add_active_event(event, raw_event, event_group, unit, False, 0)
+                    cpu_definition.add_active_event(event, raw_event, event_group, unit, 0)
 

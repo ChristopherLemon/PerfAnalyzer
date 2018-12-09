@@ -7,6 +7,8 @@
 {% endblock %}
 {% block content %}
 
+<div class="loader element">Loading data...</div>
+
 <div class="panel-group" id="accordion">
     {% if process_model.layout.flamegraph %}
         <div class="container">
@@ -21,9 +23,6 @@
                             </div>
                         </a>
                         <div id="flamegraph_collapse" class="panel-collapse collapse">
-                            <div class="flex-row">
-                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="flamegraph_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
-                            </div>
                             <div class="row" style="margin-left:0">
                                 <div class="flex-column" style="width:20%"><button style="margin:1px;margin-left:12px;" type="button" class="btn btn-basic btn-info" id="flamegraph_filter_btn" name="flamegraph_filter_btn" onclick="flamegraph_filter(this)">Filter Function Name</button></div>
                                 <div class="flex-column" style="width:60%;height:100%;text-align:center">
@@ -70,9 +69,6 @@
                                 </div>
                             </a>
                             <div id="source_file_collapse" class="panel-collapse collapse">
-                                <div class="flex-row">
-                                    <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="source_code_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
-                                </div>
                                 <div class="source-table-container" id="source_code_table">{{process_model.layout.source_code_table|safe}}</div>
                             </div>
                         </div>
@@ -94,9 +90,6 @@
                             </div>
                         </a>
                         <div id="event_totals_chart_collapse" class="panel-collapse collapse">
-                            <div class="flex-row">
-                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="chart_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
-                            </div>
                             <div class="aligned-row">
                                 <div class="flex-row table_controls" style="border-style:none;">
                                     <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" id="row_filter" name="row_filter" placeholder="Regex expression to filter function names" oninput="apply_row_filter(this)"></div>
@@ -151,9 +144,6 @@
                                 </div>
                             </a>
                             <div id="event_time_series_collapse" class="panel-collapse collapse">
-                                <div class="flex-row">
-                                    <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="timechart_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
-                                </div>
                                 <div class="btn-group" data-toggle="buttons" >
                                     <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_event_time_series('event_time_series')">
                                         <input type="radio"  autocomplete="off" checked> Time Series
@@ -204,9 +194,6 @@
                             {% set units = "Processes" %}
                         {% endif %}
                         <div id="event_process_list_collapse" class="panel-collapse collapse">
-                            <div class="flex-row">
-                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="process_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
-                            </div>
                             <p>Filter background processes (%)</p>
                             <div class="aligned-row">
                                 <div class="flex-row" style="border-style:none;">
@@ -436,7 +423,7 @@
         goto_url = "{{url_for('ProcessView.update_flamegraph_ids')}}"
         let x = JSON.stringify(vals);
         let data = {json:x};
-        showLoaders("Loading Selected Data");
+        showLoaders("Loading...     ");
         $.ajax({
             url:goto_url,
             contentType: 'application/json;charset=UTF-8',
@@ -683,7 +670,6 @@
 
     function get_source_code(x) {
         goto_url = "{{url_for('ProcessView.update_source_code')}}"
-        showLoaders("Loading Selected Data");
         $.ajax({
             url:goto_url,
             contentType: 'application/json;charset=UTF-8',
@@ -701,7 +687,6 @@
                     $('html,body').animate({scrollTop: row.offset().top - (w.height()/2)}, 1000 );
                    // w.scrollTop( row.offset().top - (w.height()/2) );
                 }
-                hideLoaders();
             },
             error: function(error) {
                 console.log(error);
@@ -892,7 +877,7 @@
         update_all_charts(label, x);
     }
     function update_all_charts(label, x) {
-        showLoaders("Loading Data For " + label);
+        showLoaders(Loading...     ");
         $.ajax({
             url:"{{url_for('ProcessView.update_all_charts')}}",
             contentType: 'application/json;charset=UTF-8',
@@ -1014,9 +999,9 @@
         $("body").css("cursor", "progress");
     }
     function hideLoaders() {
-        setTimeout(hideLoaderTimeout, 2500);
+        setTimeout(hideLoaderTimeout, 1500);
         $('.loader').each(function() {
-            $(this).prop('innerHTML', "Data Update Complete");
+            $(this).prop('innerHTML', "Loading... done");
         });
         $("body").css("cursor", "default");
     }

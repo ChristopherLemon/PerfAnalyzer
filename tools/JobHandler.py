@@ -4,6 +4,7 @@ import re
 import shutil
 import threading
 import subprocess
+import pathlib
 from tools.CustomLogging import setup_basic_logger
 from tools.Utilities import purge
 import tools.GlobalData
@@ -37,7 +38,7 @@ def get_lsf_env(lib_path, preload, env_variables, bin_path):
     env += '\"'
     return env
 
-def get_sudo_command(run_as_root, env_variables=None):
+def get_sudo_command(run_as_root, env_variables, library_path, ld_preload):
     if not run_as_root:
         return ""
     else:
@@ -45,12 +46,12 @@ def get_sudo_command(run_as_root, env_variables=None):
         for var in env_variables.split(","):
             var_name = var.partition("=")[0]
             vars.append(var_name + "=$" + var_name)
-        vars.append("PATH=$PATH")
-        vars.append("LD_PRELOAD=$LD_PRELOAD")
-        vars.append("LD_LIBRARY_PATH=$LD_LIBRARY_PATH")
+        if len(ld_preload) > 0:
+            vars.append("LD_PRELOAD=" + ld_preload)
+        if len(library_path) > 0:
+            vars.append("LD_LIBRARY_PATH=" + library_path)
         var_string = " ".join(vars)
         return "sudo " + var_string + " "
-        #eturn "sudo -E "
 
 def get_global_mpirun_params(params=""):
     return params
@@ -71,6 +72,7 @@ def get_mpirun_appfile(mpi_version=None):
         appfile = ""
     return appfile
 
+
 def get_perf_params(system_wide):
     if system_wide:
         command = "perf record -g -a"
@@ -78,13 +80,6 @@ def get_perf_params(system_wide):
         command = "perf record -g"
     return command
 
-def get_remove_old_data_command(job_id, system_wide):
-    if system_wide:
-        event_files = job_id + "_host*"
-    else:
-        event_files = job_id + "_proc*"
-    command = "rm -f " + event_files + "\n"
-    return command
 
 def get_perf_out_file_name(job_id, pid, n_group, system_wide):
     if system_wide:
@@ -93,51 +88,35 @@ def get_perf_out_file_name(job_id, pid, n_group, system_wide):
         perf_out_file = job_id + "_proc" + str(pid) + "run" + str(n_group) + ".perf"
     return perf_out_file
 
-def get_perf_script_command(job_id, pid, n_group, system_wide, use_lsf, env, queue, sudo=""):
-# For linux 3.x+, since older versions of perf used -f instead of -F"
+
+def get_perf_script_command(in_file, out_file, system_wide, use_lsf, env, queue, sudo=""):
     if system_wide:
-        in_file = job_id + "_host" + str(pid) + "run" + str(n_group) + ".perf"
-        out_file = job_id + "_host" + str(pid) + "run" + str(n_group) + ".stacks"
-        if use_lsf:
-            command = 'bsub -K -env {} -e bjobs.err -o bjobs.out -q {} -n 1 \"{}perf script -F comm,cpu,pid,tid,time,event,ip,sym,dso --show-kernel-path -i {} > {} \" &\n'.format(
-            env, queue, sudo, in_file, out_file)
-        else:
-            command = "{}perf script -F comm,cpu,pid,tid,time,event,ip,sym,dso --show-kernel-path -i {} > {} &\n".format(sudo, in_file, out_file)
+        flags = "comm,cpu,pid,tid,time,event,ip,sym,dso"
     else:
-        in_file = job_id + "_proc" + str(pid) + "run" + str(n_group) + ".perf"
-        out_file = job_id + "_proc" + str(pid) + "run" + str(n_group) + ".stacks"
-        if use_lsf:
-            command = 'bsub -K -env {} -e bjobs.err -o bjobs.out -q {} -n 1 \"{}perf script -F comm,pid,tid,time,event,ip,sym,dso --show-kernel-path -i {} > {} \" &\n'.format(
-            env, queue, sudo, in_file, out_file)
-        else:
-            command = "{}perf script -F comm,pid,tid,time,event,ip,sym,dso --show-kernel-path -i {} > {} &\n".format(sudo, in_file, out_file)
+        flags = "comm,pid,tid,time,event,ip,sym,dso"
+    if use_lsf:
+        command = 'bsub -K -env {} -e bjobs.err -o bjobs.out -q {} -n 1 \"{}perf script -F {} --show-kernel-path -i {} > {} \" &\n'.format(
+        env, queue, sudo, flags, in_file, out_file)
+    else:
+        command = "{}perf script -F {} --show-kernel-path -i {} > {} &\n".format(sudo, flags, in_file, out_file)
     return command
 
-def get_stack_collapse_command(job_id, pid, n_group, dt, stack_collapse_script, system_wide, trace_event=None):
+
+def get_stack_collapse_command(in_file, out_file, dt, stack_collapse_script, system_wide, trace_event=None):
     if system_wide:
-        in_file = job_id + "_host" + str(pid) + "run" + str(n_group) + ".stacks"
-        out_file = job_id + "_host" + str(pid)
         command = 'cat {} | perl {} --pid --tid --output_file={} --dt={} --accumulate'.format(in_file, stack_collapse_script, out_file, dt)
     else:
-        in_file = job_id + "_proc" + str(pid) + "run" + str(n_group) + ".stacks"
-        out_file = job_id + "_proc" + str(pid)
         command = 'cat {} | perl {} --pid --tid --output_file={} --dt={}'.format(in_file, stack_collapse_script, out_file, dt)
     if trace_event:
         command += " --trace_event=" + trace_event
     command += " &\n"
     return command
 
-def get_copy_results_command(job_id, results_file, system_wide):
-    if system_wide:
-        command = "for file in " + job_id + "_host*_*; do echo $file >> " + results_file + "; done\n"
-    else:
-        command = "for file in " + job_id + "_proc*_*; do echo $file >> " + results_file + "; done\n"
-    return command
 
-class JobHandler:
+class Job:
 
     def __init__(self, job_id, copy_files, run_parallel, run_system_wide, run_as_root, processes,
-                 processes_per_node, exe, exe_args, working_dir, root_directory, run_duration,
+                 processes_per_node, exe, exe_args, working_dir, run_duration,
                  queue, cpu_definition, events, count, frequency, dt, max_events_per_run,
                  proc_attach, env_variables, bin_path, lib_path, preload, global_mpirun_params, local_mpirun_params,
                  mpirun_version, lsf_params, perf_params, use_mpirun, use_lsf, use_ssh):
@@ -157,7 +136,6 @@ class JobHandler:
         self.mpi_config_files = []
         self.events = events
         self.count = count
-        self.root_directory = root_directory
         if run_duration == "":
             self.run_duration = run_duration
         else:
@@ -171,7 +149,7 @@ class JobHandler:
         self.lib_path = re.sub(",", ":", lib_path)
         self.preload = re.sub(",", ":", preload)
         self.lsf_env = get_lsf_env(lib_path, preload, env_variables, bin_path)
-        self.sudo_command = get_sudo_command(run_as_root, env_variables)
+        self.sudo_command = get_sudo_command(run_as_root, env_variables, self.lib_path, self.preload)
         self.global_mpirun_params = global_mpirun_params
         self.local_mpirun_params = local_mpirun_params
         self.mpirun_appfile = get_mpirun_appfile(mpirun_version)
@@ -181,6 +159,14 @@ class JobHandler:
         self.use_lsf = use_lsf
         self.use_ssh = use_ssh
         self.max_events_per_run = max_events_per_run
+
+
+class JobHandler:
+
+    def __init__(self, root_directory, job=None):
+        self.root_directory = root_directory
+        self.job = job
+        self.stack_collapse_script = 'stackcollapse-perf-modified.pl'
         log_file = os.path.join(tools.GlobalData.local_data, "scriptwriting.log")
         setup_basic_logger('scriptwriting_logger', log_file, debug=tools.GlobalData.debug)
         self.scriptwriting_logger = logging.getLogger("scriptwriting_logger")
@@ -192,11 +178,14 @@ class JobHandler:
         purge(local_data, job_settings["job_name"] + ".results")
         purge(local_data, job_settings["job_name"] + ".done")
         self.scriptwriting_logger.info(u" Write perf script")
-        stack_collapse_script = 'stackcollapse-perf-modified.pl'
-        perf_script = self.write_perf_script(local_data, stack_collapse_script)
+        perf_script = self.write_perf_script(local_data)
         self.scriptwriting_logger.info(u" Setup background threads")
+        working_dir = job_settings["working_directory_linux"]
         try:
-            background_thread = threading.Thread(target=self.execute_commands, args=(local_data,job_settings,perf_script,stack_collapse_script))
+            background_thread = threading.Thread(target=self.run_perf_job,
+                                                 args=(working_dir, self.job.use_ssh, self.job.job_id, local_data,
+                                                       perf_script, self.job.system_wide, self.job.mpi_config_files,
+                                                       job_settings))
             background_thread.daemon = True
             background_thread.start()
         except Exception as e:
@@ -278,6 +267,7 @@ class JobHandler:
                     return False
             else:
                 return True
+
     def check_perf_event_paranoid(self, job_settings):
         if job_settings["use_ssh"]:
             client = paramiko.SSHClient()
@@ -295,8 +285,8 @@ class JobHandler:
                 else:
                     client.connect(hostname, port=port, username=job_settings["username"],
                                    password=job_settings["password"])
-                perf_event_paranoid_out = self.execute_command("cat /proc/sys/kernel/perf_event_paranoid", client=client,
-                                                           return_output=True)
+                perf_event_paranoid_out = self.execute_command("cat /proc/sys/kernel/perf_event_paranoid",
+                                                               client=client, return_output=True)
                 client.close()
                 perf_event_paranoid = perf_event_paranoid_out.read().decode("utf-8")
                 match = re.match("[-0-9]+", perf_event_paranoid)
@@ -313,7 +303,6 @@ class JobHandler:
                                                            return_output=True)
             return perf_event_paranoid_out.decode('utf8')
 
-
     def check_connection(self, job_settings):
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -328,7 +317,8 @@ class JobHandler:
                 key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
                 client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
             else:
-                client.connect(hostname, port=port, username=job_settings["username"], password=job_settings["password"])
+                client.connect(hostname, port=port, username=job_settings["username"],
+                               password=job_settings["password"])
             client.close()
             return ""
         except (BadHostKeyException, AuthenticationException,
@@ -336,8 +326,9 @@ class JobHandler:
             client.close()
             return str(e)
 
-    def get_failed_paths(self, job_settings):
-        if self.use_ssh:
+
+    def get_failed_paths(self, job , job_settings):
+        if job.use_ssh:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             hostname = job_settings["server"]
@@ -356,22 +347,23 @@ class JobHandler:
             client = None
             stfp = None
         failed_paths = []
-        paths = self.bin_path.split(":")
-        paths += self.lib_path.split(":")
-        paths += self.preload.split(":")
-        paths.append(self.exe)
-        paths.append(self.working_dir)
+        paths = job.bin_path.split(":")
+        paths += job.lib_path.split(":")
+        paths += job.preload.split(":")
+        paths.append(job.exe)
+        paths.append(job.working_dir)
         for path in paths:
             if len(path) > 0:
                 if not self.rexists(path, stfp):
                     failed_paths.append(path)
-        if self.use_ssh:
+        if job.use_ssh:
             stfp.close()
             client.close()
         return failed_paths
 
-    def execute_commands(self, local_data, job_settings, perf_script, stack_collapse_script):
-        if self.use_ssh:
+    def run_perf_job(self, working_directory, use_ssh, job_id, local_data, perf_script,
+                     system_wide, mpi_config_files, job_settings=None):
+        if use_ssh:
             self.scriptwriting_logger.info(u" Open ssh connection")
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -392,27 +384,27 @@ class JobHandler:
             client = None
             stfp = None
         root_directory = self.root_directory
-        localfile = os.path.join(root_directory, "perl" + os.sep + stack_collapse_script)
-        remotefile = job_settings["working_directory_linux"] + "/" + stack_collapse_script
+        localfile = os.path.join(root_directory, "perl" + os.sep + self.stack_collapse_script)
+        remotefile = working_directory + "/" + self.stack_collapse_script
         self.execute_command("rm -f {}".format(remotefile), client)
         self.put_file(localfile, remotefile, stfp)
         self.execute_command("chmod 500 {}".format(remotefile), client)
-        for mpi_config_file in self.mpi_config_files:
+        for mpi_config_file in mpi_config_files:
             localfile = os.path.join(root_directory, local_data + os.sep + mpi_config_file)
-            remotefile = job_settings["working_directory_linux"] + "/" + mpi_config_file
+            remotefile = working_directory + "/" + mpi_config_file
             self.execute_command("rm -f {}".format(remotefile), client)
             self.put_file(localfile, remotefile, stfp)
         localfile = os.path.join(root_directory, local_data + os.sep + perf_script)
-        remotefile = job_settings["working_directory_linux"] + "/" + perf_script
+        remotefile = working_directory + "/" + perf_script
         self.execute_command("rm -f {}".format(remotefile), client)
         self.put_file(localfile, remotefile, stfp)
         self.execute_command("chmod 500 {}".format(remotefile), client)
         self.execute_command(remotefile, client)
         self.execute_command("rm -f {}".format(remotefile), client)
-        remotefile = job_settings["working_directory_linux"] + "/" + self.job_id + ".results"
-        localfile = os.path.join(root_directory, local_data + os.sep + self.job_id + ".results")
+        remotefile = working_directory + "/" + job_id + ".results"
+        localfile = os.path.join(root_directory, local_data + os.sep + job_id + ".results")
         self.get_file(remotefile, localfile, stfp)
-        results_file = os.path.join(root_directory, local_data + os.sep + self.job_id + ".results")
+        results_file = os.path.join(root_directory, local_data + os.sep + job_id + ".results")
         with open(results_file, 'r') as results:
             for line in results:
                 if not (re.match("event_counter", line) or
@@ -420,10 +412,10 @@ class JobHandler:
                         re.match("cpu_id", line) or
                         re.match("system_wide", line)):
                     collapsed_file = line.strip()
-                    remotefile = job_settings["working_directory_linux"] + "/" + collapsed_file
+                    remotefile = working_directory + "/" + collapsed_file
                     localfile = os.path.join(root_directory, local_data + os.sep + collapsed_file)
                     self.get_file(remotefile, localfile, stfp)
-        if self.use_ssh:
+        if use_ssh:
             stfp.close()
             client.close()
             self.scriptwriting_logger.info(u" Close stfp connection")
@@ -437,7 +429,7 @@ class JobHandler:
                         re.match("system_wide", line)):
                     l = line.strip()
                     orig_file = local_data + os.sep + l
-                    if self.system_wide:
+                    if system_wide:
                         modify_system_wide_process_ids(orig_file)
                     else:
                         orig_pid = re.findall("proc([0-9]+)", l)
@@ -446,43 +438,50 @@ class JobHandler:
                         except Exception as e:
                             raise Exception("Error reading results: \"" + line.strip() + "\"")
 
-        if self.system_wide:
-            replace_results_file(local_data, results_file, self.job_id)
+        if system_wide:
+            replace_results_file(local_data, results_file, job_id)
 
-        done_file = local_data + os.sep + self.job_id + ".done"
-        f = io.open(done_file,'wb')
+        done_file = local_data + os.sep + job_id + ".done"
+        f = io.open(done_file, 'wb')
         f.close()
 
-    def write_perf_script(self,local_data,stack_collapse_script):
-        script_name = self.job_id + "_perf.sh"
+    def write_perf_script(self,local_data):
+        job = self.job
+        script_name = job.job_id + "_perf.sh"
         script_path = local_data + os.sep + script_name
         f = open(script_path,'wb')
         command = "#!/bin/sh\n\n"
         f.write(command.encode())
-        command = "cd " + self.working_dir + "\n"
+        command = "cd " + job.working_dir + "\n"
         f.write(command.encode())
-        command = get_remove_old_data_command(self.job_id, self.system_wide)
+        # clear old data
+        if job.system_wide:
+            event_files = job.job_id + "_host*"
+        else:
+            event_files = job.job_id + "_proc*"
+        command = "rm -f " + event_files + "\n"
         f.write(command.encode())
-        if not self.use_lsf:
-            if len(self.lib_path) > 0:
-                command = "LD_LIBRARY_PATH={}:$LD_LIBRARY_PATH export LD_LIBRARY_PATH\n".format(self.lib_path)
+        if not job.use_lsf:
+            if len(job.lib_path) > 0:
+                command = "LD_LIBRARY_PATH={}:$LD_LIBRARY_PATH export LD_LIBRARY_PATH\n".format(job.lib_path)
                 f.write(command.encode())
-            if len(self.preload) > 0:
-                command = "LD_PRELOAD={} export LD_PRELOAD\n".format(self.preload)
+            if len(job.preload) > 0:
+                command = "LD_PRELOAD={} export LD_PRELOAD\n".format(job.preload)
                 f.write(command.encode())
-            if len(self.bin_path) > 0:
-                command = "PATH={}:$PATH export PATH\n".format(self.bin_path)
+            if len(job.bin_path) > 0:
+                command = "PATH={}:$PATH export PATH\n".format(job.bin_path)
                 f.write(command.encode())
-            if len(self.env_variables) > 0:
-                for env_var in self.env_variables.split(","):
+            if len(job.env_variables) > 0:
+                for env_var in job.env_variables.split(","):
                     var = env_var.split("=")[0]
                     command = env_var + " export " + var + "\n"
                     f.write(command.encode())
 
-        num_nodes = ((self.processes - 1) // self.processes_per_node) + 1
-        perf_event_groups = self.cpu_definition.get_perf_event_groups(self.run_duration, self.max_events_per_run, self.fixed_counter, self.count)
+        num_nodes = ((job.processes - 1) // job.processes_per_node) + 1
+        perf_event_groups = job.cpu_definition.get_perf_event_groups(job.run_duration, job.max_events_per_run,
+                                                                     job.fixed_counter, job.count)
         n_group = 0
-        sudo = self.sudo_command
+        sudo = job.sudo_command
         for group in perf_event_groups:
             if group["event_type"] == "Trace":
                 events = [re.sub("trace-", "", event) for event in group["events"]]
@@ -491,82 +490,83 @@ class JobHandler:
             flag = group["flag"]
             counter = group["event_counter"]
             n_group += 1
-            exe_args = self.exe_args
-            replacement_string = "_" + self.job_id + "_" + str(n_group)
-            for m in re.findall("([\S\$]+)",self.copy_files):
+            exe_args = job.exe_args
+            replacement_string = "_" + job.job_id + "_" + str(n_group)
+            for m in re.findall("([\S\$]+)",job.copy_files):
                 orig_file = re.sub("\$","",m)
                 new_file = re.sub("\$",replacement_string,m)
                 command = "cp " + orig_file + " " + new_file + "\n"
                 f.write(command.encode())
             exe_args = re.sub("\$",replacement_string,exe_args)
-            if self.use_mpirun:
-                config_name = self.job_id + "run" + str(n_group) + "_mpiconfig"
+            if job.use_mpirun:
+                config_name = job.job_id + "run" + str(n_group) + "_mpiconfig"
                 config_path = local_data + os.sep + config_name
-                self.mpi_config_files.append(config_name)
+                job.mpi_config_files.append(config_name)
                 mpi_config_file = open(config_path,'wb')
-                if self.system_wide:
+                if job.system_wide:
                     for nid in range(0, num_nodes):
-                        mpirun_command = "-np 1 " + self.local_mpirun_params
+                        mpirun_command = "-np 1 " + job.local_mpirun_params
                         event_list = ",".join(events)
-                        perf_out_file = get_perf_out_file_name(self.job_id, nid, n_group, self.system_wide)
-                        perf_command = sudo + self.perf_params
+                        perf_out_file = get_perf_out_file_name(job.job_id, nid, n_group, job.system_wide)
+                        perf_command = sudo + job.perf_params
                         perf_command += " -e " + event_list + " " + " ".join([flag, str(counter)])
                         perf_command += " -o " + perf_out_file
-                        exe_command = self.exe + " " + exe_args
+                        exe_command = job.exe + " " + exe_args
                         command = " ".join([mpirun_command, perf_command, exe_command]) + "\n"
                         mpi_config_file.write(command.encode())
-                        if self.processes_per_node > 1:
-                            np = self.processes_per_node - 1
+                        if job.processes_per_node > 1:
+                            np = job.processes_per_node - 1
                             mpirun_command = "-np " + str(np)
-                            exe_command = self.exe + " " + exe_args
+                            exe_command = job.exe + " " + exe_args
                             command = " ".join([mpirun_command, exe_command]) + "\n"
                             mpi_config_file.write(command.encode())
                 else:
-                    for pid in range(0, self.processes):
-                        if pid % self.proc_attach == 0:
-                            mpirun_command = "-np 1 " + self.local_mpirun_params
+                    for pid in range(0, job.processes):
+                        if pid % job.proc_attach == 0:
+                            mpirun_command = "-np 1 " + job.local_mpirun_params
                             event_list = ",".join(events)
-                            perf_out_file = get_perf_out_file_name(self.job_id, pid, n_group, self.system_wide)
-                            perf_command = sudo + self.perf_params
+                            perf_out_file = get_perf_out_file_name(job.job_id, pid, n_group, job.system_wide)
+                            perf_command = sudo + job.perf_params
                             perf_command += " -e " + event_list + " " + " ".join([flag, str(counter)])
                             perf_command += " -o " + perf_out_file
-                            exe_command = self.exe + " " + exe_args
+                            exe_command = job.exe + " " + exe_args
                             command = " ".join([mpirun_command, perf_command, exe_command]) + "\n"
                             mpi_config_file.write(command.encode())
-                        elif pid % self.proc_attach == 1:
-                            if pid + self.proc_attach - 1 > self.processes:
-                                np = self.processes - pid
+                        elif pid % job.proc_attach == 1:
+                            if pid + job.proc_attach - 1 > job.processes:
+                                np = job.processes - pid
                             else:
-                                np = self.proc_attach - 1
+                                np = job.proc_attach - 1
                             mpirun_command = "-np " + str(np)
-                            exe_command = self.exe + " " + exe_args
+                            exe_command = job.exe + " " + exe_args
                             command = " ".join([mpirun_command, exe_command]) + "\n"
                             mpi_config_file.write(command.encode())
                 mpi_config_file.close()
-                if self.use_lsf:
-                    lsf_command = "bsub " + self.lsf_params
-                    out_file = self.job_id + "run" + str(n_group) + ".out"
-                    err_file = self.job_id + "run" + str(n_group) + ".err"
+                if job.use_lsf:
+                    lsf_command = "bsub " + job.lsf_params
+                    out_file = job.job_id + "run" + str(n_group) + ".out"
+                    err_file = job.job_id + "run" + str(n_group) + ".err"
                     lsf_command += " -e " + err_file + " -o " + out_file
-                    command = lsf_command + " mpirun " + self.global_mpirun_params + " " + self.mpirun_appfile + " " + config_name
+                    command = lsf_command + " mpirun " + job.global_mpirun_params \
+                              + " " + job.mpirun_appfile + " " + config_name
                 else:
-                    command = "mpirun " + self.global_mpirun_params + " " + self.mpirun_appfile + " " + config_name
+                    command = "mpirun " + job.global_mpirun_params + " " + job.mpirun_appfile + " " + config_name
             else:
                 event_list = ",".join(events)
-                perf_out_file = get_perf_out_file_name(self.job_id, 0, n_group, self.system_wide)
-                perf_command = sudo + self.perf_params
+                perf_out_file = get_perf_out_file_name(job.job_id, 0, n_group, job.system_wide)
+                perf_command = sudo + job.perf_params
                 perf_command += " -e " + event_list + " " + " ".join([flag, str(counter)])
                 perf_command += " -o " + perf_out_file
-                exe_command = self.exe + " " + exe_args
-                if self.use_lsf:
-                    lsf_command = "bsub " + self.lsf_params
-                    out_file = self.job_id + "run" + str(n_group) + ".out"
-                    err_file = self.job_id + "run" + str(n_group) + ".err"
+                exe_command = job.exe + " " + exe_args
+                if job.use_lsf:
+                    lsf_command = "bsub " + job.lsf_params
+                    out_file = job.job_id + "run" + str(n_group) + ".out"
+                    err_file = job.job_id + "run" + str(n_group) + ".err"
                     lsf_command += " -e " + err_file + " -o " + out_file
                     command = " ".join([lsf_command, perf_command, exe_command])
                 else:
                     command = " ".join([perf_command, exe_command])
-            if self.run_parallel:
+            if job.run_parallel:
                 command += " &\n"
                 f.write(command.encode())
             else:
@@ -577,11 +577,18 @@ class JobHandler:
         command = "wait\n"
         f.write(command.encode())
 
-        for n_group in range(1,len(perf_event_groups)+1):
-            for pid in range(0,self.processes):
-                if self.system_wide and pid == num_nodes:
+        for n_group in range(1, len(perf_event_groups)+1):
+            for pid in range(0, job.processes):
+                if job.system_wide and pid == num_nodes:
                     break
-                command = get_perf_script_command(self.job_id, pid, n_group, self.system_wide, self.use_lsf, self.lsf_env, self.queue, self.sudo_command)
+                if job.system_wide:
+                    in_file = job.job_id + "_host" + str(pid) + "run" + str(n_group) + ".perf"
+                    out_file = job.job_id + "_host" + str(pid) + "run" + str(n_group) + ".stacks"
+                else:
+                    in_file = job.job_id + "_proc" + str(pid) + "run" + str(n_group) + ".perf"
+                    out_file = job.job_id + "_proc" + str(pid) + "run" + str(n_group) + ".stacks"
+                command = get_perf_script_command(in_file, out_file, job.system_wide,
+                                                  job.use_lsf, job.lsf_env, job.queue, job.sudo_command)
                 f.write(command.encode())
         command = "wait\n"
         f.write(command.encode())
@@ -592,45 +599,176 @@ class JobHandler:
             trace_event = None
             if group["event_type"] == "Trace":
                 trace_event = re.sub("trace-", "", group["events"][0])
-            for pid in range(0,self.processes):
-                if self.system_wide and pid == num_nodes:
+            for pid in range(0, job.processes):
+                if job.system_wide and pid == num_nodes:
                     break
-                command = get_stack_collapse_command(self.job_id, pid, n_group, self.dt, stack_collapse_script, self.system_wide, trace_event)
+                if job.system_wide:
+                    in_file = job.job_id + "_host" + str(pid) + "run" + str(n_group) + ".stacks"
+                    out_file = job.job_id + "_host" + str(pid)
+                else:
+                    in_file = job.job_id + "_proc" + str(pid) + "run" + str(n_group) + ".stacks"
+                    out_file = job.job_id + "_proc" + str(pid)
+                command = get_stack_collapse_command(in_file, out_file, job.dt, self.stack_collapse_script,
+                                                     job.system_wide, trace_event)
                 f.write(command.encode())
         command = "wait\n"
         f.write(command.encode())
 
-        results_file = self.job_id + ".results"
+        results_file = job.job_id + ".results"
         n_group = 0
         n = 0
         for group in perf_event_groups:
             n_group += 1
             for event in group["events"]:
                 n += 1
-                if self.fixed_counter:
-                    counter = str(self.count)
+                if job.fixed_counter:
+                    counter = str(job.count)
                 else:
                     counter = str(group["event_counter"])
                 if n == 1:
                     op = " > "
                 else:
                     op = " >> "
-                command = "echo " + "'event_counter-" + event + ":" + "run-" + str(n_group) + ":" + counter + "'" + op + results_file + "\n"
+                command = "echo " + "'event_counter-" + event + ":" + "run-" + str(n_group)\
+                          + ":" + counter + "'" + op + results_file + "\n"
                 f.write(command.encode())
                 if group["event_type"] == "Trace":
                     break
-        command = "echo " + "'time_interval:" + str(self.dt) + "'" + " >> " + results_file + "\n"
+        command = "echo " + "'time_interval:" + str(job.dt) + "'" + " >> " + results_file + "\n"
         f.write(command.encode())
-        command = "echo " + "'cpu_id:" + self.cpu + "'" + " >> " + results_file + "\n"
+        command = "echo " + "'cpu_id:" + job.cpu + "'" + " >> " + results_file + "\n"
         f.write(command.encode())
-        if self.system_wide:
+        if job.system_wide:
             command = "echo " + "'system_wide'" + " >> " + results_file + "\n"
             f.write(command.encode())
-        command = get_copy_results_command(self.job_id, results_file, self.system_wide)
+        if job.system_wide:
+            command = "for file in " + job.job_id + "_host*_*; do echo $file >> " + results_file + "; done\n"
+        else:
+            command = "for file in " + job.job_id + "_proc*_*; do echo $file >> " + results_file + "; done\n"
         f.write(command.encode())
 
         f.close()
 
         return script_name
+
+    def convert_perf_data(self, perf_data_files, local_data, working_dir):
+        command = "cd {}; perf script --header-only -i {} | grep \"cmdline\"".format(working_dir, perf_data_files[0])
+        output = subprocess.check_output(command, shell=True)
+        command_line = output.decode("utf-8")
+        if re.match(" -a ", command_line):
+            system_wide = True
+        else:
+            system_wide = False
+        run = 0
+        for file in perf_data_files:
+            run += 1
+            command = "cd {}; perf evlist -F -i {}".format(working_dir, file)
+            output = subprocess.check_output(command, shell=True)
+            events = output.decode("utf-8")
+            event_counters = {}
+            event_runs = {}
+            for event_info in events.split("\n"):
+                match = re.match("(.*):.*(sample_period|sample_freq)=(\d+)", event_info)
+                if match:
+                    event = match.group(1)
+                    period = match.group(3)
+                    event_counters[event] = period
+                    event_runs[event] = run
+        job_id = pathlib.Path(perf_data_files[0]).stem
+        script_name = job_id + "_perf.sh"
+        script_path = local_data + os.sep + script_name
+        f = open(script_path, 'wb')
+        command = "#!/bin/sh\n\n"
+        f.write(command.encode())
+        command = "cd " + working_dir + "\n"
+        f.write(command.encode())
+        # clear old data
+        if system_wide:
+            event_files = job_id + "_host*"
+        else:
+            event_files = job_id + "_proc*"
+        command = "rm -f " + event_files + "\n"
+        f.write(command.encode())
+        for n in range(len(perf_data_files)):
+            in_file = perf_data_files[n]
+            if system_wide:
+                out_file = job_id + "_host" + str(0) + "run" + str(n+1) + ".stacks"
+            else:
+                out_file = job_id + "_proc" + str(0) + "run" + str(n+1) + ".stacks"
+            command = get_perf_script_command(in_file, out_file, system_wide, False, "", "")
+            f.write(command.encode())
+        command = "wait\n"
+        f.write(command.encode())
+
+        trace_event = None
+        if "cycles" in event_runs:
+            trace_event = "cycles"
+        elif "cpu-clock" in event_runs:
+            trace_event = "cpu-clock"
+        elif "task-clock" in event_runs:
+            trace_event = "task-clock"
+
+        dt = 10.0
+        cpu = "General"
+        for n in range(len(perf_data_files)):
+            if system_wide:
+                in_file = job_id + "_host" + str(0) + "run" + str(n+1) + ".stacks"
+                out_file = job_id + "_host" + str(0)
+            else:
+                in_file = job_id + "_proc" + str(0) + "run" + str(n+1) + ".stacks"
+                out_file = job_id + "_proc" + str(0)
+            command = get_stack_collapse_command(in_file, out_file, dt, self.stack_collapse_script,
+                                                 system_wide)
+            f.write(command.encode())
+        if trace_event:
+            event_counters["trace-" + trace_event] = event_counters[trace_event]
+            event_runs["trace-" + trace_event] = len(event_runs) + 1
+            n = event_runs[trace_event]
+            if system_wide:
+                in_file = job_id + "_host" + str(0) + "run" + str(n) + ".stacks"
+                out_file = job_id + "_host" + str(0)
+            else:
+                in_file = job_id + "_proc" + str(0) + "run" + str(n) + ".stacks"
+                out_file = job_id + "_proc" + str(0)
+            command = get_stack_collapse_command(in_file, out_file, dt, self.stack_collapse_script,
+                                                 system_wide, trace_event)
+            f.write(command.encode())
+        command = "wait\n"
+        f.write(command.encode())
+
+        results_file = job_id + ".results"
+        n = 0
+        for event in event_counters:
+            run = event_runs[event]
+            n += 1
+            counter = event_counters[event]
+            if n == 1:
+                op = " > "
+            else:
+                op = " >> "
+            command = "echo " + "'event_counter-" + event + ":" + "run-" + str(
+                run) + ":" + counter + "'" + op + results_file + "\n"
+            f.write(command.encode())
+        command = "echo " + "'time_interval:" + str(dt) + "'" + " >> " + results_file + "\n"
+        f.write(command.encode())
+        command = "echo " + "'cpu_id:" + cpu + "'" + " >> " + results_file + "\n"
+        f.write(command.encode())
+        if system_wide:
+            command = "echo " + "'system_wide'" + " >> " + results_file + "\n"
+            f.write(command.encode())
+        if system_wide:
+            command = "for file in " + job_id + "_host*_*; do echo $file >> " + results_file + "; done\n"
+        else:
+            command = "for file in " + job_id + "_proc*_*; do echo $file >> " + results_file + "; done\n"
+        f.write(command.encode())
+
+        f.close()
+
+        self.run_perf_job(working_dir, False, job_id, local_data, script_name,
+                              system_wide, [])
+
+        return results_file
+
+
 
 

@@ -55,6 +55,7 @@
     {% set disabled_mpirun = "disabled" %}
 {% endif %}
 
+
 <div class="panel-group" id="accordion">
     <div class="container">
         <div class="row">
@@ -63,7 +64,7 @@
                     <a data-toggle="collapse" data-parent="#accordion" href="#submit1">
                         <div class="panel-heading">
                              <h4 class="panel-title">
-                                <strong>Submit Perf Job</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                <strong>Run Perf Job</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
                              </h4>
                         </div>
                     </a>
@@ -138,7 +139,7 @@
                     <a data-toggle="collapse" data-parent="#accordion" href="#load_settings1">
                         <div class="panel-heading">
                              <h4 class="panel-title">
-                                <strong>Load Perf Settings</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                <strong>Load Perf Job Settings</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
                              </h4>
                         </div>
                     </a>
@@ -165,7 +166,7 @@
                     <a data-toggle="collapse" data-parent="#accordion" href="#load1">
                         <div class="panel-heading">
                              <h4 class="panel-title">
-                                <strong>Load Perf Profiles</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                <strong>Load Profile Results</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
                              </h4>
                         </div>
                     </a>
@@ -173,11 +174,11 @@
                         <form action="{{url_for('index')}}" method="post" enctype="multipart/form-data">
                             <div style="border-style:none;border-color:lightgrey">
                                 <div class="flex-row">
-                                    <div class="flex-column" style="width:100%;height:100%"><input required type="file" class="form-control" name="file[]" id="PerfData" multiple="multiple" accept=".results,.xml" ></div>
+                                    <div class="flex-column" style="width:100%;height:100%"><input required type="file" class="form-control" name="file[]" id="ProfileData" multiple="multiple" accept=".results,.xml" ></div>
                                 </div>
                             </div>
                             <div class="flex-row">
-                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><input type="submit" class="btn btn-basic" name="perf_btn" value="Load"></div>
+                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><input type="submit" class="btn btn-basic" name="profile_btn" value="Load"></div>
                             </div>
                         </form>
                     </div>
@@ -192,7 +193,7 @@
                     <a data-toggle="collapse" data-parent="#accordion" href="#load2">
                         <div class="panel-heading">
                              <h4 class="panel-title">
-                                <strong>Convert HPCToolKit Database</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                <strong>Import Perf / HPCToolKit Profile Data</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
                              </h4>
                         </div>
                     </a>
@@ -200,21 +201,33 @@
                         <form action="{{url_for('index')}}" method="post" enctype="multipart/form-data">
                             <div style="border-style:none;border-color:lightgrey">
                                 <div class="flex-row">
-                                    <div class="flex-column" style="width:100%;height:100%"><input required type="file" webkitdirectory class="form-control" name="file[]" id="HPCData" multiple="multiple"></div>
+                                    <div class="flex-column" style="border-style:none;width:50%"><input type="text" class="form-control" name="path_to_perf_data" id="path_to_perf_data" placeholder="Absolute path to directory containing raw perf data"></div>
+                                    <div class="flex-column" style="width:50%;height:100%"><input required type="file" class="form-control" name="file[]" id="PerfData" multiple="multiple" accept=".perf,.data" ></div>
                                 </div>
                             </div>
                             <div class="flex-row">
-                                <div class="flex-column" style="width:25%">
-                                    <select class="selectpicker" data-width="100%" name="analysis_level" id="analysis_level">
-                                        {% for analysis_level in ["Procedure Level Analysis", "Loop Level Analysis", "Line Level Analysis"] %}
-                                            {% if analysis_level=="Loop Level Analysis" %}
-                                                <option selected="selected">{{analysis_level}}</option>
-                                            {% else %}
-                                                <option >{{analysis_level}}</option>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </select>
+                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><input type="submit" class="btn btn-basic" name="perf_btn" value="Load"></div>
+                            </div>
+                        </form>
+                        <form action="{{url_for('index')}}" method="post" enctype="multipart/form-data">
+                            <div style="border-style:none;border-color:lightgrey">
+                                <div class="flex-row">
+                                    <div class="flex-column" style="width:50%">
+                                        <select class="selectpicker" data-width="100%" name="analysis_level" id="analysis_level">
+                                            {% for analysis_level in ["HPCToolKit Procedure Level Analysis", "HPCToolKit Loop Level Analysis", "HPCToolKit Line Level Analysis"] %}
+                                                {% if analysis_level=="HPCToolKit Loop Level Analysis" %}
+                                                    <option selected="selected">{{analysis_level}}</option>
+                                                {% else %}
+                                                    <option >{{analysis_level}}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="flex-column" style="width:50%;height:100%"><input required type="file" webkitdirectory class="form-control" name="file[]" id="HPCData" multiple="multiple"></div>
                                 </div>
+                            </div>
+                            <div class="flex-row">
+
                             </div>
                             <div class="flex-row">
                                 <div class="flex-column" style="border-style:none;width:100%;height:100%"><input type="submit" class="btn btn-basic" name="hpc_btn" value="Load"></div>

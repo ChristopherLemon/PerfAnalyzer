@@ -7,6 +7,8 @@
 {% endblock %}
 {% block content %}
 
+<div class="loader element">Loading data...</div>
+
 <div class="panel-group" id="accordion">
     <div class="container">
         <div class="row">
@@ -20,9 +22,6 @@
                         </div>
                     </a>
                     <div id="flamegraph_collapse" class="panel-collapse collapse">
-                        <div class="flex-row">
-                            <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="flamegraph_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
-                        </div>
                         <div class="flex-column" style="width:100%;height:100%;text-align:center">
                             <label style="font-size:20px;" id="time_range"></label>
                         </div>
@@ -85,9 +84,6 @@
                             </div>
                         </a>
                         <div id="event_totals_chart_collapse" class="panel-collapse collapse">
-                            <div class="flex-row">
-                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="chart_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
-                            </div>
                             <div class="btn-group chart_controls" data-toggle="buttons" >
                                 <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_selection_mode('add-remove-process')">
                                     <input type="radio"  autocomplete="off" checked> Add / Remove Process
@@ -143,9 +139,6 @@
                             {% set units = "Processes" %}
                         {% endif %}
                         <div id="event_process_list_collapse" class="panel-collapse collapse">
-                            <div class="flex-row">
-                                <div class="flex-column" style="border-style:none;width:100%;height:100%"><div class="loader" id="process_loader" hidden style="font-size:20px;color:RoyalBlue;margin-left:12px;"></div></div>
-                            </div>
                             <p>Filter background processes (%)</p>
                             <div class="aligned-row">
                                 <div class="flex-row" style="border-style:none;">
@@ -343,7 +336,7 @@
         let vals = {"function_name": filter, "call_num": n, "direction": direction, "pid": pid, "tid": tid};
         let x = JSON.stringify(vals);
         let data = {json:x};
-        showLoaders("Searching For " + filter);
+        showLoaders("Loading...     ");
         $.ajax({
             url:goto_url,
             contentType: 'application/json;charset=UTF-8',
@@ -382,7 +375,7 @@
         goto_url = "{{url_for('TraceView.update_flamegraph_mode')}}"
         let x = JSON.stringify(vals);
         let data = {json:x};
-        showLoaders("Loading Selected Data");
+        showLoaders("Loading...     ");
         $.ajax({
             url:goto_url,
             contentType: 'application/json;charset=UTF-8',
@@ -619,7 +612,7 @@
         goto_url = "{{url_for('TraceView.reset_timelines')}}"
         let x = JSON.stringify(vals);
         let data = {json:x};
-        showLoaders("Loading Selected Data");
+        showLoaders("Loading...     ");
         $.ajax({
             url:goto_url,
             contentType: 'application/json;charset=UTF-8',
@@ -660,7 +653,7 @@
                         goto_url = "{{url_for('TraceView.update_flamegraph_ids')}}"
                         let x = JSON.stringify(vals);
                         let data = {json:x};
-                        showLoaders("Loading Selected Data");
+                        showLoaders("Loading...     ");
                         $.ajax({
                             url:goto_url,
                             contentType: 'application/json;charset=UTF-8',
@@ -695,7 +688,7 @@
         update_all_charts(label, x);
     }
     function update_all_charts(label, x) {
-        showLoaders("Loading Data For " + label);
+        showLoaders("Loading...     ");
         $.ajax({
             url:"{{url_for('TraceView.update_all_charts')}}",
             contentType: 'application/json;charset=UTF-8',
@@ -796,9 +789,9 @@
         $("body").css("cursor", "progress");
     }
     function hideLoaders() {
-        setTimeout(hideLoaderTimeout, 2500);
+        setTimeout(hideLoaderTimeout, 1500);
         $('.loader').each(function() {
-            $(this).prop('innerHTML', "Data Update Complete");
+            $(this).prop('innerHTML', "Loading... done");
         });
         $("body").css("cursor", "default");
     }
