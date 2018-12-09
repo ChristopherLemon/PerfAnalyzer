@@ -5,7 +5,7 @@ PerfAnalyzer is a browser based performance analysis tool which utilizes Linux p
 The PerfAnalyzer tool is designed for use with high performance codes: it can monitor all processes and 
 threads of an application, or it can monitor activity on each processor of the underlying system. Jobs can be submitted 
 using the Message Parsing Interface (MPI), queueing systems such as LSF, and SSH. This permits both local and
-remote profiling of an application, perhaps running on a cluster or a cloud server.
+remote profiling of an application, perhaps running on a cluster or a cloud server. Further details can be found in the Wiki
 
 
 
