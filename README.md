@@ -10,11 +10,11 @@ remote profiling of an application, perhaps running on a cluster or a cloud serv
 
 
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Loop level flamegraph linked to source code">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Loop or line level flamegraph linked to source code analysis (using HPCTooKit database)">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/hotspots.png" width="45%" title="Ranked code hotspots">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/source.png" width="45%" title="Loop or line source code analysis from HPCToolKit database">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/source.png" width="45%" title="Loop or line source code analysis (using HPCToolKit database)">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/threads.png" width="45%" title="Control over process and thread selection">
 </p>
 <p>
