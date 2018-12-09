@@ -8,7 +8,7 @@
 
 <h2 class="underline-title">Job submission</h2>
 
-<h3>Run Options</h3>
+<h3>Run Perf Job</h3>
 Jobs can be submitted using any combination of mpi, lsf, and ssh. This allows a great deal of flexibility to run locally, or to submit jobs to different hosts, clusters, or remote servers.
 
 <h3>Hardware Event Counters</h3>
@@ -27,23 +27,25 @@ to avoid the need to run perf as root. To associate kernel function calls with t
 For system wide profiling perf is attached to one process on each node and monitors the activity on all cores of the node. In this case all of the threads running on each of the underlying cores are monitored, and profiling data is obtained for each individual core/thread.
 To use system wide profiling it is recommended to set /proc/sys/kernel/perf_event_paranoid to either -1 or 0 (i.e. sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'), to avoid the need to run perf as root.
 
-<h3>Load Settings</h3>
+<h3>Load Perf Job Settings</h3>
 Each time a job is submitted, the settings used are saved to the <i>path_to_perf_profiler</i>/data folder, with the file name <i>job_name</i>.settings. These settings files can be loaded to restore the exact settings and events of a previous job. Because configuring the initial settings
-can be a bit laborious, this makes submitting and editing furher jobs much simpler.
+can be a bit laborious, this makes submitting and editing further jobs much simpler.
 
-<h3>Load Results</h3>
+<h3>Load Profile Results</h3>
 Results can be viewed by loading one or more of the results files from the location <i>path_to_perf_profiler</i>/data, with the file name <i>job_name</i>.results. For comparisons between jobs, it is often useful to load them together,
 to allow automatic differencing of the profiles.
 Results with a large number of processes/threads and events will increase the overhead of viewing the associated data.
 
-<h3>Convert HPCToolKit Database</h3>
-A database created by HPCToolKit can be converted for with use the PerfAnalyzer tool. This only works for standard profiles run with HPCToolKit, and not with trace profiles.
-The base directory for the database should be selected, and the directory structure will be then copied locally. If the profile was performed with a code structure analysis, the database
-will contain accurate loop and source line analysis. The database can be converted using either procedure, loop, or source level analysis, and the resulting flamegraphs and
+<h3>Import Perf / HPCToolkKit Profile Data</h3>
+Raw Perf data can be read directly and converted to the format required by PerfAnalyzer. The absolute path to the data must be provided, and perf script is invoked on each selected perf
+file (.data or .perf) selected, to process the data.
+A database created by HPCToolKit can also be converted for use the PerfAnalyzer tool. This only works for standard profiles run with HPCToolKit, and not with trace profiles.
+The base directory for the database should be selected, and the directory structure will be copied locally. If the profile was performed with a code structure analysis, the database
+will contain accurate loop and source line analysis. The database can be converted using either Procedure, loop, or source level analysis, and the resulting flamegraphs and
 charts are displayed at the corresponding level of detail. The flamegraph is also linked to a display of the source code from the database, to allow easy navigation between profiled
-hotspots and the associated code.
+hotspots and the responsible code.
 
-<h3>Monitor Job Progress</h3>
+<h3>Monitor Running Jobs</h3>
 Progress of the jobs can be seen in the monitor job progress tab. Any job submission errors will be reported in detail, and the progress of each submitted job is polled regularly to report when each job has been completed.
 
 <h2 class="underline-title">Trace View</h2>
@@ -115,7 +117,7 @@ The analysis view allows the viewing of multiple processes/threads, multiple eve
 
 <h2 class="underline-title">Custom Events</h2>
 Several types of custom events can be created. The most useful is the custom event ratio, which can be used for the analysis of many properties such as memory bandwidth, floating point operations, and instructions per cycle. It is also possible to sum multiple events,
-which may be useful for grouping similar events together. Finally there are derived events, which include the total accumulated events summed over threads or processes.
+which may be useful for grouping similar events together. Finally there are derived events, which include the total accumulated events for processes or jobs, and sampled calls, which can be helpful for visualising the basic program structure using flamegraphs.
 
 <h2 class="underline-title">Results Summary</h2>
 The results summary contains information on the profiler settings used for the loaded results. This includes the event counters assigned for each event, and the total run times for the application.
