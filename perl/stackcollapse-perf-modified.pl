@@ -85,10 +85,12 @@ my $include_pid = 0;	# include process ID with process name
 my $include_tid = 0;	# include process & thread ID with process name
 my $accumulate = 0;
 my $trace_event = "";
+my $multiplier = 1;
 my $tidy_java = 1;	# condense Java signatures
 my $tidy_generic = 1;	# clean up function names a little
 my $target_pname;	# target process name from perf invocation
 my $primary_event = "xxx";
+my $period = 1;
 my $time = 0.0;
 my $start_time = -1.0;
 my $previous_time = 0.0;
@@ -107,7 +109,8 @@ GetOptions('inline' => \$show_inline,
            'dt=f' => \$dt,
            'accumulate' => \$accumulate,
            'trace_event=s' => \$trace_event,
-           'output_file=s' => \$output_file)
+           'output_file=s' => \$output_file,
+           'multiplier=i' => \$multiplier)
 or die <<USAGE_END;
 USAGE: $0 [options] infile > outfile\n
 	--pid		# include PID with process names [1]
@@ -265,20 +268,20 @@ while (defined($_ = <>)) {
         if ($trace_event ne "") {
             record_trace($primary_event,join(";", @stack), $exe_name, $m_pid, $m_tid, $time - $start_time) if @stack;
         } else {
-		    remember_stack($primary_event,join(";", @stack), 1) if @stack;
+		    remember_stack($primary_event,join(";", @stack), $period) if @stack;
         }
         if ($accumulate) {
             splice(@stack, 0, 1, $pname_sum_threads);
             if ($trace_event ne "") {
                 record_trace($primary_event,join(";", @stack), $exe_name,  $m_pid, "all", $time - $start_time) if @stack;
             } else {
-			    remember_stack($primary_event,join(";", @stack), 1) if @stack;
+			    remember_stack($primary_event,join(";", @stack), $period) if @stack;
             }
             splice(@stack, 0, 1, $pname_sum_processes);
             if ($trace_event ne "") {
                 record_trace($primary_event,join(";", @stack), $exe_name,  "all", "all", $time - $start_time) if @stack;
             } else {
-                remember_stack($primary_event,join(";", @stack), 1) if @stack;
+                remember_stack($primary_event,join(";", @stack), $period) if @stack;
             }
         }
 
@@ -312,8 +315,8 @@ while (defined($_ = <>)) {
     }
 
 	# event record start
-    # exe ... pid/tid ... time: ... event: ...
-	if (/^(\S.+?)\s+(\d+)\/*(\d+)*\s+([^:]+):\s*([^\s]+):\s*/) {
+    # exe ... pid/tid ... time: ... (period?) ... event: ...
+	if (/^(\S.+?)\s+(\d+)\/*(\d+)*\s+([^:]+):\s*(?:(\d+)\s+)?([^\s]+):\s*/) {
 		# default "perf script" output has TID but not PID
 		# eg, "java 25607 4794564.109216: cycles:"
 		# eg, "java 12688 [002] 6544038.708352: cpu-clock:"
@@ -323,7 +326,12 @@ while (defined($_ = <>)) {
 		# eg, "V8 WorkerThread 24636/25607 [000] 94564.109216: cycles:"
 		# other combinations possible
 		$exe_name = $1;
-        $primary_event = $5;
+        $primary_event = $6;
+        if ($5) {
+            $period = $5;
+        } else {
+            $period = $multiplier;
+        }
 		if ($3) {
 			($m_pid, $m_tid) = ($2, $3);
 		} else {

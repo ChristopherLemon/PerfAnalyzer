@@ -22,7 +22,7 @@
                             <div class="flex-row">
                             <select style="margin:1px;margin-left:12px" class="selectpicker" name="cpu" id="cpu">
                                 {% for cpu in available_cpus %}
-                                    {% if cpu==user_settings["cpu"] %}
+                                    {% if cpu==job_settings["cpu"] %}
                                         <option selected="selected">{{cpu}}</option>
                                     {% else %}
                                         <option >{{cpu}}</option>
@@ -54,7 +54,7 @@
                                     <div class="flex-row">
                                         {% for event in selected_cpu_events %}
                                             {% if selected_cpu_event_group_map[event]==group %}
-                                                {% if event in user_settings["events"] %}
+                                                {% if event in job_settings["events"] %}
                                                     {% set checked = "checked" %}
                                                 {% else %}
                                                     {% set checked = "" %}
@@ -85,11 +85,9 @@
                         </a>
                         <div id="params1" class="panel-collapse collapse">
                             <div class="flex-row">
-                                <div class="flex-column" style="border-style:none;width:33%"><p>Events Per Sample:</p><input type="text" class="form-control" name="event_counter" id=event_counter" value={{user_settings["event_counter"]}} title="Number of events per sample" placeholder="Number of events per sample"></div>
-                                <div class="flex-column" style="border-style:none;width:33%"><p>Sample Frequency (Hz):</p><input type="text" class="form-control" name="frequency" id=frequency" value={{user_settings["frequency"]}} title="Frequency of sample (in Hz) for cpu-clock and task-clock" placeholder="Frequency of sample (in Hz) for cpu-clock and task-clock"></div>
-                                <div class="flex-column" style="border-style:none;width:34%"><p>Time resolution (S):</p><input type="text" class="form-control" name="dt" id=dt" value={{user_settings["dt"]}} title="Time interval of bins used for sample collection" placeholder="Time interval of bins used for sample collection"></div>
-                                <div class="flex-column" style="border-style:none;width:33%"><p>Maximum number of events recorded per realization:</p><input type="text" class="form-control" name="max_events_per_run" id=max_events_per_run" value={{user_settings["max_events_per_run"]}} title="Maximum number of events assigned to each run" placeholder="Maximum number of events assigned to each run"></div>
-                                <div class="flex-column" style="border-style:none;width:67%"><p>Attach to every nth process:</p><input type="text" class="form-control" name="proc_attach" id=proc_attach" value={{user_settings["proc_attach"]}} title="Attach to subset of processes" placeholder="Attach to subset of processes"></div>
+                                <div class="flex-column" style="border-style:none;width:33%"><p>Time resolution (S):</p><input type="text" class="form-control" name="dt" id=dt" value={{job_settings["dt"]}} title="Time interval of bins used for sample collection" placeholder="Time interval of bins used for sample collection"></div>
+                                <div class="flex-column" style="border-style:none;width:33%"><p>Maximum number of events recorded per realization:</p><input type="text" class="form-control" name="max_events_per_run" id=max_events_per_run" value={{job_settings["max_events_per_run"]}} title="Maximum number of events assigned to each run" placeholder="Maximum number of events assigned to each run"></div>
+                                <div class="flex-column" style="border-style:none;width:34%"><p>Attach to every nth process:</p><input type="text" class="form-control" name="proc_attach" id=proc_attach" value={{job_settings["proc_attach"]}} title="Attach to subset of processes" placeholder="Attach to subset of processes"></div>
                             </div>
                         </div>
                     </div>
@@ -128,10 +126,9 @@
                                                 <th title="Event name for visualization">Display Event Name</th>
                                                 <th title="Event name for perf command line">Perf Raw Event Name</th>
                                                 <th title="Assign event to an event group">Event Group</th>
-                                                <th title="Samples for event counters, Hz for clocks">Event Unit</th>
-                                                <th title="Approx number of events per millisecond">Approx Event Rate (per ms)</th>
-                                                <th></th>
-                                                <th></th>
+                                                <th title="Sample event using fixed sample overflow counter, or Hz for automatic scaling">Event Sampling Method</th>
+                                                <th>Remove Event</th>
+                                                <th>Reorder</th>
                                             </tr>
                                             {% for definition in event_definitions %}
                                                 <tr>
@@ -153,17 +150,6 @@
                                                                 <option value="Samples">Samples</option>
                                                                 <option value="Hz" selected="selected">Hz</option>
                                                             {% endif %}
-                                                        </select>
-                                                    </td>
-                                                    <td>
-                                                        <select name="{{definition.event}}_edit_event_weight" class="selectpicker">
-                                                        {% for i in weights %}
-                                                            {% if i == definition.event_weight %}
-                                                                <option selected="selected" value="{{i}}">{{i}}</option>
-                                                            {% else %}
-                                                                <option value="{{i}}">{{i}}</option>
-                                                            {% endif %}
-                                                        {% endfor %}
                                                         </select>
                                                     </td>
                                                     <td>
@@ -189,17 +175,6 @@
                                                     <select name="edit_event_unit">
                                                         <option value="Samples">Samples</option>
                                                         <option value="Hz">Hz</option>
-                                                    </select>
-                                                </td>
-                                                <td>
-                                                    <select name="edit_event_weight">
-                                                        {% for i in weights %}
-                                                            {% if loop.index == 1 %}
-                                                                <option selected="selected" value="{{i}}">{{i}}</option>
-                                                            {% else %}
-                                                                <option value="{{i}}">{{i}}</option>
-                                                            {% endif %}
-                                                        {% endfor %}
                                                     </select>
                                                 </td>
                                                 <td>

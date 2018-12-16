@@ -14,8 +14,7 @@ EventDefinition = namedtuple('EventDefinition',
                              ['event',
                               'raw_event',
                               'event_group',
-                              'unit',
-                              'event_weight'])
+                              'unit'])
 
 event_definitions = OrderedDict()
 
@@ -40,12 +39,10 @@ def initialise_cpu_definitions():
                         raw_event = data[1].strip()
                         event_group = data[2].strip()
                         event_unit = data[3].strip()
-                        event_counter = int(data[4].strip())
-                        event_definition = EventDefinition(event_name, raw_event, event_group, event_unit, event_counter)
+                        event_definition = EventDefinition(event_name, raw_event, event_group, event_unit)
                         event_definitions[cpu].append(event_definition)
                         if event_group == "Software" or event_name == "Cycles":
-                            event_definition = EventDefinition("Trace-" + event_name, "trace-" + raw_event, "Trace", event_unit,
-                                                               event_counter)
+                            event_definition = EventDefinition("Trace-" + event_name, "trace-" + raw_event, "Trace", event_unit)
                             event_definitions[cpu].append(event_definition)
         except Exception as e:
             raise Exception("Error reading line: \"" + line.strip() + "\"")
@@ -68,9 +65,8 @@ def modify_event_definitions(cpu, event_definitions):
                             raw_event = definition.raw_event
                             event_group = definition.event_group
                             event_unit = definition.unit
-                            event_counter = str(definition.event_weight)
                             if not re.match("Trace", event_name):
-                                l = ", ".join(["EventDefinition: " + event_name, raw_event, event_group, event_unit, event_counter]) + "\n"
+                                l = ", ".join(["EventDefinition: " + event_name, raw_event, event_group, event_unit]) + "\n"
                                 new_file.write(l)
                 else:
                     new_file.write(line)
@@ -96,10 +92,10 @@ class CpuDefinition:
             if event_definition.event == event:
                 self.active_events.append(event_definition)
 
-    def add_active_event(self, event, raw_event, event_group, unit, event_weight=0):
+    def add_active_event(self, event, raw_event, event_group, unit):
         active_events = self.get_active_events()
         if event not in active_events:
-            self.active_events.append(EventDefinition(event, raw_event, event_group, unit, event_weight))
+            self.active_events.append(EventDefinition(event, raw_event, event_group, unit))
 
     def get_event_definitions(self):
         return self.available_events
@@ -176,23 +172,13 @@ class CpuDefinition:
         group_set.add("Custom")
         return sorted(list(group_set))
 
-    def get_event_counters(self, run_duration):
-        return {event_definition.event: get_event_counter(run_duration, event_definition) for
-                    event_definition in self.available_events}
-
-    def get_perf_event_groups(self, run_duration, max_events_per_group, fixed_counter=False, count=0):
+    def get_perf_event_groups(self, max_events_per_group, frequency=0, count=0):
         active_events = self.get_active_events()
         available_events = self.get_available_events()
         available_event_map = self.get_available_event_map()
-        inverse_map = self.get_available_event_map(event_to_raw_event=False)
         event_group_map = self.get_available_event_group_map()
-        event_counters = self.get_event_counters(run_duration)
         event_units = self.get_available_event_units()
-        if fixed_counter:
-            active_event_counters = {event: count for event in available_events if
-                                     event in active_events}
-        else:
-            active_event_counters = {event: event_counters[event] for event in available_events if event in active_events}
+        active_event_counters = {event: frequency for event in available_events if event in active_events}
         perf_event_groups = []
         trace_events = []
         for event, counter in sorted(active_event_counters.items(), key=operator.itemgetter(1)):
@@ -210,8 +196,7 @@ class CpuDefinition:
                 trace_event = "trace-cycles"
                 trace_flag = "-c"
             ordered_trace_events = [trace_event] + [event for event in trace_events if event != trace_event]
-            trace_counter = active_event_counters[inverse_map[trace_event]]
-            group = {"flag": trace_flag, "events": ordered_trace_events, "event_counter": trace_counter, "event_type": "Trace"}
+            group = {"flag": trace_flag, "events": ordered_trace_events, "event_counter": frequency, "event_type": "Trace"}
             perf_event_groups.append(copy.deepcopy(group))
         group = {"flag": "-F", "events": [], "event_counter": 0, "event_type": "Standard"}
         n = 0
@@ -221,18 +206,18 @@ class CpuDefinition:
             if event_unit == "Hz":
                 if event_group_map[event] == "Trace":
                     continue
-                if n < max_events_per_group and (fixed_counter or group["event_counter"] == counter):
+                if n < max_events_per_group:
                     group["events"].append(raw_event)
-                    group["event_counter"] = counter
+                    group["event_counter"] = frequency
                     n += 1
                 else:
                     if n > 0:
                         perf_event_groups.append(copy.deepcopy(group))
-                    group = {"flag": "-F", "events": [raw_event], "event_counter": counter, "event_type": "Standard"}
+                    group = {"flag": "-F", "events": [raw_event], "event_counter": frequency, "event_type": "Standard"}
                     n = 1
         if n > 0:
             perf_event_groups.append(copy.deepcopy(group))
-        group = {"flag": "-c", "events": [], "event_counter": 0, "event_type": "Standard"}
+        group = {"flag": "-c", "events": [], "event_counter": count, "event_type": "Standard"}
         n = 0
         for event, counter in sorted(active_event_counters.items(), key=operator.itemgetter(1)):
             raw_event = available_event_map[event]
@@ -240,14 +225,14 @@ class CpuDefinition:
             if event_unit == "Samples":
                 if event_group_map[event] == "Trace":
                     continue
-                if n < max_events_per_group and (fixed_counter or group["event_counter"] == counter):
+                if n < max_events_per_group:
                     group["events"].append(raw_event)
-                    group["event_counter"] = counter
+                    group["event_counter"] = count
                     n += 1
                 else:
                     if n > 0:
                         perf_event_groups.append(copy.deepcopy(group))
-                    group = {"flag": "-c", "events": [raw_event], "event_counter": counter, "event_type": "Standard"}
+                    group = {"flag": "-c", "events": [raw_event], "event_counter": count, "event_type": "Standard"}
                     n = 1
         if n > 0:
             perf_event_groups.append(copy.deepcopy(group))
@@ -265,7 +250,6 @@ class CpuDefinition:
     def get_enabled_modes(self):
         trace_enabled = False
         events_enabled = False
-        active_raw_events = self.get_active_raw_events()
         active_events = self.get_active_events()
         event_group_map = self.get_active_event_group_map()
         for event in active_events:
@@ -292,24 +276,6 @@ def get_cpu_definition(cpu, raw_events = None):
         add_custom_events_to_active_events(cpu_definition, raw_events)
     return cpu_definition
 
-def get_time_interval(run_duration):
-    if run_duration != "":
-        total_time = float(run_duration)
-# About 60 time intervals - use total_time (in minutes) to set dt (in seconds)
-        return float('{0:0.1f}'.format(total_time))
-
-def get_event_counter(run_duration, event_definition=None):
-    if run_duration != "":
-        total_time = float(run_duration)
-        if event_definition:
-            if event_definition.unit == "Samples":
-                counter = int(round_sig(float(event_definition.event_weight) * total_time, 4))
-                return max(counter, 1)
-            else: # Hz
-                return tools.GlobalData.user_settings["frequency"]
-        else:
-# About 3,000 samples for cycles event in each time interval (based on 3 GHz cpu)
-            return int(round_sig(1000000.0*total_time, 4))
 
 
 

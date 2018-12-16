@@ -14,7 +14,7 @@ from tools.Utilities import purge, format_percentage, format_number, replace_ope
     get_datetime_diff, abs_path_to_rel_path, natural_sort
 from plotting.RunSummaryTables import generate_run_summary_table
 import tools.GlobalData
-from tools.PerfEvents import get_cpu_definition, get_default_cpu, get_time_interval, initialise_cpu_definitions
+from tools.PerfEvents import get_cpu_definition, get_default_cpu, initialise_cpu_definitions
 from multiprocessing import freeze_support
 from io import StringIO
 from flask import Flask, render_template, request, send_from_directory
@@ -23,7 +23,7 @@ from EventView.EventView import EventView, reset_event_view
 from CustomEventsView.CustomEventsView import CustomEventsView
 from ProcessView.ProcessView import ProcessView, reset_process_view
 from AnalysisView.AnalysisView import AnalysisView, reset_analysis_view
-from SettingsView.SettingsView import SettingsView, save_job_data, restore_job_data, initialise_default_user_settings
+from SettingsView.SettingsView import SettingsView, save_job_data, restore_job_data, initialise_default_job_settings
 
 app = Flask(__name__)
 tools.GlobalData.root_directory = app.root_path
@@ -98,7 +98,7 @@ def initialise_app():
     tools.GlobalData.selected_cpu_definition = get_cpu_definition(cpu)
     tools.GlobalData.selected_cpu_definition.set_default_active_events()
     tools.GlobalData.loaded_cpu_definition = get_cpu_definition(cpu)
-    initialise_default_user_settings(cpu)
+    initialise_default_job_settings(cpu)
 
 
 def allowed_file(filename):
@@ -151,7 +151,6 @@ def index():
                                            jobs=tools.GlobalData.jobs,
                                            processes=tools.GlobalData.processes,
                                            job_settings=tools.GlobalData.job_settings,
-                                           user_settings=tools.GlobalData.user_settings,
                                            enabled_modes=tools.GlobalData.enabled_modes)
                 if (load_profile_data and allowed_file(foundfile.filename)) or load_hpc_data or load_perf_data:
                     filename = secure_filename(foundfile.filename)
@@ -234,7 +233,6 @@ def index():
                                        all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                                        processes=tools.GlobalData.processes,
                                        job_settings=tools.GlobalData.job_settings,
-                                       user_settings=tools.GlobalData.user_settings,
                                        enabled_modes=tools.GlobalData.enabled_modes)
             if foundfile and allowed_file(foundfile.filename):
                 filename = secure_filename(foundfile.filename)
@@ -291,34 +289,14 @@ def index():
             tools.GlobalData.job_settings["run_system_wide"] = ('run_system_wide' in request.form)
             tools.GlobalData.job_settings["run_as_root"] = ('run_as_root' in request.form)
             tools.GlobalData.job_settings["perf_params"] = request.form["perf_params"]
+            tools.GlobalData.job_settings["frequency"] = request.form["frequency"]
+            tools.GlobalData.job_settings["period"] = request.form["period"]
             tools.GlobalData.job_settings["working_directory_linux"] = request.form["working_directory_linux"]
             tools.GlobalData.job_settings["executable"] = request.form["executable"]
-            tools.GlobalData.job_settings["run_duration"] = str(request.form["run_duration"])
             tools.GlobalData.job_settings["env_variables"] = request.form["env_variables"]
             tools.GlobalData.job_settings["bin_path"] = request.form["bin_path"]
             tools.GlobalData.job_settings["lib_path"] = request.form["lib_path"]
             tools.GlobalData.job_settings["preload"] = request.form["preload"]
-            if tools.GlobalData.job_settings["run_duration"] != "":
-                tools.GlobalData.user_settings["dt"] = get_time_interval(tools.GlobalData.job_settings["run_duration"])
-            else:
-                if tools.GlobalData.user_settings["dt"] == "" or tools.GlobalData.user_settings["event_counter"] == "":
-                    main_logger.info(u"Job "
-                                     + tools.GlobalData.job_settings["job_name"]
-                                     + " Aborted. Undefined parameters"
-                                     + " - Set Run Duration, or set Time Interval and Event Sample Rate")
-                    status = "Error - Set Run Duration, or set Time Interval and Event Sample Rate"
-                    layout["title"] = "Submit Jobs / Load Profiles: " + status
-                    return render_template('index.html',
-                                           layout=layout,
-                                           events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
-                                           event_group_map=tools.GlobalData.loaded_cpu_definition.
-                                           get_active_event_group_map(),
-                                           all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
-                                           jobs=tools.GlobalData.jobs,
-                                           processes=tools.GlobalData.processes,
-                                           job_settings=tools.GlobalData.job_settings,
-                                           user_settings=tools.GlobalData.user_settings,
-                                           enabled_modes=tools.GlobalData.enabled_modes)
             status = 'Submitted Jobs: '
             main_logger.info(u"Preparing job " + tools.GlobalData.job_settings["job_name"])
 
@@ -332,15 +310,14 @@ def index():
                       tools.GlobalData.job_settings["executable"],
                       tools.GlobalData.job_settings["arguments"],
                       tools.GlobalData.job_settings["working_directory_linux"],
-                      tools.GlobalData.job_settings["run_duration"],
                       tools.GlobalData.job_settings["queue"],
                       tools.GlobalData.selected_cpu_definition,
                       tools.GlobalData.selected_cpu_definition.get_active_raw_events(),
-                      tools.GlobalData.user_settings["event_counter"],
-                      tools.GlobalData.user_settings["frequency"],
-                      tools.GlobalData.user_settings["dt"],
-                      tools.GlobalData.user_settings["max_events_per_run"],
-                      tools.GlobalData.user_settings["proc_attach"],
+                      tools.GlobalData.job_settings["period"],
+                      tools.GlobalData.job_settings["frequency"],
+                      tools.GlobalData.job_settings["dt"],
+                      tools.GlobalData.job_settings["max_events_per_run"],
+                      tools.GlobalData.job_settings["proc_attach"],
                       tools.GlobalData.job_settings["env_variables"],
                       tools.GlobalData.job_settings["bin_path"],
                       tools.GlobalData.job_settings["lib_path"],
@@ -372,7 +349,6 @@ def index():
                                            jobs=tools.GlobalData.jobs,
                                            processes=tools.GlobalData.processes,
                                            job_settings=tools.GlobalData.job_settings,
-                                           user_settings=tools.GlobalData.user_settings,
                                            enabled_modes=tools.GlobalData.enabled_modes)
             failed_paths = jobhandler.get_failed_paths(job, tools.GlobalData.job_settings)
             if len(failed_paths) > 0:
@@ -391,7 +367,6 @@ def index():
                                        jobs=tools.GlobalData.jobs,
                                        processes=tools.GlobalData.processes,
                                        job_settings=tools.GlobalData.job_settings,
-                                       user_settings=tools.GlobalData.user_settings,
                                        enabled_modes=tools.GlobalData.enabled_modes)
             main_logger.info(u"perf_event_paranoid: "
                              + jobhandler.check_perf_event_paranoid(tools.GlobalData.job_settings))
@@ -428,7 +403,6 @@ def index():
                            jobs=tools.GlobalData.jobs,
                            processes=tools.GlobalData.processes,
                            job_settings=tools.GlobalData.job_settings,
-                           user_settings=tools.GlobalData.user_settings,
                            enabled_modes=tools.GlobalData.enabled_modes)
 
 
@@ -452,7 +426,6 @@ def clear_loaded_data():
                            jobs=tools.GlobalData.jobs,
                            processes=tools.GlobalData.processes,
                            job_settings=tools.GlobalData.job_settings,
-                           user_settings=tools.GlobalData.user_settings,
                            enabled_modes=tools.GlobalData.enabled_modes)
 
 
@@ -523,7 +496,6 @@ def about():
                            jobs=tools.GlobalData.jobs,
                            processes=tools.GlobalData.processes,
                            job_settings=tools.GlobalData.job_settings,
-                           user_settings=tools.GlobalData.user_settings,
                            enabled_modes=tools.GlobalData.enabled_modes)
 
 
@@ -536,7 +508,6 @@ def td():
                            jobs=tools.GlobalData.jobs,
                            processes=tools.GlobalData.processes,
                            job_settings=tools.GlobalData.job_settings,
-                           user_settings=tools.GlobalData.user_settings,
                            enabled_modes=tools.GlobalData.enabled_modes)
 
 

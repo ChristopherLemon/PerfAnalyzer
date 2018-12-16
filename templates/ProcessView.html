@@ -877,7 +877,7 @@
         update_all_charts(label, x);
     }
     function update_all_charts(label, x) {
-        showLoaders(Loading...     ");
+        showLoaders("Loading...     ");
         $.ajax({
             url:"{{url_for('ProcessView.update_all_charts')}}",
             contentType: 'application/json;charset=UTF-8',

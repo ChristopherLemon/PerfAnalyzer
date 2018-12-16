@@ -1,24 +1,21 @@
-# Event weights (very) roughly translate to the expected number of events per millisecond. This is used to balance the total 
-# number of samples for events occuring at very different rates
-#                  0  1   2    3     4      5      6      7      8       9       10      11       12       13
-# Event Weights = [1, 10, 100, 1000, 10000, 20000, 40000, 80000, 160000, 320000, 640000, 1280000, 2560000, 5120000]
+
 
 # Event Definitions
-# Name,  Raw Perf Event,  Event Group,  Event Unit,  Event Counter
+# Name,  Raw Perf Event,  Event Group,  Event Unit
 
-EventDefinition: Cycles, cycles, General, Samples, 2560000
-EventDefinition: Instructions, instructions, General, Samples, 2560000
-EventDefinition: CPU-Clock, cpu-clock, Software, Hz, 1
-EventDefinition: Task-Clock, task-clock, Software, Hz, 1
-EventDefinition: Context-Switches, context-switches, Software, Samples, 1
-EventDefinition: CPU-Migrations, cpu-migrations, Software, Samples, 1
-EventDefinition: Page-Faults, page-faults, Software, Samples, 1
-EventDefinition: Branch-Loads, branch-loads, Branch Instruction, Samples, 640000
-EventDefinition: Branch-Load-Misses, branch-load-misses, Branch Instruction, Samples, 640000
-EventDefinition: Data-TLB-Loads, dTLB-loads, Data TLB, Samples, 640000
-EventDefinition: Data-TLB-Load-Misses, dTLB-load-misses, Data TLB, Samples, 640000
-EventDefinition: Instruction-TLB-Loads, iTLB-loads, Instruction TLB, Samples, 640000
-EventDefinition: Instruction-TLB-Load-Misses, iTLB-load-misses, Instruction TLB, Samples, 640000
-EventDefinition: L1-DCache-Loads, L1-dcache-loads, Data Access, Samples, 1280000
-EventDefinition: LLC-Loads, LLC-loads, Data Access, Samples, 40000
-EventDefinition: LLC-Load-Misses, LLC-load-misses, Data Access, Samples, 40000
+EventDefinition: Cycles, cycles, General, Hz
+EventDefinition: Instructions, instructions, General, Hz
+EventDefinition: CPU-Clock, cpu-clock, Software, Hz
+EventDefinition: Task-Clock, task-clock, Software, Hz
+EventDefinition: Context-Switches, context-switches, Software, Hz
+EventDefinition: CPU-Migrations, cpu-migrations, Software, Hz
+EventDefinition: Page-Faults, page-faults, Software, Hz
+EventDefinition: Branch-Loads, branch-loads, Branch Instruction, Hz
+EventDefinition: Branch-Load-Misses, branch-load-misses, Branch Instruction, Hz
+EventDefinition: Data-TLB-Loads, dTLB-loads, Data TLB, Hz
+EventDefinition: Data-TLB-Load-Misses, dTLB-load-misses, Data TLB, Hz
+EventDefinition: Instruction-TLB-Loads, iTLB-loads, Instruction TLB, Hz
+EventDefinition: Instruction-TLB-Load-Misses, iTLB-load-misses, Instruction TLB, Hz
+EventDefinition: L1-DCache-Loads, L1-dcache-loads, Data Access, Hz
+EventDefinition: LLC-Loads, LLC-loads, Data Access, Hz
+EventDefinition: LLC-Load-Misses, LLC-load-misses, Data Access, Hz

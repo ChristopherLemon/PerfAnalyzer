@@ -89,24 +89,24 @@ def get_perf_out_file_name(job_id, pid, n_group, system_wide):
     return perf_out_file
 
 
-def get_perf_script_command(in_file, out_file, system_wide, use_lsf, env, queue, sudo=""):
+def get_perf_script_command(in_file, out_file, system_wide, frequency_sampling, use_lsf, env, queue, sudo=""):
+    flags = "comm,pid,tid,time,event,ip,sym,dso"
     if system_wide:
-        flags = "comm,cpu,pid,tid,time,event,ip,sym,dso"
-    else:
-        flags = "comm,pid,tid,time,event,ip,sym,dso"
+        flags = flags + ",cpu"
+    if frequency_sampling:
+        flags = flags + ",period"
+    command = "{}perf script -F {} --show-kernel-path -i {} > {}".format(sudo, flags, in_file, out_file)
     if use_lsf:
-        command = 'bsub -K -env {} -e bjobs.err -o bjobs.out -q {} -n 1 \"{}perf script -F {} --show-kernel-path -i {} > {} \" &\n'.format(
-        env, queue, sudo, flags, in_file, out_file)
-    else:
-        command = "{}perf script -F {} --show-kernel-path -i {} > {} &\n".format(sudo, flags, in_file, out_file)
-    return command
+        command = 'bsub -K -env {} -e bjobs.err -o bjobs.out -q {} -n 1 \"{}\"' \
+            .format(env, queue, command)
+    return command + "&\n"
 
 
-def get_stack_collapse_command(in_file, out_file, dt, stack_collapse_script, system_wide, trace_event=None):
+def get_stack_collapse_command(in_file, out_file, dt, stack_collapse_script, system_wide, multiplier, trace_event=None):
+    command = 'cat {} | perl {} --pid --tid --output_file={} --dt={} --multiplier={}' \
+        .format(in_file, stack_collapse_script, out_file, dt, multiplier)
     if system_wide:
-        command = 'cat {} | perl {} --pid --tid --output_file={} --dt={} --accumulate'.format(in_file, stack_collapse_script, out_file, dt)
-    else:
-        command = 'cat {} | perl {} --pid --tid --output_file={} --dt={}'.format(in_file, stack_collapse_script, out_file, dt)
+        command += ' --accumulate'
     if trace_event:
         command += " --trace_event=" + trace_event
     command += " &\n"
@@ -116,8 +116,8 @@ def get_stack_collapse_command(in_file, out_file, dt, stack_collapse_script, sys
 class Job:
 
     def __init__(self, job_id, copy_files, run_parallel, run_system_wide, run_as_root, processes,
-                 processes_per_node, exe, exe_args, working_dir, run_duration,
-                 queue, cpu_definition, events, count, frequency, dt, max_events_per_run,
+                 processes_per_node, exe, exe_args, working_dir,
+                 queue, cpu_definition, events, period, frequency, dt, max_events_per_run,
                  proc_attach, env_variables, bin_path, lib_path, preload, global_mpirun_params, local_mpirun_params,
                  mpirun_version, lsf_params, perf_params, use_mpirun, use_lsf, use_ssh):
         self.job_id = job_id
@@ -135,12 +135,7 @@ class Job:
         self.cpu = self.cpu_definition.cpu_name
         self.mpi_config_files = []
         self.events = events
-        self.count = count
-        if run_duration == "":
-            self.run_duration = run_duration
-        else:
-            self.run_duration = float(run_duration)
-        self.fixed_counter = (run_duration == "")
+        self.period = period
         self.frequency = frequency
         self.dt = dt
         self.proc_attach = proc_attach
@@ -478,8 +473,8 @@ class JobHandler:
                     f.write(command.encode())
 
         num_nodes = ((job.processes - 1) // job.processes_per_node) + 1
-        perf_event_groups = job.cpu_definition.get_perf_event_groups(job.run_duration, job.max_events_per_run,
-                                                                     job.fixed_counter, job.count)
+        perf_event_groups = job.cpu_definition.get_perf_event_groups(job.max_events_per_run,
+                                                                     frequency=job.frequency, count=job.period)
         n_group = 0
         sudo = job.sudo_command
         for group in perf_event_groups:
@@ -509,7 +504,7 @@ class JobHandler:
                         event_list = ",".join(events)
                         perf_out_file = get_perf_out_file_name(job.job_id, nid, n_group, job.system_wide)
                         perf_command = sudo + job.perf_params
-                        perf_command += " -e " + event_list + " " + " ".join([flag, str(counter)])
+                        perf_command += " -e \'{" + event_list + "}\' " + " ".join([flag, str(counter)])
                         perf_command += " -o " + perf_out_file
                         exe_command = job.exe + " " + exe_args
                         command = " ".join([mpirun_command, perf_command, exe_command]) + "\n"
@@ -527,7 +522,7 @@ class JobHandler:
                             event_list = ",".join(events)
                             perf_out_file = get_perf_out_file_name(job.job_id, pid, n_group, job.system_wide)
                             perf_command = sudo + job.perf_params
-                            perf_command += " -e " + event_list + " " + " ".join([flag, str(counter)])
+                            perf_command += " -e \'{" + event_list + "}\' " + " ".join([flag, str(counter)])
                             perf_command += " -o " + perf_out_file
                             exe_command = job.exe + " " + exe_args
                             command = " ".join([mpirun_command, perf_command, exe_command]) + "\n"
@@ -555,7 +550,7 @@ class JobHandler:
                 event_list = ",".join(events)
                 perf_out_file = get_perf_out_file_name(job.job_id, 0, n_group, job.system_wide)
                 perf_command = sudo + job.perf_params
-                perf_command += " -e " + event_list + " " + " ".join([flag, str(counter)])
+                perf_command += " -e \'{" + event_list + "}\' " + " ".join([flag, str(counter)])
                 perf_command += " -o " + perf_out_file
                 exe_command = job.exe + " " + exe_args
                 if job.use_lsf:
@@ -576,18 +571,20 @@ class JobHandler:
                 f.write(command.encode())
         command = "wait\n"
         f.write(command.encode())
-
-        for n_group in range(1, len(perf_event_groups)+1):
+        n_group = 0
+        for group in perf_event_groups:
+            n_group += 1
             for pid in range(0, job.processes):
                 if job.system_wide and pid == num_nodes:
                     break
+                frequency_sampling = (group["flag"] == "-F")
                 if job.system_wide:
                     in_file = job.job_id + "_host" + str(pid) + "run" + str(n_group) + ".perf"
                     out_file = job.job_id + "_host" + str(pid) + "run" + str(n_group) + ".stacks"
                 else:
                     in_file = job.job_id + "_proc" + str(pid) + "run" + str(n_group) + ".perf"
                     out_file = job.job_id + "_proc" + str(pid) + "run" + str(n_group) + ".stacks"
-                command = get_perf_script_command(in_file, out_file, job.system_wide,
+                command = get_perf_script_command(in_file, out_file, job.system_wide, frequency_sampling,
                                                   job.use_lsf, job.lsf_env, job.queue, job.sudo_command)
                 f.write(command.encode())
         command = "wait\n"
@@ -597,6 +594,11 @@ class JobHandler:
         for group in perf_event_groups:
             n_group += 1
             trace_event = None
+            frequency_sampling = (group["flag"] == "-F")
+            if frequency_sampling:
+                multiplier = str(1)
+            else:
+                multiplier = str(group["event_counter"])
             if group["event_type"] == "Trace":
                 trace_event = re.sub("trace-", "", group["events"][0])
             for pid in range(0, job.processes):
@@ -609,7 +611,7 @@ class JobHandler:
                     in_file = job.job_id + "_proc" + str(pid) + "run" + str(n_group) + ".stacks"
                     out_file = job.job_id + "_proc" + str(pid)
                 command = get_stack_collapse_command(in_file, out_file, job.dt, self.stack_collapse_script,
-                                                     job.system_wide, trace_event)
+                                                     job.system_wide, multiplier, trace_event)
                 f.write(command.encode())
         command = "wait\n"
         f.write(command.encode())
@@ -621,10 +623,7 @@ class JobHandler:
             n_group += 1
             for event in group["events"]:
                 n += 1
-                if job.fixed_counter:
-                    counter = str(job.count)
-                else:
-                    counter = str(group["event_counter"])
+                counter = str(1)
                 if n == 1:
                     op = " > "
                 else:
@@ -659,6 +658,7 @@ class JobHandler:
             system_wide = True
         else:
             system_wide = False
+        perf_info = {}
         run = 0
         for file in perf_data_files:
             run += 1
@@ -671,9 +671,11 @@ class JobHandler:
                 match = re.match("(.*):.*(sample_period|sample_freq)=(\d+)", event_info)
                 if match:
                     event = match.group(1)
+                    frequency_sampling = (match.group(2) == "sample_freq")
                     period = match.group(3)
                     event_counters[event] = period
                     event_runs[event] = run
+            perf_info[file] = (frequency_sampling, period)
         job_id = pathlib.Path(perf_data_files[0]).stem
         script_name = job_id + "_perf.sh"
         script_path = local_data + os.sep + script_name
@@ -695,7 +697,7 @@ class JobHandler:
                 out_file = job_id + "_host" + str(0) + "run" + str(n+1) + ".stacks"
             else:
                 out_file = job_id + "_proc" + str(0) + "run" + str(n+1) + ".stacks"
-            command = get_perf_script_command(in_file, out_file, system_wide, False, "", "")
+            command = get_perf_script_command(in_file, out_file, system_wide, frequency_sampling, False, "", "")
             f.write(command.encode())
         command = "wait\n"
         f.write(command.encode())
@@ -710,15 +712,22 @@ class JobHandler:
 
         dt = 10.0
         cpu = "General"
-        for n in range(len(perf_data_files)):
+        n = 0
+        for file in perf_data_files:
+            n = n + 1
+            frequency_sampling = perf_info[file][0]
+            if frequency_sampling:
+                multiplier = str(1)
+            else:
+                multiplier = perf_info[file][1]
             if system_wide:
-                in_file = job_id + "_host" + str(0) + "run" + str(n+1) + ".stacks"
+                in_file = job_id + "_host" + str(0) + "run" + str(n) + ".stacks"
                 out_file = job_id + "_host" + str(0)
             else:
-                in_file = job_id + "_proc" + str(0) + "run" + str(n+1) + ".stacks"
+                in_file = job_id + "_proc" + str(0) + "run" + str(n) + ".stacks"
                 out_file = job_id + "_proc" + str(0)
             command = get_stack_collapse_command(in_file, out_file, dt, self.stack_collapse_script,
-                                                 system_wide)
+                                                 system_wide, multiplier)
             f.write(command.encode())
         if trace_event:
             event_counters["trace-" + trace_event] = event_counters[trace_event]
@@ -731,7 +740,7 @@ class JobHandler:
                 in_file = job_id + "_proc" + str(0) + "run" + str(n) + ".stacks"
                 out_file = job_id + "_proc" + str(0)
             command = get_stack_collapse_command(in_file, out_file, dt, self.stack_collapse_script,
-                                                 system_wide, trace_event)
+                                                 system_wide, multiplier, trace_event)
             f.write(command.encode())
         command = "wait\n"
         f.write(command.encode())
@@ -741,7 +750,7 @@ class JobHandler:
         for event in event_counters:
             run = event_runs[event]
             n += 1
-            counter = event_counters[event]
+            counter = str(1)
             if n == 1:
                 op = " > "
             else:

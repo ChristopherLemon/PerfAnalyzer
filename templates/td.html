@@ -13,9 +13,8 @@ Jobs can be submitted using any combination of mpi, lsf, and ssh. This allows a 
 
 <h3>Hardware Event Counters</h3>
 Jobs can be submitted to monitor an application using Linux perf events. By default, when multiple events are monitored, several runs may be performed. This is to prevent multiplexing of events, so that the resulting data
-can be easily understood. Different event counters are assigned to each event based on the estimated run time (provided by the user), and a crude estimate of the expected frequency of the event (not provided by the user). These
-event counters are therefore set appropriately for each event to avoid an excessively large sample data set, whilst obtaining enough samples to obtain statistically robust data within each function.
-If the approximate run time is not supplied by the user, the event counters will be set to a single value, which can be controlled by the <i>events per sample</i> parameter in the settings menu.
+can be easily understood. Events can be sampled by setting either a sampling period or a sampling frequency. In the case of a sampling frequency, the kernel automatically scales the sampling period to obtain the requested
+frequency. This makes it far simpler to control the number of samples collected, for events occurring at very different rates.
 
 <h3>Application Profiling</h3>
 In the standard mode a profile job is submitted by attaching perf to each process of the application. All threads will be monitored for each process of the application, and profiling data is obtained for

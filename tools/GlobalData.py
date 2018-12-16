@@ -9,7 +9,6 @@ event_groups = {}
 results_files = []
 available_events = {}
 available_settings = {}
-user_settings = {}
 job_settings = {}
 cpu = ""
 local_data = ""
