@@ -5,34 +5,34 @@ PerfAnalyzer is a browser based performance analysis tool which utilizes Linux p
 The PerfAnalyzer tool is designed for use with high performance codes: it can monitor all processes and 
 threads of an application, or it can monitor activity on each processor of the underlying system. Jobs can be submitted 
 using the Message Parsing Interface (MPI), queueing systems such as LSF, and SSH. This permits both local and
-remote profiling of an application, perhaps running on a cluster or a cloud server.
+remote profiling of an application, perhaps running on a cluster or a cloud server. Further details can be found in the Wiki
 
 
 
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Loop level flamegraph">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/hotspots.png" width="45%" title="Hotspots">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/loop.png" width="45%" title="Loop or line level flamegraph linked to source code analysis (using HPCTooKit database)">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/hotspots.png" width="45%" title="Ranked code hotspots">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/source.png" width="45%" title="Source code analysis">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/threads.png" width="45%" title="Thread selection">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/source.png" width="45%" title="Loop or line source code analysis (using HPCToolKit database)">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/threads.png" width="45%" title="Control over process and thread selection">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TraceView.jpg" width="45%" title="Flamegraph time trace">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TraceView.jpg" width="45%" title="Flamegraph of time trace profile">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/TimeLine.jpg" width="45%" title="Event time series">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diff.png" width="45%" title="Flamegraph difference plot">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diffplot.png" width="45%" title="Difference plot">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diff.png" width="45%" title="Flamegraph difference plot between multiple profiles">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/diffplot.png" width="45%" title="Ranked differences">
 </p>
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Screenshot from 2018-11-27 23-47-45.png" width="45%" title="Job submission">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/submit_page.png" width="45%" title="Submit perf Jobs, import perf / HPCToolKit data">
 <img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/Summary.png" width="45%" title="Run Summary">
 </p>
 
 <p>
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/custom.png" width="45%" title="Flamegraph for event ratio">
-<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/scatter.png" width="45%" title="Event Crossplots">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/custom.png" width="45%" title="Flamegraph of custom event ratios">
+<img src="https://github.com/ChristopherLemon/PerfAnalyzer/blob/master/Wiki/scatter.png" width="45%" title="Crossplots of event data">
 </p>
 
 # Setup
