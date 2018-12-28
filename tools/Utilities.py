@@ -9,10 +9,12 @@ from decimal import Decimal
 
 
 def get_datetime():
+    """Return current datetime"""
     return datetime.datetime.now()
 
 
 def get_datetime_diff(datetime1, datetime2):
+    """Return time difference between two datetimes"""
     delta = datetime1 - datetime2
     days = delta.days
     hours, remainder = divmod(delta.seconds, 3600)
@@ -21,11 +23,12 @@ def get_datetime_diff(datetime1, datetime2):
 
 
 def get_datetime_end(datetime, timedelta):
+    """Return end time from datetime and delta datetime"""
     return datetime + timedelta
 
 
 def timestamp(filename):
-# Time stamp file to prevent browser file caching
+    """Time stamp file to prevent browser file caching"""
     dt_stamp = time.strftime("%Y%m%d%H%M%S")
     f, par, ext = filename.partition(".")
     new_filename = f + dt_stamp + par + ext
@@ -33,7 +36,7 @@ def timestamp(filename):
 
 
 def purge(directory, *args):
-# Remove files matching pattern
+    """Remove files from directory matching specified pattern"""
     for f in os.listdir(directory):
         for pattern in args:
             if re.search(pattern, f):
@@ -41,26 +44,26 @@ def purge(directory, *args):
 
 
 def natural_sort(l, key=lambda x: x):
-# natural sort algorithm; for alphanumeric strings produced by applying the function, key, to elements of the list, l
-    convert = lambda text : int(text) if text.isdigit() else text
-    alphanum_key = lambda element : [ convert(c) for c in re.split('([0-9]+)', key(element))]
-  #  l.sort(key=alphanum_key)
+    """natural sort algorithm for alphanumeric strings"""
+    def convert(text): return int(text) if text.isdigit() else text
+
+    def alphanum_key(element): return [convert(c) for c in re.split('([0-9]+)', key(element))]
     lns = sorted(l, key=alphanum_key)
     return lns
 
 
 def round_sig(x, sig=2):
-# Round floating point number to the specified number of significnat digits
-    if (x > 0.0):
+    """Round floating point number to the specified number of significnat digits"""
+    if x > 0.0:
         return round(x, sig - int(floor(log10(x))) - 1)
-    elif (x < 0.0):
+    elif x < 0.0:
         return -round(-x, sig - int(floor(log10(-x))) - 1)
     else:
         return x
 
 
 def replace_operators(x):
-# Jinja2 filter to replace some html breaking characters
+    """Jinja2 filter to replace some html breaking characters"""
     x = re.sub(" ", "", x)
     x = re.sub("/", "div", x)
     x = re.sub("\+", "plus", x)
@@ -68,7 +71,7 @@ def replace_operators(x):
 
 
 def format_percentage(x):
-# Jinja2 filter to tidy up percentages
+    """Jinja2 filter to tidy up percentages"""
     y = float(x)
     if y >= 100.0:
         return int(100)
@@ -77,7 +80,7 @@ def format_percentage(x):
 
 
 def format_number(x):
-# Jinja2 context processor to display large numbers using scientific notation
+    """Jinja2 context processor to display large numbers using scientific notation"""
     y = float(x)
     if abs(y) >= 1000.0:
         y = '{0:.2E}'.format(Decimal(x))
@@ -87,10 +90,12 @@ def format_number(x):
 
 
 def abs_path_to_rel_path(abs_path, start):
-# Jinja2 context processor to get relative path to data folder from template folder
+    """Jinja2 context processor to get relative path to data folder from template folder"""
     return os.path.relpath(abs_path, start)
 
+
 def is_float(s):
+    """Check if value is float"""
     try:
         float(s)
         return True

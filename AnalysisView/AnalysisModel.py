@@ -12,7 +12,6 @@ class AnalysisModel:
         self.flamegraph_event_type = "original"
         self.analysis_type = analysis_type
         self.append_cluster_labels = False
-        self.cluster_analysis = "k-means"
         self.num_clusters = 11
         self.cluster_labels = []
         self.cluster_events = None
