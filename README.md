@@ -45,31 +45,47 @@ There are some dependencies on lxml, which are required to run within the python
     sudo apt-get install python-lxml  
     sudo apt-get install libxml2-dev libxslt-dev python3-dev  
 
-**Virtual Environment**
-For Python 3
+**Create Python 3 Virtual Environment**
 
-    virtualenv -p python3 perf_profiler
-    source ./perf_profiler/bin/activate
+    virtualenv -p python3 perf_analyzer
+    source ./perf_analyzer/bin/activate
     pip install -r requirements_linux_py36.txt
+    
+**Run in Python 3 environment**
+
+    python server.py
 
 **Build redistributable in linux_dist directory**
 
     pyinstaller --distpath linux_dist server.spec
+    
+**Run redistributable**
+
+    cd linux_dist/server
+    perf_analyzer
 
 The version of Glibc on the build machine should not exceed that on the machines to be run on.
 
 ## Windows Setup
 
-**Virtual Environment**
-For Python 3
+**Create Python 3 Virtual Environment**
 
-    virtualenv -p python3 perf_profiler
-    perf_profiler\Scripts\activate.bat
+    virtualenv -p python3 perf_analyzer
+    perf_analyzer\Scripts\activate.bat
     pip install -r requirements_py36.txt
+    
+**Run in Python 3 environment**
+
+    python server.py
 
 **Build redistributable in windows_dist directory**
 
     pyinstaller --distpath windows_dist server.spec
+    
+**Run redistributable**
+
+    cd windows_dist\server
+    perf_analyzer
 
 ## Perf Setup
 
