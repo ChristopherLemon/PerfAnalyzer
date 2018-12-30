@@ -169,7 +169,8 @@ def get_processes(path, results_files):  # Read processes from results files
     return processes
 
 
-def get_process_to_event_map(path, results_file):  # Get a process to event map, from a results file
+def get_process_to_event_map(path, results_file):
+    """Get a process to event map, from a single results file"""
     found = {}
     full_filename = os.path.join(path, results_file)
     with open(full_filename) as infile:
@@ -198,6 +199,26 @@ def get_jobs(results_files):
         jobs.append(job)
     jobs = natural_sort(jobs)
     return jobs
+
+
+def get_trace_jobs(path, results_files):
+    """Retrun jobs that contain trace profiles"""
+    found = []
+    for result_file in results_files:
+        full_filename = os.path.join(path, result_file)
+        job_name = result_file.partition(".results")[0]
+        with open(full_filename) as infile:
+            for line in infile:
+                if not (re.match("event_counter", line) or
+                        re.match("time_interval", line) or
+                        re.match("cpu_id", line) or
+                        re.match("system_wide", line)):
+                    match = re.match("(.*proc(all|[0-9]+))_(.*)", line.strip())
+                    event = match.group(3)
+                    if re.search("trace", event):
+                        found.append(job_name)
+                        break
+    return found
 
 
 def get_job_name(result_file):
@@ -276,7 +297,8 @@ def get_cpu(path, results_files):
 
 
 def get_results_info(path, results_files):
-    # Read processes from results file
+    """Read processes and events from results file. Return a map bewteen processes and job names,
+    and list of all raw perf events."""
     job_process_map = OrderedDict()
     processes = {}
     jobs = []

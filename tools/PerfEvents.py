@@ -265,6 +265,10 @@ class CpuDefinition:
         return {"general_analysis": general_analysis_enabled, "trace": trace_enabled, "events": events_enabled}
 
 
+def reset_enabled_modes():
+    return {"general_analysis": False, "trace": False, "events": False}
+
+
 def get_available_cpus():
     available_cpus = [cpu for cpu in event_definitions]
     return available_cpus

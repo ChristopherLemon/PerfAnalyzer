@@ -532,12 +532,6 @@ class StackData:
         self.stack_map = stack_map
         self.reset_cached_data()  # Reset events counts
 
-    def get_event_ids(self, event_name):
-        event_ids = []
-        for event_id in self.ordered_ids:
-            if event_id.event_name == event_name:
-                event_ids.append(event_id)
-
     def get_flamegraph_process_ids(self):
         return self.flamegraph_process_ids
 
@@ -656,67 +650,66 @@ class StackData:
         self.ordered_ids = natural_sort(self.ordered_ids, key=lambda process_id: process_id.label)
         self.all_jobs = natural_sort(self.all_jobs)
 
-
     def calculate_thread_percentages(self):
-        total_count = [0,0,0]
-        max_count1 = [0,0,0]
-        max_count2 = [0,0,0]
-        for id in self.ordered_ids:
-            task = id.task_id
-            pid = id.pid
-            tid = id.tid
-            event_type = id.event_type
-            id.count1 = self.initial_count[task][pid][tid][0]
-            id.count2 = self.initial_count[task][pid][tid][1]
+        total_count = [0, 0, 0]
+        max_count1 = [0, 0, 0]
+        max_count2 = [0, 0, 0]
+        for process_id in self.ordered_ids:
+            task = process_id.task_id
+            pid = process_id.pid
+            tid = process_id.tid
+            event_type = process_id.event_type
+            process_id.count1 = self.initial_count[task][pid][tid][0]
+            process_id.count2 = self.initial_count[task][pid][tid][1]
             if pid != "all" and tid != "all":
-                max_count1[0] = max(max_count1[0], id.count1)
-                max_count2[0] = max(max_count2[0], id.count2)
+                max_count1[0] = max(max_count1[0], process_id.count1)
+                max_count2[0] = max(max_count2[0], process_id.count2)
                 if event_type == "custom_event_ratio":
                     if self.data_view == "event":
-                        total_count[0] += id.count2
+                        total_count[0] += process_id.count2
                 else:
-                    total_count[0] += id.count1
+                    total_count[0] += process_id.count1
             elif pid != "all":
-                max_count1[1] = max(max_count1[1], id.count1)
-                max_count2[1] = max(max_count2[1], id.count2)
+                max_count1[1] = max(max_count1[1], process_id.count1)
+                max_count2[1] = max(max_count2[1], process_id.count2)
                 if event_type == "custom_event_ratio":
                     if self.data_view == "event":
-                        total_count[1] += id.count2
+                        total_count[1] += process_id.count2
                 else:
-                    total_count[1] += id.count1
+                    total_count[1] += process_id.count1
             else:
-                max_count1[2] = max(max_count1[2], id.count1)
-                max_count2[2] = max(max_count2[2], id.count2)
+                max_count1[2] = max(max_count1[2], process_id.count1)
+                max_count2[2] = max(max_count2[2], process_id.count2)
                 if event_type == "custom_event_ratio":
                     if self.data_view == "event":
-                        total_count[2] += id.count2
+                        total_count[2] += process_id.count2
                 else:
-                    total_count[2] += id.count1
-        for id in self.ordered_ids:
-            pid = id.pid
-            tid = id.tid
-            event_type = id.event_type
+                    total_count[2] += process_id.count1
+        for process_id in self.ordered_ids:
+            pid = process_id.pid
+            tid = process_id.tid
+            event_type = process_id.event_type
             if pid != "all" and tid != "all":
                 if event_type == "custom_event_ratio":
-                    id.total_percentage = 100.0 * float(id.count2) / float(total_count[0])
-                    id.max_percentage = 100.0 * float(id.count2) / float(max_count2[0])
+                    process_id.total_percentage = 100.0 * float(process_id.count2) / float(total_count[0])
+                    process_id.max_percentage = 100.0 * float(process_id.count2) / float(max_count2[0])
                 else:
-                    id.total_percentage = 100.0 * float(id.count1) / float(total_count[0])
-                    id.max_percentage = 100.0 * float(id.count1) / float(max_count1[0])
+                    process_id.total_percentage = 100.0 * float(process_id.count1) / float(total_count[0])
+                    process_id.max_percentage = 100.0 * float(process_id.count1) / float(max_count1[0])
             elif pid != "all":
                 if event_type == "custom_event_ratio":
-                    id.total_percentage = 100.0 * float(id.count2) / float(total_count[1])
-                    id.max_percentage = 100.0 * float(id.count2) / float(max_count2[1])
+                    process_id.total_percentage = 100.0 * float(process_id.count2) / float(total_count[1])
+                    process_id.max_percentage = 100.0 * float(process_id.count2) / float(max_count2[1])
                 else:
-                    id.total_percentage = 100.0 * float(id.count1) / float(total_count[1])
-                    id.max_percentage = 100.0 * float(id.count1) / float(max_count1[1])
+                    process_id.total_percentage = 100.0 * float(process_id.count1) / float(total_count[1])
+                    process_id.max_percentage = 100.0 * float(process_id.count1) / float(max_count1[1])
             else:
                 if event_type == "custom_event_ratio":
-                    id.total_percentage = 100.0 * float(id.count2) / float(total_count[2])
-                    id.max_percentage = 100.0 * float(id.count2) / float(max_count2[2])
+                    process_id.total_percentage = 100.0 * float(process_id.count2) / float(total_count[2])
+                    process_id.max_percentage = 100.0 * float(process_id.count2) / float(max_count2[2])
                 else:
-                    id.total_percentage = 100.0 * float(id.count1) / float(total_count[2])
-                    id.max_percentage = 100.0 * float(id.count1) / float(max_count1[2])
+                    process_id.total_percentage = 100.0 * float(process_id.count1) / float(total_count[2])
+                    process_id.max_percentage = 100.0 * float(process_id.count1) / float(max_count1[2])
 
     def get_system_wide_mode_enabled(self):
         return self.system_wide
@@ -881,9 +874,9 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
             pids = []
-            for id in ids:
-                if id.task_id == task_id:
-                    pids.append((id.pid, id.tid))
+            for process_id in ids:
+                if process_id.task_id == task_id:
+                    pids.append((process_id.pid, process_id.tid))
             if len(pids) > 0:
                 input_file = stack_data.tasks[task].filename + "_compressed"
                 fin = open(input_file, 'r')
@@ -952,9 +945,9 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
             pids = []
-            for id in ids:
-                if id.task_id == task_id:
-                    pids.append((id.pid, id.tid))
+            for process_id in ids:
+                if process_id.task_id == task_id:
+                    pids.append((process_id.pid, process_id.tid))
             if len(pids) > 0:
                 data[task_id] = OrderedDict()
                 input_file = stack_data.tasks[task].filename + "_compressed"
@@ -1001,9 +994,9 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
             event_type = stack_data.tasks[task].event_type
             job = stack_data.tasks[task].job
             pids = []
-            for id in ids:
-                if id.task_id == task_id:
-                    pids.append((id.pid, id.tid))
+            for process_id in ids:
+                if process_id.task_id == task_id:
+                    pids.append((process_id.pid, process_id.tid))
             if len(pids) > 0:
                 if event_type == output_event_type:
                     input_file = stack_data.tasks[task].filename + "_compressed"
@@ -1041,9 +1034,9 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
             pids = []
-            for id in ids:
-                if id.task_id == task_id:
-                    pids.append((id.pid, id.tid))
+            for process_id in ids:
+                if process_id.task_id == task_id:
+                    pids.append((process_id.pid, process_id.tid))
             if len(pids) > 0:
                 input_file = stack_data.tasks[task].filename + "_compressed"
                 fin = open(input_file, 'r')
@@ -1054,8 +1047,8 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                         if match:
                             p = match.group(2)
                             t = match.group(3)
-                            if (p,t) in pids:
-                                l = task_id + ";" + line
-                                f.write(l.encode())
+                            if (p, t) in pids:
+                                ll = task_id + ";" + line
+                                f.write(ll.encode())
                 fin.close()
         f.close()

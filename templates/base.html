@@ -86,7 +86,7 @@
                         <a href="#"><i class="fa fa-clock-o fa-fw"></i> Trace View <span class="fa arrow"></span></a>
                         <ul class="nav nav-second-level">
                             {% if enabled_modes["trace"] %}
-                                {% for job in jobs %}
+                                {% for job in trace_jobs %}
                                     <li>
                                         <a class="href_progress" href={{url_for("TraceView.trace_view",job=job)}}>{{job}}</a>
                                     </li>

@@ -80,6 +80,7 @@ def process_view():
     process_model.layout.footer = "Loaded Results: " + " & ".join(process_model.layout.results)
     return render_template('ProcessView.html',
                            events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                           trace_jobs=tools.GlobalData.trace_jobs,
                            event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=tools.GlobalData.jobs,

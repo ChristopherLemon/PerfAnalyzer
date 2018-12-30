@@ -253,16 +253,9 @@ class TraceData:
                                 self.trace_event_type = "counter"
                                 self.sample_weight = 1.0
                             task_id = process + "_" + event
-                            self.tasks[task_id] = ReadTraceTask(task_id,
-                                                                full_path,
-                                                                job,
-                                                                process_name,
-                                                                event,
-                                                                raw_event,
-                                                                event_type,
-                                                                counter,
-                                                                self.time_scale,
-                                                                self.sample_weight)
+                            self.tasks[task_id] = ReadTraceTask(task_id, full_path, job, process_name,
+                                                                event, raw_event, event_type, counter,
+                                                                self.time_scale, self.sample_weight)
 
     def read_data(self, start=-0.0000001, stop=sys.float_info.max, selected_ids=[], initialise=False):
         start = start
@@ -323,32 +316,32 @@ class TraceData:
     def calculate_thread_percentages(self):
         total_count = [0, 0, 0]
         max_count = [0, 0, 0]
-        for id in self.ordered_ids:
-            task = id.task_id
-            pid = id.pid
-            tid = id.tid
-            id.count1 = self.initial_count[task][pid][tid]
+        for process_id in self.ordered_ids:
+            task = process_id.task_id
+            pid = process_id.pid
+            tid = process_id.tid
+            process_id.count1 = self.initial_count[task][pid][tid]
             if pid != "all" and tid != "all":
-                max_count[0] = max(max_count[0], id.count1)
-                total_count[0] += id.count1
+                max_count[0] = max(max_count[0], process_id.count1)
+                total_count[0] += process_id.count1
             elif pid != "all":
-                max_count[1] = max(max_count[1], id.count1)
-                total_count[1] += id.count1
+                max_count[1] = max(max_count[1], process_id.count1)
+                total_count[1] += process_id.count1
             else:
-                max_count[2] = max(max_count[2], id.count1)
-                total_count[2] += id.count1
-        for id in self.ordered_ids:
-            pid = id.pid
-            tid = id.tid
+                max_count[2] = max(max_count[2], process_id.count1)
+                total_count[2] += process_id.count1
+        for process_id in self.ordered_ids:
+            pid = process_id.pid
+            tid = process_id.tid
             if pid != "all" and tid != "all":
-                id.total_percentage = 100.0 * float(id.count1) / float(total_count[0])
-                id.max_percentage = 100.0 * float(id.count1) / float(max_count[0])
+                process_id.total_percentage = 100.0 * float(process_id.count1) / float(total_count[0])
+                process_id.max_percentage = 100.0 * float(process_id.count1) / float(max_count[0])
             elif pid != "all":
-                id.total_percentage = 100.0 * float(id.count1) / float(total_count[1])
-                id.max_percentage = 100.0 * float(id.count1) / float(max_count[1])
+                process_id.total_percentage = 100.0 * float(process_id.count1) / float(total_count[1])
+                process_id.max_percentage = 100.0 * float(process_id.count1) / float(max_count[1])
             else:
-                id.total_percentage = 100.0 * float(id.count1) / float(total_count[2])
-                id.max_percentage = 100.0 * float(id.count1) / float(max_count[2])
+                process_id.total_percentage = 100.0 * float(process_id.count1) / float(total_count[2])
+                process_id.max_percentage = 100.0 * float(process_id.count1) / float(max_count[2])
 
     def generate_timelines(self, t1=-0.0000001, t2=sys.maxsize):
         if t1 >= 0.0 and t2 < sys.maxsize:
@@ -370,7 +363,7 @@ class TraceData:
                 for tid in self.trace_data[task_id][pid]:
                     if tid not in self.timelines[task_id][pid]:
                         self.timelines[task_id][pid][tid] = ["no_samples"] * self.timeline_intervals
-                    max_node = [-1.0 for i in range(self.timeline_intervals)]
+                    max_node = [-1.0] * self.timeline_intervals
                     for time_slice in self.trace_data[task_id][pid][tid]:
                         for time_slice_interval in time_slice:
                             trace = time_slice_interval["stack"]
@@ -403,9 +396,9 @@ class TraceData:
         found = False
         function_regex = re.compile(function_name + "_\[\[call_" + str(m) + "\]\]")
         exit_regex = re.compile(function_name + "_\[\[call_" + str(p) + "\]\]")
-        for id in self.selected_ids:
-            if id.pid == pid and id.tid == tid:
-                task_id = id.task_id
+        for process_id in self.selected_ids:
+            if process_id.pid == pid and process_id.tid == tid:
+                task_id = process_id.task_id
                 for time_index, time_slice in enumerate(self.trace_data[task_id][pid][tid]):
                     if forwards and time_index >= int(t1) or not forwards and time_index <= int(t2):
                         for i in range(0, len(time_slice)):
@@ -588,9 +581,9 @@ class TraceData:
         ids = self.get_all_process_ids()
         for task_id in self.tasks:
             pids = []
-            for id in ids:
-                if id.task_id == task_id:
-                    pids.append((id.pid, id.tid))
+            for process_id in ids:
+                if process_id.task_id == task_id:
+                    pids.append((process_id.pid, process_id.tid))
             for pid, tid in pids:
                 for time_index, time_slice in enumerate(self.trace_data[task_id][pid][tid]):
                     if int(t1) <= time_index <= int(t2) and len(time_slice) > 0:
@@ -615,9 +608,9 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
         for task_id in stack_data.tasks:
             sample_weight = stack_data.tasks[task_id].sample_weight
             pids = []
-            for id in ids:
-                if id.task_id == task_id:
-                    pids.append((id.pid, id.tid))
+            for process_id in ids:
+                if process_id.task_id == task_id:
+                    pids.append((process_id.pid, process_id.tid))
             for pid, tid in pids:
                 previous_x2 = t1
                 if pid not in collapsed_stacks:
@@ -670,9 +663,9 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
         for task_id in stack_data.tasks:
             sample_weight = stack_data.tasks[task_id].sample_weight
             pids = []
-            for id in ids:
-                if id.task_id == task_id:
-                    pids.append((id.pid, id.tid))
+            for process_id in ids:
+                if process_id.task_id == task_id:
+                    pids.append((process_id.pid, process_id.tid))
             for pid, tid in pids:
                 previous_x2 = t1
                 for time_index, time_slice in enumerate(stack_data.trace_data[task_id][pid][tid]):
@@ -723,9 +716,9 @@ def write_timelines(stack_data):
     for task in stack_data.tasks:
         task_id = stack_data.tasks[task].task_id
         pids = []
-        for id in ids:
-            if id.task_id == task_id:
-                pids.append((id.pid, id.tid))
+        for process_id in ids:
+            if process_id.task_id == task_id:
+                pids.append((process_id.pid, process_id.tid))
         for pid, tid in pids:
             prev_stack = stack_data.timelines[task][pid][tid][0]
             count = 0

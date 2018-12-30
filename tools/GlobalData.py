@@ -4,6 +4,7 @@ hpc_results = []
 results_files = []
 jobs = []
 processes = []
+trace_jobs = []
 event_group_map = {}
 event_groups = {}
 results_files = []
@@ -14,7 +15,6 @@ cpu = ""
 local_data = ""
 root_directory = ""
 perf_events = ""
-enabled_modes = {"roofline_analysis": False,
-                 "general_analysis": False}
+enabled_modes = {}
 debug = False
 n_proc = 4

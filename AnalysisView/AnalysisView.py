@@ -117,6 +117,7 @@ def general_analysis():
     ids = all_stack_data[base_event].get_all_process_ids()
     return render_template('AnalysisView.html',
                            events=events,
+                           trace_jobs=tools.GlobalData.trace_jobs,
                            event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=tools.GlobalData.jobs,

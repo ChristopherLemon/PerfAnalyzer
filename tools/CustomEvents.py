@@ -30,31 +30,30 @@ def create_composite_event_stack(stack_data, results_files):
         filenames = ["", ""]
         full_filename = os.path.join(stack_data.path, results_file)
         job = get_job_name(results_file)
-        found = get_process_to_event_map(stack_data.path, results_file)
+        found = get_process_to_event_map(stack_data.path, results_file)  # get all events for each process
         all_events = []
         for name in found:
             all_events += found[name]
-        if raw_event not in all_events:
+        if raw_event not in all_events:  # exit if composite event already exists for this job
+            event1, event2 = split_raw_event(raw_event, stack_data.cpu_definition)
+            if event1 not in all_events or event2 not in all_events:  # skip if job does not contain both events
+                continue
             for name in found:
-                event1, event2 = split_raw_event(raw_event, stack_data.cpu_definition)
                 counter1 = get_composite_event_counter(event1, stack_data.event_counters[job])
-                counter2 = get_composite_event_counter(event2, stack_data.event_counters[job])
                 if is_clock_event(event1) or is_clock_event(event2):
-                    # scale1 * counter1 / scale2 * counter2 -> Seconds per event
-                    if is_clock_event(event1):
-                        scale2 = counter2 * counter1  # multiply event2 counts by event1 frequency (Hz)
+                    if is_clock_event(event1):  # unit of ratio is seconds per event
+                        scale2 = counter1  # multiply event2 event period by event1 frequency (Hz)
                     else:
                         scale2 = 1  # events
-                    # scale1 * counter1 / scale2 * counter2 -> events per second
-                    if is_clock_event(event2):
-                        scale1 = counter1 * counter2  # multiply event1 counts by event2 frequency (Hz)
+                    if is_clock_event(event2):  # unit of ratio is events per second
+                        scale1 = counter1  # multiply event1 event period by event2 frequency (Hz)
                     else:
                         scale1 = 1
                     counter = 1
                 else:
-                    counter = min(counter1, counter2)  # lowest common factor
-                    scale1 = counter1 // counter
-                    scale2 = counter2 // counter
+                    counter = counter1  # Both counters equal
+                    scale1 = 1
+                    scale2 = 1
                 data = OrderedDict()
                 filenames[0] = name + "_" + event1
                 filenames[1] = name + "_" + event2
