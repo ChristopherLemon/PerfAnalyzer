@@ -1,6 +1,7 @@
 import os
 from tools.Utilities import round_sig
 
+
 def get_lines(frame, hpc_results):
     frames = hpc_results.get_frames()
     if frame in frames:
@@ -65,11 +66,9 @@ def get_percentages(stacks_data, frame, hpc_results):
             line_percentages[line_num] = 100.0 * float(line_counts[line_num]) / total
         return line_percentages, ratios
 
+
 def generate_empty_table():
-    table_html = []
-    table_html.append("<table>")
-    table_html.append("<thead>")
-    table_html.append("<tr>")
+    table_html = ["<table>", "<thead>", "<tr>"]
     table_html += ["<th>Line</th>", "<th>Source Code</th>", "<th>Event Count</th>", "<th>Percentage of Total</th>"]
     table_html.append("</tr>")
     table_html.append("</thead>")
@@ -88,10 +87,7 @@ def generate_source_code_table(stacks_data, frame, hpc_results):
     base_case_id = stacks_data.get_base_case_id()
     source_lines = get_lines(frame, hpc_results)
     line_percentages, line_counts = get_percentages(stacks_data, frame, hpc_results)
-    table_html = []
-    table_html.append("<table>")
-    table_html.append("<thead>")
-    table_html.append("<tr>")
+    table_html = ["<table>", "<thead>", "<tr>"]
     if base_case_id.event_type == "original":
         table_html += ["<th>Line</th>", "<th>Source Code</th>", "<th>Event Count</th>", "<th>Percentage of Total</th>"]
     else:

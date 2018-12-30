@@ -87,20 +87,21 @@ class ChartWriter:
         self.significant = 0.05
         self.hotspot_map = {}
 
-    def generate_empty_chart(self):
+    @staticmethod
+    def generate_empty_chart():
         xy_chart = pygal.XY(x_title="", y_title="", style=custom_style_barchart)
         xy_chart.title = 'Perf Data'
         return xy_chart
 
     def generate_timechart(self, stack_data, user_minx, user_maxx, title="", event_type="all"):
-# Create plot of event count rate as a function of time
+        """Create plot of event count rate as a function of time"""
         xt = 'Time (s)'
         xy_chart = pygal.XY(x_title=xt,
                             style=custom_style_timechart,
                             truncate_label=5,
                             x_label_rotation=25,
                             height=500,
-                            value_formatter=lambda x: format_number(x),
+                            value_formatter=lambda val: format_number(val),
                             show_legend=False)
         xy_chart.title = title
         miny = sys.float_info.max
@@ -120,9 +121,9 @@ class ChartWriter:
             if event_type == chart_type or event_type == "all":
                 nseries += 1
                 x, y = self.restrict_xy(stack_data.X[task_id][pid][tid],
-                                     stack_data.Y[task_id][pid][tid],
-                                     user_minx,
-                                     user_maxx)
+                                        stack_data.Y[task_id][pid][tid],
+                                        user_minx,
+                                        user_maxx)
                 for yval in y:
                     miny = min(miny, yval)
                     maxy = max(maxy, yval)
@@ -133,7 +134,7 @@ class ChartWriter:
             return self.generate_empty_chart()
 
     def generate_scatter_plot(self, stack_data, event1, event2, title="", event_type="all"):
-# Create 2-D scatterplot of event 1 vs event 2
+        """Create 2-D scatterplot of event 1 vs event 2"""
         yt = event1
         xt = event2
         xy_chart = pygal.XY(x_title=xt,
@@ -142,7 +143,7 @@ class ChartWriter:
                             truncate_label=5,
                             x_label_rotation=25,
                             height=500,
-                            value_formatter=lambda x: format_number(x),
+                            value_formatter=lambda val: format_number(val),
                             show_legend=False)
         xy_chart.title = title
         ids = stack_data.get_flamegraph_process_ids()
@@ -211,10 +212,10 @@ class ChartWriter:
         else:
             return self.generate_empty_chart()
 
-
-    def generate_cluster_plot(self, analysis_data, process_list, raw_event1, raw_event2, centred, yt="", xt="", title="", xlower=None, ylower=None, xupper=None, yupper=None):
-# Create 2-D scatterplot of event1 vs event 2 - generalisation of roofline plot
-       # colours = get_cluster_plot_colours()
+    def generate_cluster_plot(self, analysis_data, process_list, raw_event1, raw_event2, centred, yt="", xt="",
+                              title="", xlower=None, ylower=None, xupper=None, yupper=None):
+        """Create 2-D scatterplot of event1 vs event 2.
+        Colours of points are determined from the ratio of event1 / event2"""
         colours = get_top_ten_colours()
         data = analysis_data.get_cluster_data()
         cluster_labels = analysis_data.get_cluster_labels()
@@ -270,11 +271,13 @@ class ChartWriter:
             yr = max(abs(miny), abs(maxy))
             xrange = (-xr, xr)
             yrange = (-yr, yr)
-            xy_chart = pygal.XY(xrange=xrange, range=yrange, x_title=xt, y_title=yt, style=custom_style_timechart, truncate_label=5,
-                                x_label_rotation=25, height=500, value_formatter=lambda x: format_number(x), show_legend=False)
+            xy_chart = pygal.XY(xrange=xrange, range=yrange, x_title=xt, y_title=yt,
+                                style=custom_style_timechart, truncate_label=5, x_label_rotation=25,
+                                height=500, value_formatter=lambda val: format_number(val), show_legend=False)
         else:
             xy_chart = pygal.XY(x_title=xt, y_title=yt, style=custom_style_timechart,
-                                truncate_label=5,  x_label_rotation=25, height=500, value_formatter=lambda x: format_number(x), show_legend=False)
+                                truncate_label=5,  x_label_rotation=25, height=500,
+                                value_formatter=lambda val: format_number(val), show_legend=False)
         xy_chart.title = title
         for i in range(nc, -2, -1):
             if i < 0:
@@ -288,16 +291,17 @@ class ChartWriter:
         else:
             return self.generate_empty_chart()
 
-
-    def generate_hotspot_scatter_plot(self, analysis_data, process_list, reference_process, reference_id, raw_event1, raw_event2, centred, yt="", xt="", title="", xlower=None,
-                              ylower=None, xupper=None, yupper=None):
-        # Create 2-D scatterplot of event1 vs event 2 - generalisation of roofline plot
+    def generate_hotspot_scatter_plot(self, analysis_data, process_list, reference_process, reference_id,
+                                      raw_event1, raw_event2, centred, yt="", xt="", title="", xlower=None,
+                                      ylower=None, xupper=None, yupper=None):
+        """Create 2-D scatterplot of event1 vs event 2.
+        Colours of points are determined by hotspots for reference event"""
         base_case_id = None
         stack_data = analysis_data.all_stack_data[reference_process]
         ids = stack_data.get_all_process_ids()
-        for id in ids:
-            if reference_id == id.label:
-                base_case_id = id
+        for process_id in ids:
+            if reference_id == process_id.label:
+                base_case_id = process_id
         if not base_case_id:
             return self.generate_empty_chart()
         x_data = stack_data.get_original_event_stack_data(base_case_id)
@@ -358,7 +362,8 @@ class ChartWriter:
                             i = colours.index(colour) + 1
                             plot_data[i].append({'value': (xi, yi), 'label': label, 'color': colour})
                         else:
-                            plot_data[0].append({'value': (xi, yi), 'label': label, 'color': default_color, 'opacity': 0.2})
+                            plot_data[0].append({'value': (xi, yi), 'label': label, 'color': default_color,
+                                                 'opacity': 0.2})
 
         if len(plot_data[0]) > 0:
             nmax = 20 * self.max_points
@@ -370,12 +375,12 @@ class ChartWriter:
             yrange = (-yr, yr)
             xy_chart = pygal.XY(xrange=xrange, range=yrange, x_title=xt, y_title=yt, style=custom_style_timechart,
                                 truncate_label=5,
-                                x_label_rotation=25, height=500, value_formatter=lambda x: format_number(x),
+                                x_label_rotation=25, height=500, value_formatter=lambda val: format_number(val),
                                 show_legend=False)
         else:
             xy_chart = pygal.XY(x_title=xt, y_title=yt, style=custom_style_timechart,
                                 truncate_label=5, x_label_rotation=25, height=500,
-                                value_formatter=lambda x: format_number(x), show_legend=False)
+                                value_formatter=lambda val: format_number(val), show_legend=False)
         xy_chart.title = title
         for i in range(0, len(plot_data)):
             if i == 0:
@@ -389,19 +394,20 @@ class ChartWriter:
         else:
             return self.generate_empty_chart()
 
-    def generate_horizontal_stacked_bar_chart(self, stack_data, number_to_rank=20, title=""):
-# Create horizontal stacked bar chart/table of top hotspots, including min/mean/max accross all processes,
-# for each loaded job
+    @staticmethod
+    def generate_horizontal_stacked_bar_chart(stack_data, number_to_rank=20, title=""):
+        """Create horizontal stacked bar chart/table of top hotspots, including min/mean/max accross all processes,
+        for each loaded job"""
         chart = pygal.HorizontalStackedBar(style=custom_style_hotspots,
                                            truncate_label=5,
                                            x_label_rotation=25,
                                            height=500,
-                                           value_formatter=lambda x: format_number(x),
+                                           value_formatter=lambda val: format_number(val),
                                            show_legend=False)
         chart.title = title
         base_case_id = stack_data.get_base_case_id()
-        type = stack_data.tasks[base_case_id.task_id].event_type
-        if type == "original":
+        event_type = stack_data.tasks[base_case_id.task_id].event_type
+        if event_type == "original":
             x_data = stack_data.get_original_event_stack_data(base_case_id)
             x = {}
             for stack in x_data:
@@ -522,7 +528,7 @@ class ChartWriter:
                                                  truncate_label=5,
                                                  x_label_rotation=25,
                                                  height=500,
-                                                 value_formatter=lambda x: format_number(x),
+                                                 value_formatter=lambda val: format_number(val),
                                                  show_legend=False)
         for v in sorted_vals[0:n_sorted]:
             s = v[0]
@@ -540,7 +546,7 @@ class ChartWriter:
         return chart, chart_table
 
     def generate_bar_chart(self, stack_data, title="", output_event_type="any"):
-# Create simplebar chart/table for custom event ratio
+        """Create simple bar chart/table for custom event ratio"""
         xt = 'Process\Thread\Event'
         chart = pygal.Bar(x_title=xt,
                           style=custom_style_barchart,
@@ -569,7 +575,7 @@ class ChartWriter:
                         nseries += 1
                         x_labels.append(label)
                         data.append({'value': totals[task_id][pid][tid], 'label': label})
-        chart.add("Total Event Count",data)
+        chart.add("Total Event Count", data)
         chart.x_labels = x_labels
         if nseries > 0:
             return chart
@@ -577,7 +583,7 @@ class ChartWriter:
             return self.generate_empty_chart()
 
     def generate_bar_chart_multiple_jobs(self, all_stack_data, process_list, title="", output_event_type="any"):
-        # Create simplebar chart/table for custom event ratio
+        """Create simple bar chart/table for custom event ratio when there are multiple profiles loaded"""
         xt = 'Process\Thread\Event'
         chart = pygal.Bar(x_title=xt,
                           style=custom_style_barchart,
@@ -632,15 +638,16 @@ class ChartWriter:
         else:
             return self.generate_empty_chart()
 
-    def generate_vertical_stacked_bar_chart(self, stack_data, number_to_rank=11, title="", output_event_type="any", write_colourmap=False):
-# Create vertical stacked bar chart\table for the functions with the largest contributions (according to the base
-# case) to the total event count
+    def generate_vertical_stacked_bar_chart(self, stack_data, number_to_rank=11, title="",
+                                            output_event_type="any", write_colourmap=False):
+        """Create vertical stacked bar chart\table for the functions with the largest contributions
+        (according to the reference case) to the total event count."""
         chart = pygal.StackedBar(style=custom_style_barchart,
                                  truncate_label=5,
                                  x_label_rotation=25,
                                  height=500,
                                  show_legend=False,
-                                 value_formatter=lambda x: format_number(x),
+                                 value_formatter=lambda val: format_number(val),
                                  stack_from_top=True)
         chart.title = title
         ids = stack_data.get_selected_process_ids()
@@ -654,7 +661,7 @@ class ChartWriter:
                     x[node] = 0.0
                 x[node] += x_data[stack]
             sorted_vals = sorted(x.items(), key=operator.itemgetter(1), reverse=True)
-        else: # custom event ratio
+        else:  # custom event ratio
             x_data, y_data = stack_data.get_custom_event_ratio_stack_data(base_case_id)
             x = {}
             for stack in x_data:
@@ -698,7 +705,7 @@ class ChartWriter:
                                     x[node] = 0.0
                                 x[node] += x_data[stack]
                             vals = x
-                        else: # custom event ratio
+                        else:  # custom event ratio
                             x_data, y_data = stack_data.get_custom_event_ratio_stack_data(process_id)
                             x = {}
                             for stack in x_data:
@@ -754,24 +761,26 @@ class ChartWriter:
         else:
             return self.generate_empty_chart()
 
-    def generate_vertical_stacked_bar_chart_multiple_jobs(self, all_stack_data, process_list, reference_process, reference_id, number_to_rank=11, title="",
-                                            output_event_type="any", write_colourmap=False):
-        # Create vertical stacked bar chart\table for the functions with the largest contributions (according to the base
-        # case) to the total event count
+    def generate_vertical_stacked_bar_chart_multiple_jobs(self, all_stack_data, process_list, reference_process,
+                                                          reference_id, number_to_rank=11, title="",
+                                                          output_event_type="any", write_colourmap=False):
+        """Create vertical stacked bar chart\table for the functions with the largest contributions
+        (according to the reference case) to the total event count.
+        Works with multiple profiles loaded."""
         chart = pygal.StackedBar(style=custom_style_barchart,
                                  truncate_label=5,
                                  x_label_rotation=25,
                                  height=500,
                                  show_legend=False,
-                                 value_formatter=lambda x: format_number(x),
+                                 value_formatter=lambda val: format_number(val),
                                  stack_from_top=True)
         chart.title = title
         base_case_id = None
         stack_data = all_stack_data[reference_process]
         ids = stack_data.get_all_process_ids()
-        for id in ids:
-            if reference_id == id.label:
-                base_case_id = id
+        for process_id in ids:
+            if reference_id == process_id.label:
+                base_case_id = process_id
         if not base_case_id:
             return self.generate_empty_chart()
 
@@ -908,8 +917,8 @@ class ChartWriter:
             return self.generate_empty_chart()
 
     def generate_vertical_stacked_bar_chart_diff(self, stack_data, number_to_rank=10, title=""):
-# Create vertical stacked bar chart\table for the functions with the biggest positive/negative differences
-# compared to base case
+        """Create vertical stacked bar chart\table for the functions with the biggest positive/negative differences
+        compared to the reference case"""
         ids = stack_data.get_selected_process_ids()
         base_case_id = stack_data.get_base_case_id()
         base_case_task_id = base_case_id.task_id
@@ -918,6 +927,20 @@ class ChartWriter:
         base_case_other = stack_data.totals[base_case_task_id][base_case_pid][base_case_tid]
         x_data = stack_data.get_original_event_stack_data(base_case_id)
         base_case_x = {}
+
+        def plot_data_sort(xi, max_value):
+            # To match data order to order used in pygal:
+            # Sort from largest +ve to smallest +ve, then from largest -ve to smallest -ve
+            val = 0.0
+            for xi_key in xi[1]:
+                if xi[1][xi_key] > 0.0:
+                    val = max(xi[1][xi_key], val)
+                elif xi[1][xi_key] < 0.0:
+                    val = - max(abs(xi[1][xi_key]), abs(val))
+            if val < 0.0:
+                val = - (max_value + val)
+            return val
+
         for stack in x_data:
             node = stack.rpartition(";")[2]
             if node not in base_case_x:
@@ -929,7 +952,6 @@ class ChartWriter:
         top_nodes = []
         bottom_nodes = []
         max_total = 0.0
-        max_label = ""
         for process_id in [proc_id for proc_id in ids if proc_id.label != base_case_id.label]:
             x_data = stack_data.get_original_event_stack_data(process_id)
             x = {}
@@ -942,7 +964,6 @@ class ChartWriter:
                 total += x_data[stack]
             if total > max_total:
                 max_total = total
-                max_label = process_id.label
             deltas = OrderedDict()
             for s in x:
                 deltas[s] = x[s]
@@ -962,7 +983,7 @@ class ChartWriter:
                     bottom_nodes.append(s)
         totals = stack_data.get_totals()
         for process_id in [proc_id for proc_id in ids if proc_id.label != base_case_id.label]:
-            label = process_id.label
+            unique_label = process_id.label
             task_id = process_id.task_id
             pid = process_id.pid
             tid = process_id.tid
@@ -971,7 +992,7 @@ class ChartWriter:
             if pid in totals[task_id]:
                 if tid in totals[task_id][pid]:
                     n_events += 1
-                    x_labels.append(label)
+                    x_labels.append(unique_label)
                     other = totals[task_id][pid][tid] - base_case_other
                     x_data = stack_data.get_original_event_stack_data(process_id)
                     x = {}
@@ -994,54 +1015,41 @@ class ChartWriter:
                             plot_data[s + ": negative diff"] = OrderedDict()
                         if s in deltas:
                             if deltas[s] >= 0.0:
-                                plot_data[s + ": positive diff"][label] = deltas[s]
-                                plot_data[s + ": negative diff"][label] = 0.0
-                                other -= plot_data[s + ": positive diff"][label]
+                                plot_data[s + ": positive diff"][unique_label] = deltas[s]
+                                plot_data[s + ": negative diff"][unique_label] = 0.0
+                                other -= plot_data[s + ": positive diff"][unique_label]
                             else:
-                                plot_data[s + ": positive diff"][label] = 0.0
-                                plot_data[s + ": negative diff"][label] = deltas[s]
-                                other -= plot_data[s + ": negative diff"][label]
+                                plot_data[s + ": positive diff"][unique_label] = 0.0
+                                plot_data[s + ": negative diff"][unique_label] = deltas[s]
+                                other -= plot_data[s + ": negative diff"][unique_label]
                         else:
-                            plot_data[s + ": positive diff"][label] = 0.0
-                            plot_data[s + ": negative diff"][label] = 0.0
+                            plot_data[s + ": positive diff"][unique_label] = 0.0
+                            plot_data[s + ": negative diff"][unique_label] = 0.0
                     for s in bottom_nodes:
                         if s + ": positive diff" not in plot_data:
                             plot_data[s + ": positive diff"] = OrderedDict()
                             plot_data[s + ": negative diff"] = OrderedDict()
                         if s in deltas:
                             if deltas[s] >= 0.0:
-                                plot_data[s + ": positive diff"][label] = deltas[s]
-                                plot_data[s + ": negative diff"][label] = 0.0
-                                other -= plot_data[s + ": positive diff"][label]
+                                plot_data[s + ": positive diff"][unique_label] = deltas[s]
+                                plot_data[s + ": negative diff"][unique_label] = 0.0
+                                other -= plot_data[s + ": positive diff"][unique_label]
                             else:
-                                plot_data[s + ": positive diff"][label] = 0.0
-                                plot_data[s + ": negative diff"][label] = deltas[s]
-                                other -= plot_data[s + ": negative diff"][label]
+                                plot_data[s + ": positive diff"][unique_label] = 0.0
+                                plot_data[s + ": negative diff"][unique_label] = deltas[s]
+                                other -= plot_data[s + ": negative diff"][unique_label]
                         else:
-                            plot_data[s + ": positive diff"][label] = 0.0
-                            plot_data[s + ": negative diff"][label] = 0.0
+                            plot_data[s + ": positive diff"][unique_label] = 0.0
+                            plot_data[s + ": negative diff"][unique_label] = 0.0
                     if "other" + ": positive diff" not in plot_data:
                         plot_data["other" + ": positive diff"] = OrderedDict()
                         plot_data["other" + ": negative diff"] = OrderedDict()
                     if other >= 0.0:
-                        plot_data["other" + ": positive diff"][label] = other
-                        plot_data["other" + ": negative diff"][label] = 0.0
+                        plot_data["other" + ": positive diff"][unique_label] = other
+                        plot_data["other" + ": negative diff"][unique_label] = 0.0
                     else:
-                        plot_data["other" + ": positive diff"][label] = 0.0
-                        plot_data["other" + ": negative diff"][label] = other
-
-                def plot_data_sort(xi, max_total):
-                    # To match data order to order used in pygal:
-                    # Sort from largest +ve to smallest +ve, then from largest -ve to smallest -ve
-                    val = 0.0
-                    for label in xi[1]:
-                        if xi[1][label] > 0.0:
-                            val = max(xi[1][label], val)
-                        elif xi[1][label] < 0.0:
-                            val = - max(abs(xi[1][label]), abs(val))
-                    if val < 0.0:
-                        val = - (max_total + val)
-                    return val
+                        plot_data["other" + ": positive diff"][unique_label] = 0.0
+                        plot_data["other" + ": negative diff"][unique_label] = other
 
                 plot_data = OrderedDict(
                     sorted(plot_data.items(), key=lambda xi: plot_data_sort(xi, max_total), reverse=True))
@@ -1076,7 +1084,7 @@ class ChartWriter:
                                  x_label_rotation=25,
                                  height=500,
                                  show_legend=False,
-                                 value_formatter=lambda x: format_number(x),
+                                 value_formatter=lambda val: format_number(val),
                                  stack_from_top=True)
         chart.title = title
 
@@ -1134,15 +1142,15 @@ class ChartWriter:
             return self.generate_empty_chart()
 
     def restrict_xy(self, x, y, xmin, xmax):
-# Restrict number of points viewed in timeline - so that resolution increases sensibly when zooming into
-# a narrower time interval
+        """Restrict number of points viewed in timeline - so that resolution increases sensibly when zooming into
+        a narrower time interval"""
         xc = []
         yc = []
         for i in range(0, len(x)):
             xi = x[i]
             yi = y[i]
             if xi > 0.0:
-                if xi >= xmin and xi <= xmax:
+                if xmin <= xi <= xmax:
                     xc.append(xi)
                     yc.append(yi)
         while len(xc) > self.max_points:
@@ -1157,7 +1165,7 @@ class ChartWriter:
 
         return xc, yc
 
-    def restrict_scatter_multiple(self,plot_data,xmin,xmax,ymin,ymax):
+    def restrict_scatter_multiple(self, plot_data, xmin, xmax, ymin, ymax):
         total_points = 0
         for i in plot_data:
             total_points += len(plot_data[i])
@@ -1165,11 +1173,11 @@ class ChartWriter:
             nscatter = len(plot_data)
             nmax = 40 * self.max_points / nscatter
             for i in plot_data:
-                plot_data[i] = self.restrict_scatter(plot_data[i],xmin,xmax,ymin,ymax,nmax)
+                plot_data[i] = self.restrict_scatter(plot_data[i], xmin, xmax, ymin, ymax, nmax)
         return plot_data
 
-    def restrict_scatter(self,plot_data,xmin,xmax,ymin,ymax,nmax):
-# Restrict number of points viewed in scatter plots
+    def restrict_scatter(self,plot_data, xmin, xmax, ymin, ymax, nmax):
+        """Restrict number of points viewed in scatter plots"""
         if len(plot_data) > nmax:
             reduced_data = []
             for point in plot_data:

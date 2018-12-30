@@ -4,12 +4,15 @@ import operator
 
 
 def generate_run_summary_table(cpu_definition, event_counters, run_numbers, run_durations, run_parameters):
+    """Return raw html table with run summary data"""
     table_html = []
     for job in event_counters:
         table_html.append("<table>")
         table_html.append("<thead>")
         table_html.append("<tr>")
-        table_html += ["<th>" + job + " Events" "</th>", "<th>Perf Event</th>", "<th>Events Per Sample</th>", "<th>Run Number</th>", "<th>Run Duration (S)</th>", "<th>CPU</th>", "<th>System Wide Profiling</th>", "<th>Time Interval (S)</th>"]
+        table_html += ["<th>" + job + " Events" "</th>", "<th>Perf Event</th>", "<th>Events Per Sample</th>",
+                       "<th>Run Number</th>", "<th>Run Duration (S)</th>", "<th>CPU</th>",
+                       "<th>System Wide Profiling</th>", "<th>Time Interval (S)</th>"]
         table_html.append("</tr>")
         table_html.append("</thead>")
         runs = sorted(run_numbers[job].items(), key=operator.itemgetter(1))

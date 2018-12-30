@@ -12,11 +12,10 @@ layout = {}
 
 SettingsView = Blueprint('SettingsView', __name__, template_folder='templates', static_folder='static')
 
+
 @SettingsView.route('/settings', methods=['GET', 'POST'])
 def settings():
-# Update profiler settings
-    global jobs
-    global processes
+    """Update profiler settings"""
     global status
     global layout
     status = "CPU: " + tools.GlobalData.job_settings["cpu"]
@@ -64,14 +63,14 @@ def settings():
                            event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                            selected_cpu_events=tools.GlobalData.selected_cpu_definition.get_available_events(),
-                           selected_cpu_event_group_map=tools.GlobalData.selected_cpu_definition.get_available_event_group_map(),
+                           selected_cpu_event_group_map=
+                           tools.GlobalData.selected_cpu_definition.get_available_event_group_map(),
                            selected_cpu_event_groups=tools.GlobalData.selected_cpu_definition.get_event_groups(),
                            jobs=tools.GlobalData.jobs,
                            processes=tools.GlobalData.processes,
                            enabled_modes=tools.GlobalData.enabled_modes,
                            job_settings=tools.GlobalData.job_settings,
                            available_cpus=get_available_cpus(),
-                           weights = get_event_weights(),
                            event_definitions=tools.GlobalData.selected_cpu_definition.get_event_definitions())
 
 
@@ -88,18 +87,18 @@ def update_cpu():
                            event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                            selected_cpu_events=tools.GlobalData.selected_cpu_definition.get_available_events(),
-                           selected_cpu_event_group_map=tools.GlobalData.selected_cpu_definition.get_available_event_group_map(),
+                           selected_cpu_event_group_map=
+                           tools.GlobalData.selected_cpu_definition.get_available_event_group_map(),
                            selected_cpu_event_groups=tools.GlobalData.selected_cpu_definition.get_event_groups(),
                            jobs=tools.GlobalData.jobs,
                            processes=tools.GlobalData.processes,
                            enabled_modes=tools.GlobalData.enabled_modes,
                            job_settings=tools.GlobalData.job_settings,
                            available_cpus=get_available_cpus(),
-                           weights=get_event_weights(),
                            event_definitions=tools.GlobalData.selected_cpu_definition.get_event_definitions())
 
+
 def initialise_default_job_settings(cpu):
-    tools.GlobalData.job_settings = {}
     tools.GlobalData.job_settings = {}
     tools.GlobalData.job_settings["cpu"] = cpu
     tools.GlobalData.job_settings["events"] = tools.GlobalData.selected_cpu_definition.get_active_events()
@@ -107,25 +106,22 @@ def initialise_default_job_settings(cpu):
     tools.GlobalData.job_settings["dt"] = 10
     tools.GlobalData.job_settings["max_events_per_run"] = 4
     tools.GlobalData.job_settings["proc_attach"] = 1
-    processes = 1
-    processes_per_node = 1
-    system_wide = False
     tools.GlobalData.job_settings["job_name"] = ""
     tools.GlobalData.job_settings["executable"] = ""
     tools.GlobalData.job_settings["arguments"] = ""
-    tools.GlobalData.job_settings["processes"] = processes
-    tools.GlobalData.job_settings["processes_per_node"] = processes_per_node
+    tools.GlobalData.job_settings["processes"] = 1
+    tools.GlobalData.job_settings["processes_per_node"] = 1
     tools.GlobalData.job_settings["global_mpirun_params"] = get_global_mpirun_params()
     tools.GlobalData.job_settings["local_mpirun_params"] = get_local_mpirun_params()
     tools.GlobalData.job_settings["mpirun_version"] = get_mpirun_appfile()
     tools.GlobalData.job_settings["lsf_params"] = get_lsf_params()
-    tools.GlobalData.job_settings["perf_params"] = get_perf_params(system_wide)
+    tools.GlobalData.job_settings["perf_params"] = get_perf_params(False)
     tools.GlobalData.job_settings["period"] = 5000000
     tools.GlobalData.job_settings["frequency"] = 199
     tools.GlobalData.job_settings["use_ssh"] = True
     tools.GlobalData.job_settings["use_lsf"] = True
     tools.GlobalData.job_settings["use_mpirun"] = True
-    tools.GlobalData.job_settings["run_system_wide"] = system_wide
+    tools.GlobalData.job_settings["run_system_wide"] = False
     tools.GlobalData.job_settings["run_as_root"] = False
     tools.GlobalData.job_settings["run_parallel"] = False
     tools.GlobalData.job_settings["server"] = ""
@@ -149,7 +145,7 @@ def initialise_empty_job_settings():
 
 
 def save_job_data():
-# Save job settings to 'job'.settings file
+    # Save job settings to 'job'.settings file
     job_data = {}
     job_data["working_directory_linux"] = tools.GlobalData.job_settings["working_directory_linux"]
     job_data["executable"] = tools.GlobalData.job_settings["executable"]
@@ -172,7 +168,8 @@ def save_job_data():
     job_data["frequency"] = tools.GlobalData.job_settings["frequency"]
     job_data["use_lsf"] = tools.GlobalData.job_settings["use_lsf"]
     job_data["use_ssh"] = tools.GlobalData.job_settings["use_ssh"]
-    job_data["private_key"] = tools.GlobalData.job_settings["private_key"] # only store path to the private key, but not the actual key or password
+    # only store path to the private key, but not the actual key or password
+    job_data["private_key"] = tools.GlobalData.job_settings["private_key"]
     job_data["username"] = tools.GlobalData.job_settings["username"]
     job_data["use_mpirun"] = tools.GlobalData.job_settings["use_mpirun"]
     job_data["env_variables"] = tools.GlobalData.job_settings["env_variables"]
@@ -191,12 +188,11 @@ def save_job_data():
 
 
 def restore_job_data(filename):
-# Restore settings from 'job'.settings file
+    # Restore settings from 'job'.settings file
     json_file = tools.GlobalData.local_data + os.sep + filename
     with open(json_file, 'r') as f:
         job_data = json.load(f)
     details = copy.deepcopy(tools.GlobalData.job_settings)
-    settings = copy.deepcopy(tools.GlobalData.job_settings)
     try:
         initialise_empty_job_settings()
         for setting in job_data:
@@ -209,4 +205,3 @@ def restore_job_data(filename):
     except Exception as e:
         tools.GlobalData.job_settings = details
         raise Exception(str(e))
-

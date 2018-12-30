@@ -1,11 +1,9 @@
 import sys
 
+
 class AnalysisModel:
 
     def __init__(self, analysis_type=None):
-        self.reset(analysis_type)
-
-    def reset(self, analysis_type=None):
         self.reference_id = ""
         self.selected_ids = {}
         self.event = ""
@@ -48,6 +46,12 @@ class AnalysisModel:
         self.reference_title = ""
         self.layout = self.AnalysisLayout()
 
+    def reset(self, analysis_type=None):
+        if analysis_type:
+            self.__init__(analysis_type=analysis_type)
+        else:
+            self.__init__()
+
     class AnalysisLayout(object):
         def __init__(self):
             self.results = None
@@ -66,24 +70,7 @@ class AnalysisModel:
             self.process_filter = None
 
         def reset(self):
-            self.results = None
-            self.flamegraph = None
-            self.event_totals_chart = None
-            self.event_totals_table = None
-            self.event_ratios_chart = None
-            self.source_code_table = None
-            self.source_code_line = None
-            self.text_filter = None
-            self.title = None
-            self.footer = None
-            self.scatter_plot = None
-            self.reference_process_ref_id = None
-            self.reference_count = None
-            self.process_filter = None
+            self.__init__()
 
         def to_dict(self):
             return vars(self)
-
-
-
-

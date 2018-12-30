@@ -11,14 +11,12 @@ CustomEventsView = Blueprint('CustomEventsView', __name__, template_folder='temp
 
 @CustomEventsView.route('/add_custom_event', methods=['GET', 'POST'])
 def add_custom_event():
-# Add custom event: sum or ratio of existing events
+    # Add custom event: sum or ratio of existing events
     global status
-    global jobs
-    global processes
     status = ""
     layout["Results"] = tools.GlobalData.results_files
     if 'event_ratio_btn' in request.form:
-# Force read of modified data
+        # Force read of modified data
         reset_event_view()
         reset_process_view()
         reset_analysis_view()
@@ -29,7 +27,7 @@ def add_custom_event():
         status = "Added " + custom_event_ratio
         return redirect(url_for('EventView.event_view', event=custom_event_ratio))
     elif 'event_sum_btn' in request.form:
-# Force read of modified data
+        # Force read of modified data
         reset_event_view()
         reset_process_view()
         reset_analysis_view()
@@ -40,16 +38,18 @@ def add_custom_event():
         status = "Added " + custom_event_sum
         return redirect(url_for('EventView.event_view', event=custom_event_sum))
     elif 'derived_event_btn' in request.form:
-# Force read of modified data
+        # Force read of modified data
         reset_event_view()
         reset_process_view()
         reset_analysis_view()
         event1 = request.form["event5"]
         if event1 == "Process-Cumulative-Counts":
-            create_cumulative_count_stack(tools.GlobalData.local_data, tools.GlobalData.results_files, output_job_totals=False, output_process_totals=True)
+            create_cumulative_count_stack(tools.GlobalData.local_data, tools.GlobalData.results_files,
+                                          output_job_totals=False, output_process_totals=True)
             return redirect(url_for('EventView.event_view', event="Cycles"))
         elif event1 == "Job-Cumulative-Counts":
-            create_cumulative_count_stack(tools.GlobalData.local_data, tools.GlobalData.results_files, output_job_totals=True, output_process_totals=False)
+            create_cumulative_count_stack(tools.GlobalData.local_data, tools.GlobalData.results_files,
+                                          output_job_totals=True, output_process_totals=False)
             return redirect(url_for('EventView.event_view', event="Cycles"))
         else:
             make_custom_event(tools.GlobalData.loaded_cpu_definition, "derived", event1)
