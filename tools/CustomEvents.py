@@ -8,7 +8,9 @@ from os import remove, close
 from collections import OrderedDict
 from tools.ResultsHandler import get_job_name, get_process_to_event_map
 
-def sort_by_time(data): # For regular time intervals, but possibly with different start/end ranges
+
+def sort_by_time(data):
+    """# For regular time intervals, but possibly with different start/end ranges"""
     times = []
     sorted_data = OrderedDict()
     for t in data:
@@ -20,7 +22,9 @@ def sort_by_time(data): # For regular time intervals, but possibly with differen
         sorted_data[t] = stacks
     return sorted_data
 
+
 def create_composite_event_stack(stack_data, results_files):
+    """Create combined stack from two separate stacks, representing sum or ratio"""
     raw_event = stack_data.event
     for results_file in results_files:
         filenames = ["", ""]
@@ -38,17 +42,17 @@ def create_composite_event_stack(stack_data, results_files):
                 if is_clock_event(event1) or is_clock_event(event2):
                     # scale1 * counter1 / scale2 * counter2 -> Seconds per event
                     if is_clock_event(event1):
-                        scale2 = counter2 * counter1 # multiply event2 counts by event1 frequency (Hz)
+                        scale2 = counter2 * counter1  # multiply event2 counts by event1 frequency (Hz)
                     else:
-                        scale2 = 1 # events
+                        scale2 = 1  # events
                     # scale1 * counter1 / scale2 * counter2 -> events per second
                     if is_clock_event(event2):
-                        scale1 = counter1 * counter2 # multiply event1 counts by event2 frequency (Hz)
+                        scale1 = counter1 * counter2  # multiply event1 counts by event2 frequency (Hz)
                     else:
                         scale1 = 1
                     counter = 1
                 else:
-                    counter = min(counter1, counter2) # lowest common factor
+                    counter = min(counter1, counter2)  # lowest common factor
                     scale1 = counter1 // counter
                     scale2 = counter2 // counter
                 data = OrderedDict()
@@ -87,7 +91,7 @@ def create_composite_event_stack(stack_data, results_files):
                     custom_event_ratio = bool(re.match(".*-divide-.*", raw_event))
                     if custom_event_ratio:
                         out_file = filenames[0] + "-divide-" + event2
-                    else: # sum
+                    else:  # sum
                         out_file = filenames[0] + "-plus-" + event2
                     path_to_out_file = os.path.join(stack_data.path, out_file)
                     f = open(path_to_out_file, 'wb')
@@ -97,11 +101,13 @@ def create_composite_event_stack(stack_data, results_files):
                         for stack in ordered_data[t]:
                             if custom_event_ratio:
                                 combined_stack = '{} {} {}\n' \
-                                    .format(stack, scale1 * ordered_data[t][stack][0], scale2 * ordered_data[t][stack][1])
+                                    .format(stack, scale1 * ordered_data[t][stack][0],
+                                            scale2 * ordered_data[t][stack][1])
                                 f.write(combined_stack.encode())
-                            else: # sum
+                            else:  # sum
                                 combined_stack = '{} {}\n' \
-                                    .format(stack, scale1 * ordered_data[t][stack][0] + scale2 * ordered_data[t][stack][1])
+                                    .format(stack, scale1 * ordered_data[t][stack][0] +
+                                            scale2 * ordered_data[t][stack][1])
                                 f.write(combined_stack.encode())
                     f.close()
                     f_results = open(full_filename, 'a')
@@ -112,13 +118,14 @@ def create_composite_event_stack(stack_data, results_files):
 
 
 def create_cumulative_count_stack(local_data, results_files, output_job_totals=True, output_process_totals=True):
+    """Create cumulative stack by summing stacks over threads or processes"""
     for results_file in results_files:
         found = get_process_to_event_map(local_data, results_file)
         process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
         events = []
         for name in found:
             events += found[name]
-        all_events = {event for event in events} # Remove duplicates
+        all_events = {event for event in events}  # Remove duplicates
         for found_event in all_events:
             event_type = get_event_type(found_event)
             process_counts = OrderedDict()
@@ -146,7 +153,7 @@ def create_cumulative_count_stack(local_data, results_files, output_job_totals=T
                                         if match:
                                             pid = match.group(2)
                                             tid = match.group(3)
-                                            if tid == "all": # Skip event if cumulative data already exists
+                                            if tid == "all":  # Skip event if cumulative data already exists
                                                 write_process_totals = False
                                             if pid not in thread_counts[t]:
                                                 thread_counts[t][pid] = OrderedDict()
@@ -166,7 +173,8 @@ def create_cumulative_count_stack(local_data, results_files, output_job_totals=T
                                                 if event_type == "custom_event_ratio":
                                                     thread_counts[t][pid][thread_stack][1] += int(secondary)
                                                     process_counts[t][process_stack][1] += int(secondary)
-                            if output_process_totals and write_process_totals: # Merge thread cumulative data into existing process file
+                            # Merge thread cumulative data into existing process file
+                            if output_process_totals and write_process_totals:
                                 fh, abs_path = mkstemp()
                                 with open(abs_path, 'wb') as new_file:
                                     with open(file, 'r') as result:
@@ -181,7 +189,7 @@ def create_cumulative_count_stack(local_data, results_files, output_job_totals=T
                                                             new_line = stack + " " + primary
                                                             if event_type == "custom_event_ratio":
                                                                 secondary = str(thread_counts[t][pid][stack][1])
-                                                                new_line  += " " + secondary
+                                                                new_line += " " + secondary
                                                             new_line += "\n"
                                                             new_file.write(new_line.encode())
                                             else:
@@ -192,7 +200,7 @@ def create_cumulative_count_stack(local_data, results_files, output_job_totals=T
             if output_job_totals:
                 out_file = re.sub("proc[0-9]+_", "procall_", filename)
                 file = os.path.join(local_data, out_file)
-                f = open(file, 'wb') # Write Process cumulative data to new process file
+                f = open(file, 'wb')  # Write Process cumulative data to new process file
                 for t in process_counts:
                     time = "t=" + t + "\n"
                     f.write(time.encode())
@@ -215,31 +223,39 @@ derived_events = {"process-cumulative-counts": {"event": "Process-Cumulative-Cou
                   "job-cumulative-counts": {"event": "Job-Cumulative-Counts", "unit": "samples"}}
 derived_event_map = {derived_events[raw_event]["event"]: raw_event for raw_event in derived_events}
 
+
 def get_derived_events():
     return [event for event in derived_event_map]
 
+
 def create_custom_event_stack(stack_data, results_files, raw_event):
+    """Create stacks for composite event"""
     if raw_event == "job-cumulative-counts" or raw_event == "process-cumulative-counts":
         return
     elif is_composite_event(raw_event):
         create_composite_event_stack(stack_data, results_files)
     return
 
+
 def is_derived_event(raw_event):
+    """Check if event is derived from another event (sum over threads/processes)"""
     return raw_event in derived_events
 
+
 def is_composite_event(raw_event):
+    """Check if event is made of more than one raw perf event"""
     custom_event = bool(re.match(".*-divide-.*", raw_event))
     custom_event |= bool(re.match(".*-plus-.*", raw_event))
     return custom_event
 
+
 def is_clock_event(raw_event):
+    """Identify task-clock or cpu-clock events"""
     return re.match(".*clock", raw_event)
 
+
 def event_to_raw_event(event, cpu_definition):
-    # Convert " / " to "-divide-",
-    #         " + " to "-plus-",
-    #         user event to perf raw_event
+    """Convert " / " to "-divide-", " + " to "-plus-", and user event to perf raw_event"""
     if event in derived_event_map:
         return derived_event_map[event]
     event_map = cpu_definition.get_available_event_map(event_to_raw_event=True)
@@ -254,9 +270,7 @@ def event_to_raw_event(event, cpu_definition):
 
 
 def raw_event_to_event(raw_event, cpu_definition):
-# Convert "-divide-" to " / ",
-#         "-plus-" to " + ",
-#         perf raw_event to user event
+    """Convert "-divide-" to " / ", "-plus-" to " + ", and perf raw_event to user event"""
     if raw_event in derived_events:
         return derived_events[raw_event]["event"]
     event_map = cpu_definition.get_available_event_map(event_to_raw_event=False)
@@ -271,6 +285,7 @@ def raw_event_to_event(raw_event, cpu_definition):
 
 
 def get_event_type(event):
+    """Determine if event is actually a ratio of two other events"""
     custom_event_ratio = bool(re.match(".*-divide-.*", event))
     custom_event_ratio |= bool(re.match(".* / .*", event))
     if custom_event_ratio:
@@ -278,6 +293,7 @@ def get_event_type(event):
     else:
         event_type = "original"
     return event_type
+
 
 def split_raw_event(raw_event, cpu_definition):
     raw_events = cpu_definition.get_active_raw_events()
@@ -288,10 +304,11 @@ def split_raw_event(raw_event, cpu_definition):
                 return event1, event2
     for event1 in raw_events:
         for event2 in raw_events:
-            combined_event = event1+ "-plus-" + event2
+            combined_event = event1 + "-plus-" + event2
             if combined_event == raw_event:
                 return event1, event2
     return raw_event, None
+
 
 def get_composite_event_counter(raw_event, raw_event_counters):
     c1 = sys.maxsize
@@ -306,10 +323,11 @@ def get_composite_event_counter(raw_event, raw_event_counters):
     min_event_counter = min(c1, c2)
     return min_event_counter
 
-def make_custom_event(cpu_definition, type, event1, event2=None):
+
+def make_custom_event(cpu_definition, event_type, event1, event2=None):
     event_map = cpu_definition.get_active_event_map(event_to_raw_event=True)
     units = cpu_definition.get_active_event_units()
-    if type == "ratio":
+    if event_type == "ratio":
         event = event1 + " / " + event2
         raw_event = event_map[event1] + "-divide-" + event_map[event2]
         event_group = "Custom"
@@ -320,13 +338,13 @@ def make_custom_event(cpu_definition, type, event1, event2=None):
         else:
             unit = unit1 + " / " + unit2
         cpu_definition.add_active_event(event, raw_event, event_group, unit)
-    elif type == "sum":
+    elif event_type == "sum":
         event = event1 + " + " + event2
         raw_event = event_map[event1] + "-plus-" + event_map[event2]
         event_group = "Custom"
         unit = units[event1]
         cpu_definition.add_active_event(event, raw_event, event_group, unit)
-    elif type == "derived":
+    elif event_type == "derived":
         event = event1
         raw_event = derived_event_map[event]
         event_group = "Custom"
@@ -387,4 +405,3 @@ def add_custom_events_to_active_events(cpu_definition, raw_events):
                     else:
                         unit = unit1 + " / " + unit2
                     cpu_definition.add_active_event(event, raw_event, event_group, unit)
-

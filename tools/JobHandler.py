@@ -14,7 +14,11 @@ import socket
 import logging
 from tools.ResultsHandler import modify_process_ids, modify_system_wide_process_ids, replace_results_file
 
+
 def get_lsf_params(lsf_params=None, lib_path=None, preload=None, env_variables=None, bin_path=None):
+    """Return default lsf parameters for typical run. These are interactive mode (-k),
+    exclusive mode (-x), reserve 1 process per node (-R span[ptile=1]), one process (-n),
+    and unassigned q parameter (-q)"""
     if lsf_params:
         env = get_lsf_env(lib_path, preload, env_variables, bin_path)
         command = "{} -env {}".format(lsf_params, env)
@@ -22,7 +26,9 @@ def get_lsf_params(lsf_params=None, lib_path=None, preload=None, env_variables=N
         command = "-K -x -q -R \"span[ptile=1]\" -n 1"
     return command
 
+
 def get_lsf_env(lib_path, preload, env_variables, bin_path):
+    """Return environment parameters for lsf environment command line parameter (-env)"""
     bin_path_env = re.sub(",", ":", bin_path)
     lib_path_env = re.sub(",", ":", lib_path)
     preload_env = re.sub(",", ":", preload)
@@ -38,35 +44,44 @@ def get_lsf_env(lib_path, preload, env_variables, bin_path):
     env += '\"'
     return env
 
+
 def get_sudo_command(run_as_root, env_variables, library_path, ld_preload):
+    """Return sudo command with user environment varaibles, LD_PRELOAD
+     and LD_LIBRARY_PATH in the sudo environment"""
     if not run_as_root:
         return ""
     else:
-        vars = []
+        env_vars = []
         for var in env_variables.split(","):
             var_name = var.partition("=")[0]
-            vars.append(var_name + "=$" + var_name)
+            env_vars.append(var_name + "=$" + var_name)
         if len(ld_preload) > 0:
-            vars.append("LD_PRELOAD=" + ld_preload)
+            env_vars.append("LD_PRELOAD=" + ld_preload)
         if len(library_path) > 0:
-            vars.append("LD_LIBRARY_PATH=" + library_path)
-        var_string = " ".join(vars)
+            env_vars.append("LD_LIBRARY_PATH=" + library_path)
+        var_string = " ".join(env_vars)
         return "sudo " + var_string + " "
 
+
 def get_global_mpirun_params(params=""):
+    """Default global (all processes) mpirun parameters (none)"""
     return params
+
 
 def get_local_mpirun_params(params=""):
+    """Default local (per process) mpirun parameters (none)"""
     return params
 
+
 def get_mpirun_appfile(mpi_version=None):
+    """Return coorect appfile command line parameter for mpirun version"""
     if mpi_version:
         # Intel MPI: -configfile, OpenMPI: -app, Platform MPI: -f
-        if re.search("Intel",mpi_version):
+        if re.search("Intel", mpi_version):
             appfile = "-configfile"
-        elif re.search("Open",mpi_version):
+        elif re.search("Open", mpi_version):
             appfile = "-app"
-        elif re.search("Platform",mpi_version):
+        elif re.search("Platform", mpi_version):
             appfile = "-f"
     else:
         appfile = ""
@@ -74,6 +89,7 @@ def get_mpirun_appfile(mpi_version=None):
 
 
 def get_perf_params(system_wide):
+    """Default perf parameters (excludes events, -e, frequency, -F, and event period, -c)"""
     if system_wide:
         command = "perf record -g -a"
     else:
@@ -90,11 +106,12 @@ def get_perf_out_file_name(job_id, pid, n_group, system_wide):
 
 
 def get_perf_script_command(in_file, out_file, system_wide, frequency_sampling, use_lsf, env, queue, sudo=""):
-    flags = "comm,pid,tid,time,event,ip,sym,dso"
+    """Return command for perf script. Creates text file containing raw perf samples"""
+    flags = "comm,pid,tid,time,event,ip,sym,dso"  # Default fields included in text output
     if system_wide:
-        flags = flags + ",cpu"
+        flags = flags + ",cpu"  # Add cpu field for system wide profiling
     if frequency_sampling:
-        flags = flags + ",period"
+        flags = flags + ",period"  # Add event period for frequency sampling
     command = "{}perf script -F {} --show-kernel-path -i {} > {}".format(sudo, flags, in_file, out_file)
     if use_lsf:
         command = 'bsub -K -env {} -e bjobs.err -o bjobs.out -q {} -n 1 \"{}\"' \
@@ -103,17 +120,21 @@ def get_perf_script_command(in_file, out_file, system_wide, frequency_sampling, 
 
 
 def get_stack_collapse_command(in_file, out_file, dt, stack_collapse_script, system_wide, multiplier, trace_event=None):
+    """Return command line for perl script stackcollapse-perf-modified.pl. This is used
+    to process the output from running the perf script command, to produce the
+    collapsed stack data"""
     command = 'cat {} | perl {} --pid --tid --output_file={} --dt={} --multiplier={}' \
         .format(in_file, stack_collapse_script, out_file, dt, multiplier)
     if system_wide:
-        command += ' --accumulate'
+        command += ' --accumulate'  # Include accumulation of sample counts over threads and processes
     if trace_event:
-        command += " --trace_event=" + trace_event
+        command += " --trace_event=" + trace_event  # Trace an event, by recording time stamp of all samples
     command += " &\n"
     return command
 
 
 class Job:
+    """Object representing a perf job submission"""
 
     def __init__(self, job_id, copy_files, run_parallel, run_system_wide, run_as_root, processes,
                  processes_per_node, exe, exe_args, working_dir,
@@ -125,7 +146,7 @@ class Job:
         self.processes_per_node = processes_per_node
         self.exe = exe
         self.exe_args = exe_args
-        self.copy_files = re.sub(","," ",copy_files)
+        self.copy_files = re.sub(",", " ", copy_files)
         self.run_parallel = run_parallel
         self.system_wide = run_system_wide
         self.run_as_root = run_as_root
@@ -157,6 +178,11 @@ class Job:
 
 
 class JobHandler:
+    """Object for handling the submission of a perf job, post processing of
+    the perf output files into collapsed stacks, and the copying of the
+    files required for the profiling analysis. Jobs are handled by background
+    threads to allow processing of multiple jobs in the background.
+    Job submission can be remote, using ssh, or local"""
 
     def __init__(self, root_directory, job=None):
         self.root_directory = root_directory
@@ -246,7 +272,8 @@ class JobHandler:
             else:
                 self.scriptwriting_logger.info(u" Copy successful")
 
-    def rexists(self, path, stfp):
+    @staticmethod
+    def rexists(path, stfp):
         if stfp:
             try:
                 stfp.stat(path)
@@ -298,7 +325,8 @@ class JobHandler:
                                                            return_output=True)
             return perf_event_paranoid_out.decode('utf8')
 
-    def check_connection(self, job_settings):
+    @staticmethod
+    def check_connection(job_settings):
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
@@ -321,8 +349,7 @@ class JobHandler:
             client.close()
             return str(e)
 
-
-    def get_failed_paths(self, job , job_settings):
+    def get_failed_paths(self, job, job_settings):
         if job.use_ssh:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -336,7 +363,8 @@ class JobHandler:
                 key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
                 client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
             else:
-                client.connect(hostname, port=port, username=job_settings["username"], password=job_settings["password"])
+                client.connect(hostname, port=port, username=job_settings["username"],
+                               password=job_settings["password"])
             stfp = client.open_sftp()
         else:
             client = None
@@ -372,7 +400,8 @@ class JobHandler:
                 key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
                 client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
             else:
-                client.connect(hostname, port=port, username=job_settings["username"],password=job_settings["password"])
+                client.connect(hostname, port=port, username=job_settings["username"],
+                               password=job_settings["password"])
             self.scriptwriting_logger.info(u" Open stfp connection")
             stfp = client.open_sftp()
         else:
@@ -422,12 +451,12 @@ class JobHandler:
                         re.match("time_interval", line) or
                         re.match("cpu_id", line) or
                         re.match("system_wide", line)):
-                    l = line.strip()
-                    orig_file = local_data + os.sep + l
+                    ll = line.strip()
+                    orig_file = local_data + os.sep + ll
                     if system_wide:
                         modify_system_wide_process_ids(orig_file)
                     else:
-                        orig_pid = re.findall("proc([0-9]+)", l)
+                        orig_pid = re.findall("proc([0-9]+)", ll)
                         try:
                             modify_process_ids(orig_pid[0], orig_file)
                         except Exception as e:
@@ -440,11 +469,11 @@ class JobHandler:
         f = io.open(done_file, 'wb')
         f.close()
 
-    def write_perf_script(self,local_data):
+    def write_perf_script(self, local_data):
         job = self.job
         script_name = job.job_id + "_perf.sh"
         script_path = local_data + os.sep + script_name
-        f = open(script_path,'wb')
+        f = open(script_path, 'wb')
         command = "#!/bin/sh\n\n"
         f.write(command.encode())
         command = "cd " + job.working_dir + "\n"
@@ -487,17 +516,17 @@ class JobHandler:
             n_group += 1
             exe_args = job.exe_args
             replacement_string = "_" + job.job_id + "_" + str(n_group)
-            for m in re.findall("([\S\$]+)",job.copy_files):
-                orig_file = re.sub("\$","",m)
-                new_file = re.sub("\$",replacement_string,m)
+            for m in re.findall("([\S\$]+)", job.copy_files):
+                orig_file = re.sub("\$", "", m)
+                new_file = re.sub("\$", replacement_string, m)
                 command = "cp " + orig_file + " " + new_file + "\n"
                 f.write(command.encode())
-            exe_args = re.sub("\$",replacement_string,exe_args)
+            exe_args = re.sub("\$", replacement_string, exe_args)
             if job.use_mpirun:
                 config_name = job.job_id + "run" + str(n_group) + "_mpiconfig"
                 config_path = local_data + os.sep + config_name
                 job.mpi_config_files.append(config_name)
-                mpi_config_file = open(config_path,'wb')
+                mpi_config_file = open(config_path, 'wb')
                 if job.system_wide:
                     for nid in range(0, num_nodes):
                         mpirun_command = "-np 1 " + job.local_mpirun_params
@@ -537,15 +566,13 @@ class JobHandler:
                             command = " ".join([mpirun_command, exe_command]) + "\n"
                             mpi_config_file.write(command.encode())
                 mpi_config_file.close()
+                command = " ".join(["mpirun", job.global_mpirun_params, job.mpirun_appfile, config_name])
                 if job.use_lsf:
                     lsf_command = "bsub " + job.lsf_params
                     out_file = job.job_id + "run" + str(n_group) + ".out"
                     err_file = job.job_id + "run" + str(n_group) + ".err"
                     lsf_command += " -e " + err_file + " -o " + out_file
-                    command = lsf_command + " mpirun " + job.global_mpirun_params \
-                              + " " + job.mpirun_appfile + " " + config_name
-                else:
-                    command = "mpirun " + job.global_mpirun_params + " " + job.mpirun_appfile + " " + config_name
+                    command = lsf_command + " " + command
             else:
                 event_list = ",".join(events)
                 perf_out_file = get_perf_out_file_name(job.job_id, 0, n_group, job.system_wide)
@@ -773,11 +800,6 @@ class JobHandler:
 
         f.close()
 
-        self.run_perf_job(working_dir, False, job_id, local_data, script_name,
-                              system_wide, [])
+        self.run_perf_job(working_dir, False, job_id, local_data, script_name, system_wide, [])
 
         return results_file
-
-
-
-

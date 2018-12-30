@@ -22,9 +22,9 @@ def get_datetime_diff(datetime1, datetime2):
     return '%d:%02d:%02d:%02d' % (days, hours, minutes, seconds)
 
 
-def get_datetime_end(datetime, timedelta):
+def get_datetime_end(date_time, time_delta):
     """Return end time from datetime and delta datetime"""
-    return datetime + timedelta
+    return date_time + time_delta
 
 
 def timestamp(filename):

@@ -4,7 +4,9 @@ import re
 import sys
 from math import log10, atan, pi
 
+
 class ClusterAnalysis:
+    """"""
 
     def __init__(self):
         self.cluster_map = {}
@@ -29,7 +31,7 @@ class ClusterAnalysis:
         ymax = max(ymax, 1.0)
         dt = 0.5 * pi / float(n)
         bins = [0.5 * pi - dt * float(i) for i in range(1, n + 1)]
-        for i, x in enumerate(self.blob):
+        for x in self.blob:
             yi = x[0] / ymax
             xi = x[1] / xmax
             t = 0.0
@@ -41,9 +43,9 @@ class ClusterAnalysis:
             if t > 0.5 * pi or t < 0:
                 self.cluster_labels.append(n)
             else:
-                for i in range(len(bins)):
-                    if bins[i] <= t:
-                        self.cluster_labels.append(i)
+                for j, b in enumerate(bins):
+                    if b <= t:
+                        self.cluster_labels.append(j)
                         break
 
     def get_cluster_labels(self):
@@ -84,7 +86,8 @@ class ClusterFlameGraph:
                         colour_map[node] = v
         return colour_map
 
-    def make_stack_map(self, all_stack_data, clusters, append_cluster_labels, event1=None, event2=None, xlower=None, xupper=None, ylower=None, yupper=None):
+    def make_stack_map(self, all_stack_data, clusters, append_cluster_labels, event1=None, event2=None,
+                       xlower=None, xupper=None, ylower=None, yupper=None):
         self.stack_map = {}
         for stack_name in all_stack_data:
             self.stack_map[stack_name] = {}
@@ -134,13 +137,15 @@ class GeneralAnalysis:
         self.event_index = {}
         self.cluster_data = {}
         self.cluster_map = {}
+        self.base_case_offset = {}
+        self.cluster_filter = []
         self.ncols = 0
         self.nrows = 0
         self.initialised = False
 
     def reset_stack_maps(self):
         for stack_data in self.all_stack_data.values():
-            stack_data.set_stack_map(None) # Reset current stack_map
+            stack_data.set_stack_map(None)  # Reset current stack_map
 
     def set_events(self, cluster_events):
         self.cluster_events = cluster_events
@@ -179,7 +184,7 @@ class GeneralAnalysis:
         self.base_case_offset = {}
         for node in self.cluster_data[job][pid][tid]:
             if node not in self.base_case_offset:
-                self.base_case_offset[node] = {e:0.0 for e in self.cluster_data[job][pid][tid][node]}
+                self.base_case_offset[node] = {e: 0.0 for e in self.cluster_data[job][pid][tid][node]}
             for e in self.cluster_data[job][pid][tid][node]:
                 self.base_case_offset[node][e] = self.cluster_data[job][pid][tid][node][e]
         for job in self.cluster_data:
@@ -236,7 +241,7 @@ class GeneralAnalysis:
                     for s in self.data[job][pid][tid]:
                         node = s.rpartition(";")[2]
                         if node not in self.cluster_data[job][pid][tid]:
-                            self.cluster_data[job][pid][tid][node] = {e:0.0 for e in self.cluster_events["All"]}
+                            self.cluster_data[job][pid][tid][node] = {e: 0.0 for e in self.cluster_events["All"]}
                         for e in self.cluster_events["All"]:
                             v = self.data[job][pid][tid][s][e]
                             self.cluster_data[job][pid][tid][node][e] += float(v)
@@ -283,17 +288,18 @@ class GeneralAnalysis:
                                 continue
                         if node not in self.cluster_map[job][pid][tid]:
                             self.cluster_map[job][pid][tid][node] = n
-                        x = []
-                        x.append(count1)
-                        x.append(count2)
+                        x = [count1, count2]
                         self.cluster_analysis.blob.append(x)
                         n += 1
 
     def write_flamegraph_colour_map(self, working_dir, colours):
         self.cluster_flamegraph.write_flamegraph_colour_map(working_dir, colours)
 
-    def make_stack_map(self, clusters, append_cluster_labels, event1=None, event2=None, xlower=None, xupper=None, ylower=None, yupper=None):
-        self.cluster_flamegraph.make_stack_map(self.all_stack_data, clusters, append_cluster_labels, event1=event1, event2=event2, xlower=xlower, xupper=xupper, ylower=ylower, yupper=yupper)
+    def make_stack_map(self, clusters, append_cluster_labels, event1=None, event2=None, xlower=None,
+                       xupper=None, ylower=None, yupper=None):
+        self.cluster_flamegraph.make_stack_map(self.all_stack_data, clusters, append_cluster_labels, event1=event1,
+                                               event2=event2, xlower=xlower, xupper=xupper, ylower=ylower,
+                                               yupper=yupper)
 
     def calculate_ratios(self, n, event1, event2, xlower, xupper, ylower, yupper):
         self.setup_cluster_analysis(event1, event2, xlower, xupper, ylower, yupper)
@@ -349,4 +355,3 @@ class GeneralAnalysis:
 
     def set_cluster_filter(self, clusters):
         self.cluster_filter = clusters
-

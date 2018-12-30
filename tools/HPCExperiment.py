@@ -2,13 +2,12 @@ import re
 import sys
 import pathlib
 import os
-import fnmatch
 from pathlib import Path
 from lxml import etree
 from plotting.ColourMaps import get_top_ten_colours
 
 
-def is_HPC_result(results_file):
+def is_hpc_result(results_file):
     filename = re.sub("\.results", ".frames", results_file)
     return os.path.exists(filename)
 
@@ -19,15 +18,17 @@ class HPCExperimentHandler:
         self.results_dir = results_dir
         self.experiment_file = experiment
         self.job_id = pathlib.Path(experiment).parent.name
+        self.detail = "loops"
+        self.results_file = ""
 
-    def create_results(self, include_loops=True, include_statements=False ):
+    def create_results(self, include_loops=True, include_statements=False):
         if include_statements:
             self.detail = "lines"
         elif include_loops:
             self.detail = "loops"
         else:
             self.detail = "functions"
-        self.results_file = os.path.join(self.results_dir, self.job_id) + "_" + self.detail +".results"
+        self.results_file = os.path.join(self.results_dir, self.job_id) + "_" + self.detail + ".results"
         f = open(self.results_file, "wb")
         f.write("cpu_id:General\n".encode())
         f.write("time_interval:1.00\n".encode())
@@ -89,6 +90,16 @@ class HPCExperiment:
         self.colormap = {}
         self.procedure_map = {}
         self.metric_to_results_map = {}
+        self.experiment_file = None
+        self.include_loops = True
+        self.include_statements = False
+        self.experiment_tree = None
+        self.frames = {}
+        self.metrics = {}
+        self.results_files = {}
+        self.color_map = {}
+        self.header = ""
+        self.metric_info = None
 
     def read_experiment(self, experiment_file, include_loops=True, include_statements=False):
         self.experiment_file = experiment_file
@@ -97,9 +108,9 @@ class HPCExperiment:
         self.experiment_tree = etree.parse(experiment_file)
         self.procedure_map = self.get_procedure_names(self.experiment_tree)
         self.file_map = self.get_file_names(self.experiment_tree)
-        self.frames = {}
 
     def process_experiment(self):
+        self.frames = {}
         self.metrics = {}
         self.results_files = {}
         self.header = self.find_header()
@@ -120,27 +131,27 @@ class HPCExperiment:
                 name = elt.attrib['n']
                 p_name = self.procedure_map[name]
                 if node_level == len(current_stack):
-                    current_stack[-1] =  p_name
+                    current_stack[-1] = p_name
                 else:
                     current_stack.append(p_name)
             elif self.include_loops and elt.tag == 'L':
                 line = elt.attrib['l']
                 p_name = self.get_procedure_name(elt, self.procedure_map)
-                id = "Loop@" + str(line) + "@" + p_name
-                self.color_map[id] = colors[8]
+                unique_id = "Loop@" + str(line) + "@" + p_name
+                self.color_map[unique_id] = colors[8]
                 if node_level == len(current_stack):
-                    current_stack[-1] =  id
+                    current_stack[-1] = unique_id
                 else:
-                    current_stack.append(id)
+                    current_stack.append(unique_id)
             elif self.include_statements and elt.tag == 'S':
                 line = elt.attrib['l']
                 p_name = self.get_procedure_name(elt, self.procedure_map)
-                id = "Line@" + str(line) + "@" + p_name
-                self.color_map[id] = colors[0]
+                unique_id = "Line@" + str(line) + "@" + p_name
+                self.color_map[unique_id] = colors[0]
                 if node_level == len(current_stack):
-                    current_stack[-1] =  id
+                    current_stack[-1] = unique_id
                 else:
-                    current_stack.append(id)
+                    current_stack.append(unique_id)
             elif elt.tag == 'M':
                 n = elt.attrib['n']
                 if n in self.metric_info:
@@ -151,15 +162,18 @@ class HPCExperiment:
                     process = metric_info[1]
                     thread = metric_info[2]
                     period = metric_info[3]
-                    id = (metric, process, thread)
-                    if id not in current_count:
-                        current_count[id] = 0
-                        previous_stack_trace[id] = stack_trace
-                    current_stack_trace[id] = stack_trace
-                    if current_count[id] > 0 and current_stack_trace[id] != previous_stack_trace[id]:
+                    unique_id = (metric, process, thread)
+                    if unique_id not in current_count:
+                        current_count[unique_id] = 0
+                        previous_stack_trace[unique_id] = stack_trace
+                    current_stack_trace[unique_id] = stack_trace
+                    if current_count[unique_id] > 0 and \
+                            current_stack_trace[unique_id] != previous_stack_trace[unique_id]:
                         if metric not in self.metrics:
                             self.metrics[metric] = period
-                        out = "{}-{}/{};{} {}\n".format(self.header, process, thread, previous_stack_trace[id], str(current_count[id]))
+                        out = "{}-{}/{};{} {}\n"\
+                            .format(self.header, process, thread, previous_stack_trace[unique_id],
+                                    str(current_count[unique_id]))
                         frame = current_stack[-1]
                         frame = re.sub(" ", "", frame)
                         self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
@@ -168,15 +182,16 @@ class HPCExperiment:
                             self.results_files[filename] = open(filename, 'wb')
                             self.results_files[filename].write("t=0.00\n".encode())
                         self.results_files[filename].write(out.encode())
-                        current_count[id] = 0
-                        previous_stack_trace[id] = current_stack_trace[id]
+                        current_count[unique_id] = 0
+                        previous_stack_trace[unique_id] = current_stack_trace[unique_id]
                     total = int(round(float(elt.attrib['v']) / float(period)))
-                    current_count[id] += total
-        for id in current_stack_trace:
-            metric = id[0]
-            process = id[1]
-            thread = id[2]
-            out = "{}-{}/{};{} {}\n".format(self.header, process, thread, current_stack_trace[id], str(current_count[id]))
+                    current_count[unique_id] += total
+        for unique_id in current_stack_trace:
+            metric = unique_id[0]
+            process = unique_id[1]
+            thread = unique_id[2]
+            out = "{}-{}/{};{} {}\n"\
+                .format(self.header, process, thread, current_stack_trace[unique_id], str(current_count[unique_id]))
             filename = self.get_results_file_name(metric, process)
             if filename not in self.results_files:
                 self.results_files[filename] = open(filename, 'wb')
@@ -250,7 +265,8 @@ class HPCExperiment:
                 self.metric_to_results_map[i] = filename
         return metric_info
 
-    def get_file_names(self, experiment_tree):
+    @staticmethod
+    def get_file_names(experiment_tree):
         file_map = {}
         root = experiment_tree.getroot()
         pt = root.find('.//FileTable')
@@ -260,7 +276,8 @@ class HPCExperiment:
             file_map[i] = n
         return file_map
 
-    def get_procedure_names(self, experiment_tree):
+    @staticmethod
+    def get_procedure_names(experiment_tree):
         procedure_map = {}
         root = experiment_tree.getroot()
         pt = root.find('.//ProcedureTable')
@@ -270,7 +287,8 @@ class HPCExperiment:
             procedure_map[i] = n
         return procedure_map
 
-    def get_procedure_name(self, node, procedure_map):
+    @staticmethod
+    def get_procedure_name(node, procedure_map):
         nd = node
         while nd is not None:
             if nd.tag == "PF":
@@ -299,7 +317,7 @@ class HPCExperiment:
             elif self.include_statements and nd.tag == "S":
                 line = nd.attrib['l']
             if line and file:
-                return (file, line)
+                return file, line
             nd = nd.getparent()
 
     def get_node_level(self, node):
@@ -316,7 +334,3 @@ class HPCExperiment:
                 return d
             nd = nd.getparent()
         return sys.maxsize
-
-
-
-

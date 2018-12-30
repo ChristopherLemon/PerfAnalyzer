@@ -1,11 +1,13 @@
 import logging
 
+
 def setup_main_logger(log_stream, logfile, logger_name, debug=False):
+    """Main logger for home page. Includes stream for HTML output"""
     if debug:
         level = logging.DEBUG
     else:
         level = logging.INFO
-    l = logging.getLogger(logger_name)
+    logger = logging.getLogger(logger_name)
     formatter = logging.Formatter('%(processName)s %(threadName)s %(asctime)s : %(message)s')
     filehandler = logging.FileHandler(logfile, mode='w')
     filehandler.setFormatter(formatter)
@@ -17,23 +19,25 @@ def setup_main_logger(log_stream, logfile, logger_name, debug=False):
     htmlstreamhandler = logging.StreamHandler(stream=log_stream)
     htmlstreamhandler.setFormatter(htmlformatter)
     htmlstreamhandler.setLevel(level=logging.INFO)
-    l.setLevel(level)
-    l.addHandler(filehandler)
-    l.addHandler(streamhandler)
-    l.addHandler(htmlstreamhandler)
+    logger.setLevel(level)
+    logger.addHandler(filehandler)
+    logger.addHandler(streamhandler)
+    logger.addHandler(htmlstreamhandler)
+
 
 def setup_basic_logger(logger_name, log_file, debug=False):
+    """Basic logger for output to log file"""
     if debug:
         level = logging.DEBUG
     else:
         level = logging.INFO
-    l = logging.getLogger(logger_name)
+    logger = logging.getLogger(logger_name)
     formatter = logging.Formatter('%(processName)s %(threadName)s %(asctime)s : %(message)s')
-    fileHandler = logging.FileHandler(log_file, mode='w')
-    fileHandler.setFormatter(formatter)
-    streamHandler = logging.StreamHandler()
-    streamHandler.setFormatter(formatter)
-    l.setLevel(level)
-    streamHandler.setLevel(logging.DEBUG)
-    l.addHandler(fileHandler)
-    l.addHandler(streamHandler)
+    filehandler = logging.FileHandler(log_file, mode='w')
+    filehandler.setFormatter(formatter)
+    streamhandler = logging.StreamHandler()
+    streamhandler.setFormatter(formatter)
+    logger.setLevel(level)
+    streamhandler.setLevel(logging.DEBUG)
+    logger.addHandler(filehandler)
+    logger.addHandler(streamhandler)

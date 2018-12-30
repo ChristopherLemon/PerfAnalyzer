@@ -2,7 +2,7 @@ from plotting.svgGraph import ChartWriter
 from flask import render_template, request, jsonify, Blueprint
 from tools.Utilities import purge, timestamp, replace_operators
 from tools.StackData import StackData, get_job, get_process, get_pid, get_tid, get_event, make_label
-from plotting.ColourMaps import get_cluster_plot_colours, get_top_ten_colours
+from plotting.ColourMaps import get_top_ten_colours
 from plotting.SourceCode import generate_source_code_table, generate_empty_table
 import tools.GlobalData
 from plotting.FlameGraphUtils import FlameGraph

@@ -30,7 +30,7 @@ TraceView = Blueprint('TraceView', __name__, template_folder='templates', static
 
 @TraceView.route('/trace_view', methods=['GET', 'POST'])
 def trace_view():
-# Request handler for viewing perf trace profiles.
+    """Request handler for viewing perf trace profiles."""
     global all_stack_data
     global svgchart
     job = str(request.args.get('job'))
@@ -38,19 +38,19 @@ def trace_view():
     trace_model.start = 0.0
     trace_model.stop = sys.maxsize
     trace_model.layout.results = tools.GlobalData.results_files
-# Stacks already loaded - just update
+    # Stacks already loaded - just update
     if job in all_stack_data:
         update_trace_model(job)
         all_stack_data[job].read_data(start=trace_model.start,
-                                    stop=trace_model.stop,
-                                    selected_ids=trace_model.selected_ids)
-# Load new stack data into memory and set default parameters
+                                      stop=trace_model.stop,
+                                      selected_ids=trace_model.selected_ids)
+    # Load new stack data into memory and set default parameters
     else:
         all_stack_data[job] = TraceData(tools.GlobalData.results_files,
-                                          tools.GlobalData.local_data,
-                                          tools.GlobalData.loaded_cpu_definition,
-                                          data_id=job,
-                                          debug=tools.GlobalData.debug)
+                                        tools.GlobalData.local_data,
+                                        tools.GlobalData.loaded_cpu_definition,
+                                        data_id=job,
+                                        debug=tools.GlobalData.debug)
         update_trace_model(job)
     trace_model.process_names = all_stack_data[job].get_all_process_names()
     trace_model.jobs = all_stack_data[job].get_all_jobs()
@@ -85,7 +85,8 @@ def update_flamegraph_mode():
     trace_model.flamegraph_type = data['flamegraph_mode']
     trace_model.layout.start = trace_model.start
     trace_model.layout.stop = trace_model.stop
-    trace_model.layout.flamegraph = get_flamegraph(trace_model.flamegraph_type, job, trace_model.start, trace_model.stop)
+    trace_model.layout.flamegraph = \
+        get_flamegraph(trace_model.flamegraph_type, job, trace_model.start, trace_model.stop)
     return jsonify(trace_model.layout.to_dict())
 
 
@@ -97,14 +98,15 @@ def update_flamegraph_ids():
     pid = data["pid"]
     tid = data["tid"]
     ids = all_stack_data[job].get_selected_process_ids()
-    for id in ids:
-        if id.pid == pid and id.tid == tid:
-            all_stack_data[job].set_flamegraph_process_ids([id])
-            trace_model.reference_id = id.label
+    for process_id in ids:
+        if process_id.pid == pid and process_id.tid == tid:
+            all_stack_data[job].set_flamegraph_process_ids([process_id])
+            trace_model.reference_id = process_id.label
     trace_model.layout.start = trace_model.start
     trace_model.layout.stop = trace_model.stop
     trace_model.layout.reference_id = trace_model.reference_id
-    trace_model.layout.flamegraph = get_flamegraph(trace_model.flamegraph_type, job, trace_model.start, trace_model.stop)
+    trace_model.layout.flamegraph = \
+        get_flamegraph(trace_model.flamegraph_type, job, trace_model.start, trace_model.stop)
     return jsonify(trace_model.layout.to_dict())
 
 
@@ -167,19 +169,18 @@ def find_function():
     function_name = data["function_name"]
     n = int(data["call_num"])
     forwards = (data["direction"] == "next")
-    trace_model.layout.function_name, trace_model.start, trace_model.stop = all_stack_data[job].get_next_call(trace_model.start,
-                                                                                           trace_model.stop, pid, tid,
-                                                                                           function_name, n, forwards)
+    trace_model.layout.function_name, trace_model.start, trace_model.stop = \
+        all_stack_data[job].get_next_call(trace_model.start, trace_model.stop, pid, tid, function_name, n, forwards)
     all_stack_data[job].read_data(start=trace_model.start,
                                   stop=trace_model.stop,
                                   selected_ids=trace_model.selected_ids)
     trace_model.flamegraph_type = "trace"
-    trace_model.layout.flamegraph = get_flamegraph(trace_model.flamegraph_type, job, trace_model.start, trace_model.stop)
+    trace_model.layout.flamegraph = \
+        get_flamegraph(trace_model.flamegraph_type, job, trace_model.start, trace_model.stop)
     trace_model.layout.timelines = get_timelines(job, trace_model.start, trace_model.stop)
     trace_model.layout.start = trace_model.start
     trace_model.layout.stop = trace_model.stop
     return jsonify(trace_model.layout.to_dict())
-
 
 
 def update_trace_model(job):
@@ -190,8 +191,9 @@ def update_trace_model(job):
     trace_model.start = -0.0000001
     trace_model.stop = sys.maxsize
 
+
 def get_flamegraph(flamegraph_type, job, start, stop):
-# Setup flamegraph
+    # Setup flamegraph
     write_flamegraph_stacks(all_stack_data[job], flamegraph_type, start, stop)
     flamegraph_filename = timestamp("flamegraph.svg")
     collapsed_stacks_filename = all_stack_data[job].get_collapsed_stacks_filename()

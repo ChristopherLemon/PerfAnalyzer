@@ -1,6 +1,6 @@
 __author__ = 'CLemon'
 from collections import namedtuple, OrderedDict
-from tools.Utilities import round_sig, natural_sort
+from tools.Utilities import natural_sort
 from tools.CustomEvents import add_custom_events_to_active_events, raw_event_to_event, get_event_type
 import tools.GlobalData
 from tempfile import mkstemp
@@ -18,6 +18,7 @@ EventDefinition = namedtuple('EventDefinition',
 
 event_definitions = OrderedDict()
 
+
 def initialise_cpu_definitions():
     perf_events_location = tools.GlobalData.perf_events
     cpus = OrderedDict()
@@ -30,11 +31,11 @@ def initialise_cpu_definitions():
         full_filename = os.path.join(perf_events_location, f)
         event_definitions[cpu] = []
         try:
-            with open(full_filename,'r') as result:
+            with open(full_filename, 'r') as result:
                 for line in result:
                     if re.findall("EventDefinition", line):
-                        l = line.partition(":")[2]
-                        data = l.split(",")
+                        ll = line.partition(":")[2]
+                        data = ll.split(",")
                         event_name = data[0].strip()
                         raw_event = data[1].strip()
                         event_group = data[2].strip()
@@ -42,13 +43,14 @@ def initialise_cpu_definitions():
                         event_definition = EventDefinition(event_name, raw_event, event_group, event_unit)
                         event_definitions[cpu].append(event_definition)
                         if event_group == "Software" or event_name == "Cycles":
-                            event_definition = EventDefinition("Trace-" + event_name, "trace-" + raw_event, "Trace", event_unit)
+                            event_definition = \
+                                EventDefinition("Trace-" + event_name, "trace-" + raw_event, "Trace", event_unit)
                             event_definitions[cpu].append(event_definition)
         except Exception as e:
             raise Exception("Error reading line: \"" + line.strip() + "\"")
 
 
-def modify_event_definitions(cpu, event_definitions):
+def modify_event_definitions(cpu, definitions):
     perf_events_location = tools.GlobalData.perf_events
     orig_file = os.path.join(perf_events_location, cpu + ".events")
     fh, abs_path = mkstemp()
@@ -60,23 +62,20 @@ def modify_event_definitions(cpu, event_definitions):
                 if match:
                     if start_edit:
                         start_edit = False
-                        for definition in event_definitions:
+                        for definition in definitions:
                             event_name = definition.event
                             raw_event = definition.raw_event
                             event_group = definition.event_group
                             event_unit = definition.unit
                             if not re.match("Trace", event_name):
-                                l = ", ".join(["EventDefinition: " + event_name, raw_event, event_group, event_unit]) + "\n"
-                                new_file.write(l)
+                                ll = ", ".join(["EventDefinition: " + event_name, raw_event,
+                                                event_group, event_unit]) + "\n"
+                                new_file.write(ll)
                 else:
                     new_file.write(line)
     os.close(fh)
     os.remove(orig_file)
     move(abs_path, orig_file)
-
-
-def get_event_weights():
-    return [1, 10, 100, 1000, 10000, 20000, 40000, 80000, 160000, 320000, 640000, 1280000, 2560000, 5120000]
 
 
 class CpuDefinition:
@@ -119,7 +118,8 @@ class CpuDefinition:
     def get_base_event(self):
         return self.base_event
 
-    def get_default_events(self):
+    @staticmethod
+    def get_default_events():
         return ["cpu-clock"]
 
     def get_available_event_group_map(self):
@@ -136,9 +136,11 @@ class CpuDefinition:
 
     def get_available_event_map(self, event_to_raw_event=True):
         if event_to_raw_event:
-            event_map = {event_definition.event: event_definition.raw_event for event_definition in self.available_events}
+            event_map = \
+                {event_definition.event: event_definition.raw_event for event_definition in self.available_events}
         else:
-            event_map = {event_definition.raw_event: event_definition.event for event_definition in self.available_events}
+            event_map = \
+                {event_definition.raw_event: event_definition.event for event_definition in self.available_events}
         return OrderedDict(sorted(event_map.items()))
 
     def get_active_event_group_map(self):
@@ -160,6 +162,7 @@ class CpuDefinition:
             event_map = {event_definition.raw_event: event_definition.event for event_definition in self.active_events}
         return OrderedDict(sorted(event_map.items()))
 
+    @staticmethod
     def get_custom_events(cpu_definition):
         return [event_definition.event for event_definition in cpu_definition if
                 event_definition.event_group == "Custom"]
@@ -196,7 +199,8 @@ class CpuDefinition:
                 trace_event = "trace-cycles"
                 trace_flag = "-c"
             ordered_trace_events = [trace_event] + [event for event in trace_events if event != trace_event]
-            group = {"flag": trace_flag, "events": ordered_trace_events, "event_counter": frequency, "event_type": "Trace"}
+            group = \
+                {"flag": trace_flag, "events": ordered_trace_events, "event_counter": frequency, "event_type": "Trace"}
             perf_event_groups.append(copy.deepcopy(group))
         group = {"flag": "-F", "events": [], "event_counter": 0, "event_type": "Standard"}
         n = 0
@@ -258,24 +262,20 @@ class CpuDefinition:
             else:
                 events_enabled = True
         general_analysis_enabled = len(self.get_active_raw_events()) > 1 and self.base_event in active_events
-        return { "general_analysis": general_analysis_enabled,
-                "trace": trace_enabled,
-                "events": events_enabled}
+        return {"general_analysis": general_analysis_enabled, "trace": trace_enabled, "events": events_enabled}
 
 
 def get_available_cpus():
     available_cpus = [cpu for cpu in event_definitions]
     return available_cpus
 
+
 def get_default_cpu():
     return "General"
 
-def get_cpu_definition(cpu, raw_events = None):
+
+def get_cpu_definition(cpu, raw_events=None):
     cpu_definition = CpuDefinition(cpu, event_definitions[cpu])
     if raw_events:
         add_custom_events_to_active_events(cpu_definition, raw_events)
     return cpu_definition
-
-
-
-

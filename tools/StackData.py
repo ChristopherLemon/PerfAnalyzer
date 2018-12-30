@@ -6,16 +6,16 @@ import multiprocessing as mp
 import pickle
 from timeit import default_timer as timer
 from tools.Utilities import natural_sort
-from tools.CustomEvents import event_to_raw_event, raw_event_to_event, get_event_type, create_custom_event_stack, is_composite_event
+from tools.CustomEvents import event_to_raw_event, raw_event_to_event, get_event_type, \
+    create_custom_event_stack, is_composite_event
 from collections import OrderedDict, defaultdict
 from tools.ResultsHandler import get_job_name, get_event_counters
 
 
-# task_id <=> job_processor_event
-# label <=> task_id + "-pid:" + pid + "-tid:" + tid
-
-
 def get_job(task_or_label):
+    """Get job from task_id or label, where
+    task_id = job_processor_event, and
+    label = task_id + "-pid:" + pid + "-tid:" + tid"""
     job = re.sub("_proc[0-9]+_.*", "", task_or_label)
     job = re.sub("_procall_.*", "", job)
     job = re.sub("_host[0-9]+", "", job)
@@ -23,12 +23,18 @@ def get_job(task_or_label):
 
 
 def get_process(task_or_label):
+    """Get processor from task_id or label, where
+    task_id = job_processor_event, and
+    label = task_id + "-pid:" + pid + "-tid:" + tid"""
     job = get_job(task_or_label)
     process = re.sub(job + "_", "", task_or_label).rpartition("_")[0]
     return process
 
 
 def get_event(task_or_label):
+    """Get event from task_id or label, where
+    task_id = job_processor_event, and
+    label = task_id + "-pid:" + pid + "-tid:" + tid"""
     job = get_job(task_or_label)
     process = get_process(task_or_label)
     event = re.sub(job + "_" + process + "_", "", task_or_label).partition("-pid")[0]
@@ -36,16 +42,27 @@ def get_event(task_or_label):
 
 
 def get_pid(task_or_label):
+    """Get pid from task_id or label, where
+    task_id = job_processor_event, and
+    label = task_id + "-pid:" + pid + "-tid:" + tid"""
     pid = task_or_label.rpartition("-pid:")[2].rpartition("-tid:")[0]
     return pid
 
 
 def get_tid(task_or_label):
+    """Get tid name from task_id or label, where
+    task_id = job_processor_event, and
+    label = task_id + "-pid:" + pid + "-tid:" + tid"""
     tid = task_or_label.rpartition("-tid:")[2]
     return tid
 
 
 def make_label(job, processor, event, pid, tid):
+    """make unique label from job, processor, event, pid and tid.
+    Each label identifies an object representing collapsed stacks
+    for a a specific job, event, process, and thread.
+    task_id = job_processor_event, and
+    label = task_id + "-pid:" + pid + "-tid:" + tid"""
     label = job + "_" + processor + "_" + event + "-pid:" + pid + "-tid:" + tid
     return label
 
@@ -54,15 +71,16 @@ def multi_run_wrapper(args):
         return worker(*args)
 
 
-def worker(task ,start_time, stop_time):
+def worker(task, start_time, stop_time):
     task.execute(start_time, stop_time)
     task.write_stacks()
-    pickle.dump( task, open( task.filename + ".p", "wb" ) )
+    pickle.dump(task, open(task.filename + ".p", "wb"))
     task.clear
     return
 
 
 class StackDataID:
+    """Metadata for collapsed stacks data for a specific job, event, process, and thread."""
 
     def __init__(self, job, label, task_id, pid, tid, process_name, event_name, raw_event, event_type):
         self.job = job
@@ -99,7 +117,6 @@ class ReadStacksTask:
         self.Y = {}
         self.count = {}
 
-
     def execute(self, start_time, stop_time):
         file = self.filename
         event_type = self.event_type
@@ -111,13 +128,13 @@ class ReadStacksTask:
                 if line[0:2] == "t=":
                     t = line.partition("=")[2]
                     time = float(t)
-                    self.update_timelines(event_type,time)
-                    if (time > start_time and time <= stop_time):
+                    self.update_timelines(event_type, time)
+                    if start_time < time <= stop_time:
                         self.update_stacks(event_type)
                     for pid in self.count:
                         for tid in self.count[pid]:
                             self.count[pid][tid] = [0, 0]
-                elif time >= start_time and time <= stop_time:
+                elif start_time <= time <= stop_time:
                     stack = line
                     if event_type == "custom_event_ratio":
                         stack, par, secondary = stack.rpartition(' ')
@@ -128,11 +145,11 @@ class ReadStacksTask:
                         tid = match.group(3)
                         if pid not in self.count:
                             self.work[pid] = {}
-                            self.count[pid]= {}
+                            self.count[pid] = {}
                         if tid not in self.count[pid]:
                             self.work[pid][tid] = OrderedDict()
-                            self.count[pid][tid] = [0,0]
-                        if stack :
+                            self.count[pid][tid] = [0, 0]
+                        if stack:
                             c0 = int(primary)
                             if event_type == "custom_event_ratio":
                                 c1 = int(secondary)
@@ -144,16 +161,15 @@ class ReadStacksTask:
                                 self.work[pid][tid][stack][0] += c0
                                 self.work[pid][tid][stack][1] += c1
                             else:
-                                self.work[pid][tid][stack] = [c0,c1]
+                                self.work[pid][tid][stack] = [c0, c1]
 
-    def update_stacks(self,event_type):
+    def update_stacks(self, event_type):
         for pid in self.work:
             if pid in self.X:
                 for tid in self.work[pid]:
                     if tid in self.X[pid]:
                         if len(self.X[pid][tid]) > 0:
                             c0 = self.count[pid][tid][0]
-                            c1 = self.count[pid][tid][1]
                             if c0 > 0:
                                 if pid not in self.stacks:
                                     self.stacks[pid] = {}
@@ -197,7 +213,6 @@ class ReadStacksTask:
                         r = float(self.event_counter)*float(c0) / dt
                     self.Y[pid][tid].append(r)
 
-
     def write_stacks(self):
         output_file = self.filename + "_compressed"
         f = open(output_file, 'wb')
@@ -222,6 +237,12 @@ class ReadStacksTask:
 
 
 class StackData:
+    """Object representing collapsed stack data for multiple data sets.
+    For the event view the object holds data for the event across all
+    loaded jobs, processes and threads.
+    For the process view, the object holds data for for the process
+    across all events and threads.
+    Stack data can be processed by multiple processes."""
 
     def __init__(self, results_files, path, cpu_definition, data_view="event", data_id="", debug=True, n_proc=4):
         self.selected_ids = []
@@ -253,13 +274,14 @@ class StackData:
         self.totals = {}
         self.event_counters = get_event_counters(path, results_files)
         self.collapsed_stacks_filename = "data_stacks_collapsed"
-        if data_view == "event": # Load a single event for all processes and threads
+        self.initial_count = 0
+        if data_view == "event":  # Load a single event for all jobs, processes and threads
             self.event = event_to_raw_event(data_id, self.cpu_definition)
             self.process = None
             if is_composite_event(self.event):
                 create_custom_event_stack(self, results_files, self.event)
                 self.event_counters = get_event_counters(path, results_files)  # Update counters with new custom event
-        if data_view == "process": # Load all events\threads for a single process
+        if data_view == "process":  # Load all events\threads for a single process
             self.process = data_id
             self.event = None
         self.ordered_ids = []
@@ -309,7 +331,7 @@ class StackData:
                         event_type = get_event_type(event)
                         if unit == "Samples":
                             counter = self.event_counters[job][raw_event]
-                        else: # Hz
+                        else:  # Hz
                             counter = 1
                         task_id = process + "_" + event
                         if self.data_view == "process":
@@ -362,7 +384,6 @@ class StackData:
         start_time = start
         stop_time = stop
         self.create_tasks()
-        #multiprocessing.log_to_stderr(logging.DEBUG)
         run_parallel = self.n_proc > 1 and len(self.tasks) > 1
         if run_parallel:
             pool = mp.Pool(min(self.n_proc, len(self.tasks)))
@@ -469,7 +490,6 @@ class StackData:
                         c0 = float(self.count[task_id][pid][tid][0])
                         self.totals[task_id][pid][tid] = c0
 
-
     def get_label_from_ids(self, task_id, pid, tid):
         label = ""
         for process_id in self.ordered_ids:
@@ -507,15 +527,16 @@ class StackData:
             self.compute_totals()
         return self.totals
 
-    def set_stack_map(self, stack_map): # If set, contains stack traces to be output, and maps to augmented stack traces
+    def set_stack_map(self, stack_map):
+        # If set, stack_map contains stack traces to be output, and maps to augmented stack traces
         self.stack_map = stack_map
-        self.reset_cached_data() # Reset events counts
+        self.reset_cached_data()  # Reset events counts
 
     def get_event_ids(self, event_name):
         event_ids = []
-        for id in self.ordered_ids:
-            if id.event_name == event_name:
-                event_ids.append(id)
+        for event_id in self.ordered_ids:
+            if event_id.event_name == event_name:
+                event_ids.append(event_id)
 
     def get_flamegraph_process_ids(self):
         return self.flamegraph_process_ids
@@ -558,12 +579,12 @@ class StackData:
 
     def get_dominant_id(self, ids):
         max_percentage = 0.0
-        for id in ids:
-            if self.data_view == "process" and id.event_type == "custom_event_ratio":
+        for process_id in ids:
+            if self.data_view == "process" and process_id.event_type == "custom_event_ratio":
                 continue
-            if id.total_percentage > max_percentage:
-                max_percentage = id.total_percentage
-                default_id = id
+            if process_id.total_percentage > max_percentage:
+                max_percentage = process_id.total_percentage
+                default_id = process_id
         return default_id
 
     def set_biggest_process_ids_for_each_job(self):
@@ -574,7 +595,6 @@ class StackData:
             job = process_id.job
             pid = process_id.pid
             tid = process_id.tid
-            event_type = process_id.event_type
             if self.system_wide:  # Pick maximum for a core, summed over threads
                 check = pid != "all" and tid == "all"
             else:  # Pick maximum for a thread
@@ -605,11 +625,11 @@ class StackData:
         for process_id in self.ordered_ids:
             pid = process_id.pid
             tid = process_id.tid
-            if self.system_wide: # Monitor cores
-                if pid != "all" and tid == "all": # One id for each core, including all threads on the core
+            if self.system_wide:  # Monitor cores
+                if pid != "all" and tid == "all":  # One id for each core, including all threads on the core
                     process_ids.append(process_id)
-            else: # Monitor application threads
-                if tid != "all": # One id for each thread of the application
+            else:  # Monitor application threads
+                if tid != "all":  # One id for each thread of the application
                     process_ids.append(process_id)
         if len(process_ids) == 0:  # No thread/core ids selected - add whatever is selected
             for process_id in self.ordered_ids:
@@ -617,7 +637,7 @@ class StackData:
         return process_ids
 
     def set_process_ids(self):
-        vals = [process_id.label for process_id in self.ordered_ids] # Store previous ids
+        vals = [process_id.label for process_id in self.ordered_ids]  # Store previous ids
         for task in self.totals:
             for pid in self.totals[task]:
                 for tid in self.totals[task][pid]:
@@ -737,7 +757,7 @@ class StackData:
         tid = process_id.tid
         if task_id in self.filtered_stacks_x:
             if pid in self.filtered_stacks_x[task_id]:
-                if tid in self.filtered_stacks_x[task_id][pid]: # Return cached data
+                if tid in self.filtered_stacks_x[task_id][pid]:  # Return cached data
                     return self.filtered_stacks_x[task_id][pid][tid], self.filtered_stacks_y[task_id][pid][tid]
         else:
             self.filtered_stacks_x[task_id] = {}
@@ -790,7 +810,7 @@ class StackData:
         tid = process_id.tid
         if task_id in self.filtered_stacks:
             if pid in self.filtered_stacks[task_id]:
-                if tid in self.filtered_stacks[task_id][pid]: # Return cached data
+                if tid in self.filtered_stacks[task_id][pid]:  # Return cached data
                     return self.filtered_stacks[task_id][pid][tid]
         else:
             self.filtered_stacks[task_id] = {}
@@ -901,8 +921,8 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                     r = float(base_symbols[symbol]) / float(symbols[label][symbol])
                     base_count = int(r * float(count))
                 job = get_job(label)
-                l = job + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
-                f.write(l.encode())
+                ll = job + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                f.write(ll.encode())
         f.close()
     elif flamegraph_type == "diff_stack_traces":
         base_data = OrderedDict()
@@ -966,8 +986,8 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                 if s in base_data:
                     base_count = base_data[s]
                 job = get_job(label)
-                l = job + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
-                f.write(l.encode())
+                ll = job + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                f.write(ll.encode())
         f.close()
     elif flamegraph_type == "plot_for_process":
         output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)
@@ -997,18 +1017,18 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                                 t = match.group(3)
                                 if (p, t) in pids:
                                     if event_type == "custom_event_ratio":
-                                        l = task_id + ";" + line
-                                        f.write(l.encode())
+                                        ll = task_id + ";" + line
+                                        f.write(ll.encode())
                                     else:
                                         if stack_data.stack_map:
                                             stack, par, count1 = line.rpartition(" ")
                                             line = job + ";" + stack
                                             if line in stack_data.stack_map:
-                                                l = task_id + ";" + stack_data.stack_map[line] + " " + count1
-                                                f.write(l.encode())
+                                                ll = task_id + ";" + stack_data.stack_map[line] + " " + count1
+                                                f.write(ll.encode())
                                         else:
-                                            l = task_id + ";" + line
-                                            f.write(l.encode())
+                                            ll = task_id + ";" + line
+                                            f.write(ll.encode())
                     fin.close()
         f.close()
     elif flamegraph_type == "plot_for_event":

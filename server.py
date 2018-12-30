@@ -6,7 +6,7 @@ import webbrowser
 import argparse
 import pathlib
 from tools.CustomLogging import setup_main_logger
-from tools.HPCExperiment import HPCExperimentHandler, HPCResultsHandler, is_HPC_result
+from tools.HPCExperiment import HPCExperimentHandler, HPCResultsHandler, is_hpc_result
 from werkzeug.utils import secure_filename
 from tools.JobHandler import JobHandler, Job
 from tools.ResultsHandler import get_results_info, get_jobs, get_cpu, get_run_summary
@@ -109,7 +109,8 @@ def is_results_file(filename):
     found = '.' in filename and filename.rsplit('.', 1)[1] == 'results'
     return found
 
-def is_HPC_experiment_file(filename):
+
+def is_hpc_experiment_file(filename):
     found = re.match(".*experiment.*\.xml", filename)
     return found
 
@@ -117,6 +118,7 @@ def is_HPC_experiment_file(filename):
 @app.route('/results/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 
 @app.route('/')
 @app.route('/index', methods=['GET', 'POST'])
@@ -162,9 +164,11 @@ def index():
                             try:
                                 foundfile.save(str(path_to_dir / pathlib.Path(foundfile.filename).name))
                             except Exception as e:
-                                main_logger.info(u" Failed copy: " + str(path_to_dir / pathlib.Path(foundfile.filename).name))
-                        if is_HPC_experiment_file(foundfile.filename):
-                            experiment_file = str(pathlib.Path(pathlib.Path(tools.GlobalData.local_data) / pathlib.Path(foundfile.filename)))
+                                main_logger.info(u" Failed copy: " +
+                                                 str(path_to_dir / pathlib.Path(foundfile.filename).name))
+                        if is_hpc_experiment_file(foundfile.filename):
+                            experiment_file = str(pathlib.Path(pathlib.Path(tools.GlobalData.local_data) /
+                                                               pathlib.Path(foundfile.filename)))
                     elif is_results_file(filename):
                         results_file = os.path.basename(foundfile.filename)
                         if results_file not in tools.GlobalData.results_files:
@@ -175,7 +179,8 @@ def index():
 
             if len(perf_data_files) > 0:
                 jobhandler = JobHandler(tools.GlobalData.root_directory)
-                results = jobhandler.convert_perf_data(perf_data_files, tools.GlobalData.local_data, perf_working_directory)
+                results = \
+                    jobhandler.convert_perf_data(perf_data_files, tools.GlobalData.local_data, perf_working_directory)
                 tools.GlobalData.results_files.append(results)
 
             if experiment_file:
@@ -201,8 +206,9 @@ def index():
             else:
                 for results_file in tools.GlobalData.results_files:
                     full_path = os.path.join(tools.GlobalData.local_data, results_file)
-                    if is_HPC_result(full_path):
-                        tools.GlobalData.hpc_results.append(HPCResultsHandler(tools.GlobalData.local_data, results_file))
+                    if is_hpc_result(full_path):
+                        tools.GlobalData.hpc_results\
+                            .append(HPCResultsHandler(tools.GlobalData.local_data, results_file))
                         main_logger.info(u"Loaded HPC Experiment results: " + results_file)
 
             purge(tools.GlobalData.local_data, "_compressed")
@@ -549,5 +555,4 @@ if __name__ == "__main__":
         webbrowser.register('custom_browser', None, webbrowser.BackgroundBrowser(browser_path), 1)
         webbrowser.get('custom_browser').open_new_tab(url)
     app.run(debug=False, use_reloader=False, host=host, port=int(port))
-
 
