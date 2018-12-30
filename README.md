@@ -51,7 +51,7 @@ There are some dependencies on lxml, which are required to run within the python
     source ./perf_analyzer/bin/activate
     pip install -r requirements_linux_py36.txt
     
-**Run in Python 3 environemnt**
+**Run in Python 3 environment**
 
     python server.py
 
@@ -74,7 +74,7 @@ The version of Glibc on the build machine should not exceed that on the machines
     perf_analyzer\Scripts\activate.bat
     pip install -r requirements_py36.txt
     
-**Run in Python 3 environemnt**
+**Run in Python 3 environment**
 
     python server.py
 
