@@ -73,30 +73,10 @@
                     </div>
                 {% endif %}
             {% endfor %}
-            <div class="row">
-                <div class="flex-column" style="border-style:none;width:100%;height:100%">
-                    <div class="panel panel-default">
-                        <a data-toggle="collapse" data-parent="#accordion" href="#params1">
-                            <div class="panel-heading">
-                                <h4 class="panel-title">
-                                     <strong>Modify Profiler Settings</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
-                                </h4>
-                            </div>
-                        </a>
-                        <div id="params1" class="panel-collapse collapse">
-                            <div class="flex-row">
-                                <div class="flex-column" style="border-style:none;width:33%"><p>Time resolution (S):</p><input type="text" class="form-control" name="dt" id=dt" value={{job_settings["dt"]}} title="Time interval of bins used for sample collection" placeholder="Time interval of bins used for sample collection"></div>
-                                <div class="flex-column" style="border-style:none;width:33%"><p>Maximum number of events recorded per realization:</p><input type="text" class="form-control" name="max_events_per_run" id=max_events_per_run" value={{job_settings["max_events_per_run"]}} title="Maximum number of events assigned to each run" placeholder="Maximum number of events assigned to each run"></div>
-                                <div class="flex-column" style="border-style:none;width:34%"><p>Attach to every nth process:</p><input type="text" class="form-control" name="proc_attach" id=proc_attach" value={{job_settings["proc_attach"]}} title="Attach to subset of processes" placeholder="Attach to subset of processes"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
             <div class=row>
                 <div class="flex-column" style="border-style:none;width:100%;height:100%">
                     <row>
-                        <div class="flex-column" style="width:100%"><input type="submit" class="btn btn-basic" id="settings_btn" name="settings_btn" value="Update Settings"></div>
+                        <div class="flex-column" style="width:100%"><input type="submit" class="btn btn-basic" id="events_btn" name="events_btn" value="Update Selected Events"></div>
                     </row>
                 </div>
             </div>
@@ -113,7 +93,7 @@
                         <a data-toggle="collapse" data-parent="#accordion2" href="#event_table">
                             <div class="panel-heading">
                                 <h4 class="panel-title">
-                                     <strong>Edit Perf Events</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                     <strong>Edit Available Perf Events</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
                                 </h4>
                             </div>
                         </a>
@@ -126,7 +106,7 @@
                                                 <th title="Event name for visualization">Display Event Name</th>
                                                 <th title="Event name for perf command line">Perf Raw Event Name</th>
                                                 <th title="Assign event to an event group">Event Group</th>
-                                                <th title="Sample event using fixed sample overflow counter, or Hz for automatic scaling">Event Sampling Method</th>
+                                                <th title="Sample event using fixed event period (samples), or frequency for automatic scaling (Hz)">Event Sampling Method</th>
                                                 <th>Remove Event</th>
                                                 <th>Reorder</th>
                                             </tr>
@@ -144,11 +124,11 @@
                                                     <td>
                                                         <select name="{{definition.event}}_edit_event_unit" class="selectpicker">
                                                             {% if definition.unit == "Samples" %}
-                                                                <option value="Samples" selected="selected">Samples</option>
-                                                                <option value="Hz">Hz</option>
+                                                                <option value="Samples" selected="selected">Period (# samples)</option>
+                                                                <option value="Hz">Frequency (Hz)</option>
                                                             {% else %}
-                                                                <option value="Samples">Samples</option>
-                                                                <option value="Hz" selected="selected">Hz</option>
+                                                                <option value="Samples">Period (# samples)</option>
+                                                                <option value="Hz" selected="selected">Frequency (Hz)</option>
                                                             {% endif %}
                                                         </select>
                                                     </td>
@@ -201,7 +181,41 @@
             <div class=row>
                 <div class="flex-column" style="border-style:none;width:100%;height:100%">
                     <row>
-                        <div class="flex-column" style="width:100%"><input type="submit" class="btn btn-basic" id="perf_events_btn" name="perf_events_btn" value="Update Perf Events"></div>
+                        <div class="flex-column" style="width:100%"><input type="submit" class="btn btn-basic" id="perf_events_btn" name="perf_events_btn" value="Update Available Events"></div>
+                    </row>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="panel-group" id="accordion3">
+    <div class="container">
+        <form id="event_form" action="{{url_for("SettingsView.settings")}}" method="post" style="width:100%">
+            <div class="row" style="border-style:none">
+                <div class="flex-column" style="width:100%">
+                    <div class="panel panel-default">
+                        <a data-toggle="collapse" data-parent="#accordion3" href="#params1">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">
+                                    <strong>Profiler Settings</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                </h4>
+                            </div>
+                        </a>
+                        <div id="params1" class="panel-collapse collapse">
+                            <div class="flex-row">
+                                <div class="flex-column" style="border-style:none;width:33%"><p>Time resolution (S):</p><input type="text" class="form-control" name="dt" id=dt" value={{job_settings["dt"]}} title="Time interval of bins used for sample collection" placeholder="Time interval of bins used for sample collection"></div>
+                                <div class="flex-column" style="border-style:none;width:33%"><p>Maximum number of events recorded per realization:</p><input type="text" class="form-control" name="max_events_per_run" id=max_events_per_run" value={{job_settings["max_events_per_run"]}} title="Maximum number of events assigned to each run" placeholder="Maximum number of events assigned to each run"></div>
+                                <div class="flex-column" style="border-style:none;width:34%"><p>Attach to every nth process:</p><input type="text" class="form-control" name="proc_attach" id=proc_attach" value={{job_settings["proc_attach"]}} title="Attach to subset of processes" placeholder="Attach to subset of processes"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class=row>
+                <div class="flex-column" style="border-style:none;width:100%;height:100%">
+                    <row>
+                        <div class="flex-column" style="width:100%"><input type="submit" class="btn btn-basic" id="settings_btn" name="settings_btn" value="Update Settings"></div>
                     </row>
                 </div>
             </div>

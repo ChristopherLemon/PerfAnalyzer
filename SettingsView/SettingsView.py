@@ -22,7 +22,7 @@ def settings():
     global layout
     status = "CPU: " + tools.GlobalData.job_settings["cpu"]
     layout["Results"] = tools.GlobalData.results_files
-    if 'settings_btn' in request.form:
+    if 'events_btn' in request.form:
         event_map = tools.GlobalData.selected_cpu_definition.get_available_event_map()
         tools.GlobalData.job_settings["events"] = []
         tools.GlobalData.job_settings["raw_events"] = []
@@ -32,6 +32,7 @@ def settings():
                 tools.GlobalData.job_settings["raw_events"].append(event_map[event])
         raw_events = tools.GlobalData.job_settings["raw_events"]
         tools.GlobalData.selected_cpu_definition.set_active_events(raw_events)
+    if 'settings_btn' in request.form:
         tools.GlobalData.job_settings["dt"] = float(request.form["dt"])
         tools.GlobalData.job_settings["max_events_per_run"] = int(request.form["max_events_per_run"])
         tools.GlobalData.job_settings["proc_attach"] = int(request.form["proc_attach"])
