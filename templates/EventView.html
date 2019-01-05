@@ -7,6 +7,12 @@
 {% endblock %}
 {% block content %}
 
+{% if event_model.layout.show_source %}
+    {% set show_source = "" %}
+{% else %}
+    {% set show_source = "hidden" %}
+{% endif %}
+
 <div class="loader element">Loading data...</div>
 
 <div class="panel-group" id="accordion">
@@ -29,6 +35,7 @@
                             </div>
                             <div class="flex-column" style="width:20%;height:100%"></div>
                         </div>
+                        <div class="source-table-container" id="source_code_info" {{show_source}}>{{event_model.layout.source_code_info|safe}}</div>
                         <div hidden class="row" style="margin-left:0">
                             <div class="flex-column" style="width:100%;height:100%">
                                 <object class="embedded_svg" type="image/svg+xml" data={{event_model.layout.flamegraph}} id="flamegraph" onload="add_flamegraph_events()"></object>
@@ -81,17 +88,11 @@
                             <a data-toggle="collapse" data-parent="#accordion" href="#source_file_collapse">
                                 <div class="panel-heading">
                                     <h4 class="panel-title">
-                                         <strong>Source Code</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                         <strong>Source Code (Requires HPCToolKit DataBase)</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
                                     </h4>
                                 </div>
                             </a>
                             <div id="source_file_collapse" class="panel-collapse collapse">
-                                <div class="aligned-row">
-                                    <div class="flex-row table_controls_2" style="border-style:none;">
-                                        <div class="flex-column" style="width:50%"><input style="margin:1px" class="form-control" placeholder="Regex expression to filter function names" oninput="apply_row_filter(this)"></div>
-                                        <div class="flex-column" style="width:100%;flex-direction:row-reverse;"><i style="color:grey;font-size:18px;"><span>Click on a table column to sort ascending/descending</span></i></div>
-                                    </div>
-                                </div>
                                 <div class="source-table-container" id="source_code_table">{{event_model.layout.source_code_table|safe}}</div>
                             </div>
                         </div>
@@ -895,6 +896,7 @@
     function wrap_flamegraph_onclick(e) {
         info_box = document.getElementById("flamegraph_info");
         let info;
+        let id = $(e).find("rect").attr("group");
         let children = e.childNodes;
         for (let i=0; i<children.length;i++) {
             if (children[i].tagName == "title") {
@@ -907,7 +909,7 @@
         if( filter == "all" ) {
             filter = ""; // match anything
         }
-        let vals = {"source_symbol":filter};
+        let vals = {"source_symbol":filter, "id":id};
         let x = JSON.stringify(vals);
         get_source_code(x);
 
@@ -923,18 +925,22 @@
             success: function(response) {
                 console.log(response);
                 document.getElementById("source_code_table").innerHTML = response.source_code_table;
+                document.getElementById("source_code_info").innerHTML = response.source_code_info;
                 line_num = response.source_code_line;
                 let source = $('#source_code')
                 $(source).focus();
                 let w = $(window);
                 let row = $('#source_code_table').find('tr').eq( line_num );
+                let src_line = "";
                 if (row.length){
                     $('html,body').animate({scrollTop: row.offset().top - (w.height()/2)}, 1000 );
-                   // w.scrollTop( row.offset().top - (w.height()/2) );
+                    src_line = $(row).innerHTML;
+                    return src_line;
                 }
             },
             error: function(error) {
                 console.log(error);
+                return "";
             }
         });
     }

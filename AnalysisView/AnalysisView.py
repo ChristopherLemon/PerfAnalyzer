@@ -3,7 +3,7 @@ from flask import render_template, request, jsonify, Blueprint
 from tools.Utilities import purge, timestamp, replace_operators
 from tools.StackData import StackData, get_job, get_process, get_pid, get_tid, get_event, make_label
 from plotting.ColourMaps import get_top_ten_colours
-from plotting.SourceCode import generate_source_code_table, generate_empty_table
+from plotting.SourceCode import generate_source_code_table, generate_empty_table, generate_source_code_info
 import tools.GlobalData
 from plotting.FlameGraphUtils import FlameGraph
 from tools.StackData import write_flamegraph_stacks
@@ -110,7 +110,9 @@ def general_analysis():
         analysis_model.layout.event_ratios_chart = get_custom_barchart(analysis_model.process_list, svgchart)
     analysis_model.layout.flamegraph = \
         get_flamegraph(analysis_data, analysis_model.process_list, analysis_model.flamegraph_mode)
-    analysis_model.layout.source_code_table, analysis_model.layout.source_code_line = get_source_code("")
+    analysis_model.layout.show_source = len(tools.GlobalData.hpc_results) > 0
+    analysis_model.layout.source_code_table, analysis_model.layout.source_code_info, \
+        analysis_model.layout.source_code_line = get_source_code("", analysis_model.reference_id)
 # Setup general layout
     analysis_model.layout.title = "Analysis: General"
     analysis_model.layout.footer = "Loaded Results: " + " & ".join(analysis_model.layout.results)
@@ -495,8 +497,10 @@ def update_flamegraph_ids():
 def update_source_code():
     global analysis_model
     data = request.get_json()
+    label = data["id"]
     source_symbol = data["source_symbol"]
-    analysis_model.layout.source_code_table, analysis_model.layout.source_code_line = get_source_code(source_symbol)
+    analysis_model.layout.source_code_table, analysis_model.layout.source_code_info, \
+        analysis_model.layout.source_code_line = get_source_code(source_symbol, label)
     return jsonify(analysis_model.layout.to_dict())
 
 
@@ -522,18 +526,20 @@ def update_flamegraph_mode():
     return jsonify(analysis_model.layout.to_dict())
 
 
-def get_source_code(symbol):
+def get_source_code(symbol, label):
     if re.match(".*\[\[cluster", symbol):
         symbol = symbol.rpartition("[[cluster")[0]
-    job_id = get_job(analysis_model.reference_id)
+    job_id = get_job(label)
     for i in range(len(tools.GlobalData.hpc_results)):
         if job_id == tools.GlobalData.hpc_results[i].get_job_id():
+            process_id = all_stack_data[analysis_model.reference_process].get_process_id_from_label(label)
+            source_code_info = generate_source_code_info(symbol, tools.GlobalData.hpc_results[i])
             source_code_table, source_code_line = \
-                generate_source_code_table(all_stack_data[analysis_model.reference_process],
+                generate_source_code_table(all_stack_data[analysis_model.reference_process], process_id,
                                            symbol, tools.GlobalData.hpc_results[i])
-            return source_code_table, source_code_line
+            return source_code_table, source_code_info, source_code_line
     source_code_table, source_code_line = generate_empty_table()
-    return source_code_table, source_code_line
+    return source_code_table, source_code_table, source_code_line
 
 
 def get_barchart(process_list, svg_chart):

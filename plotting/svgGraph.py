@@ -234,37 +234,37 @@ class ChartWriter:
                 continue
             stack_data = all_stack_data[stack_name]
             ids = stack_data.get_selected_process_ids()
-            process_id = ids[0]
-            pid = process_id.pid
-            tid = process_id.tid
-            job = process_id.job
-            for stack in data[job][pid][tid]:
-                node = stack.rpartition(";")[2]
-                if node in data[job][pid][tid]:
-                    yi = data[job][pid][tid][node][raw_event1]
-                    xi = data[job][pid][tid][node][raw_event2]
-                    if xlower:
-                        if xi < xlower or xi > xupper or yi < ylower or yi > yupper:
-                            continue
-                    if abs(xi) > 0.0 and abs(yi) > 0.0:
-                        nzeros += 1
-                    if abs(xi) > 0.0 or abs(yi) > 0.0 or nzeros == 1:
-                        nseries += 1
-                        minx = min(minx, xi)
-                        miny = min(miny, yi)
-                        maxx = max(maxx, xi)
-                        maxy = max(maxy, yi)
-                        if node in cluster_map[job][pid][tid]:
-                            ci = cluster_map[job][pid][tid][node]
-                            i = cluster_labels[ci]
-                            label = "{}-pid:{}-tid:{}: {}".format(job, pid, tid, node)
-                            if i < 0:
-                                plot_data[i].append(
-                                    {'value': (xi, yi), 'label': label, 'color': 'grey', 'opacity': 0.2})
-                            else:
-                                i = i % len(colours)
-                                plot_data[i].append(
-                                    {'value': (xi, yi), 'label': label, 'color': colours[i]})
+            for process_id in ids:
+                pid = process_id.pid
+                tid = process_id.tid
+                job = process_id.job
+                for stack in data[job][pid][tid]:
+                    node = stack.rpartition(";")[2]
+                    if node in data[job][pid][tid]:
+                        yi = data[job][pid][tid][node][raw_event1]
+                        xi = data[job][pid][tid][node][raw_event2]
+                        if xlower:
+                            if xi < xlower or xi > xupper or yi < ylower or yi > yupper:
+                                continue
+                        if abs(xi) > 0.0 and abs(yi) > 0.0:
+                            nzeros += 1
+                        if abs(xi) > 0.0 or abs(yi) > 0.0 or nzeros == 1:
+                            nseries += 1
+                            minx = min(minx, xi)
+                            miny = min(miny, yi)
+                            maxx = max(maxx, xi)
+                            maxy = max(maxy, yi)
+                            if node in cluster_map[job][pid][tid]:
+                                ci = cluster_map[job][pid][tid][node]
+                                i = cluster_labels[ci]
+                                label = "{}-pid:{}-tid:{}: {}".format(job, pid, tid, node)
+                                if i < 0:
+                                    plot_data[i].append(
+                                        {'value': (xi, yi), 'label': label, 'color': 'grey', 'opacity': 0.2})
+                                else:
+                                    i = i % len(colours)
+                                    plot_data[i].append(
+                                        {'value': (xi, yi), 'label': label, 'color': colours[i]})
         plot_data = self.restrict_scatter_multiple(plot_data, minx, maxx, miny, maxy)
         if centred:
             xr = max(abs(minx), abs(maxx))
@@ -336,34 +336,34 @@ class ChartWriter:
                 continue
             stack_data = all_stack_data[stack_name]
             ids = stack_data.get_selected_process_ids()
-            process_id = ids[0]
-            pid = process_id.pid
-            tid = process_id.tid
-            job = process_id.job
-            for stack in data[job][pid][tid]:
-                node = stack.rpartition(";")[2]
-                if node in data[job][pid][tid]:
-                    yi = data[job][pid][tid][node][raw_event1]
-                    xi = data[job][pid][tid][node][raw_event2]
-                    if xlower:
-                        if xi < xlower or xi > xupper or yi < ylower or yi > yupper:
-                            continue
-                    if abs(xi) > 0.0 and abs(yi) > 0.0:
-                        nzeros += 1
-                    if abs(xi) > 0.0 or abs(yi) > 0.0 or nzeros == 1:
-                        nseries += 1
-                        minx = min(minx, xi)
-                        miny = min(miny, yi)
-                        maxx = max(maxx, xi)
-                        maxy = max(maxy, yi)
-                        label = "{}-pid:{}-tid:{}: {}".format(job, pid, tid, node)
-                        if node in hotspot_colour_map:
-                            colour = hotspot_colour_map[node]
-                            i = colours.index(colour) + 1
-                            plot_data[i].append({'value': (xi, yi), 'label': label, 'color': colour})
-                        else:
-                            plot_data[0].append({'value': (xi, yi), 'label': label, 'color': default_color,
-                                                 'opacity': 0.2})
+            for process_id in ids:
+                pid = process_id.pid
+                tid = process_id.tid
+                job = process_id.job
+                for stack in data[job][pid][tid]:
+                    node = stack.rpartition(";")[2]
+                    if node in data[job][pid][tid]:
+                        yi = data[job][pid][tid][node][raw_event1]
+                        xi = data[job][pid][tid][node][raw_event2]
+                        if xlower:
+                            if xi < xlower or xi > xupper or yi < ylower or yi > yupper:
+                                continue
+                        if abs(xi) > 0.0 and abs(yi) > 0.0:
+                            nzeros += 1
+                        if abs(xi) > 0.0 or abs(yi) > 0.0 or nzeros == 1:
+                            nseries += 1
+                            minx = min(minx, xi)
+                            miny = min(miny, yi)
+                            maxx = max(maxx, xi)
+                            maxy = max(maxy, yi)
+                            label = "{}-pid:{}-tid:{}: {}".format(job, pid, tid, node)
+                            if node in hotspot_colour_map:
+                                colour = hotspot_colour_map[node]
+                                i = colours.index(colour) + 1
+                                plot_data[i].append({'value': (xi, yi), 'label': label, 'color': colour})
+                            else:
+                                plot_data[0].append({'value': (xi, yi), 'label': label, 'color': default_color,
+                                                     'opacity': 0.2})
 
         if len(plot_data[0]) > 0:
             nmax = 20 * self.max_points

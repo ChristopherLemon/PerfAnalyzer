@@ -36,6 +36,7 @@ class EventModel:
             self.event_ratios_chart = None
             self.event_ratios_table = None
             self.source_code_table = None
+            self.source_code_info = None
             self.source_code_line = None
             self.min_max_chart = None
             self.min_max_table = None

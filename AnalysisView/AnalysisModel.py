@@ -59,8 +59,10 @@ class AnalysisModel:
             self.event_totals_chart = None
             self.event_totals_table = None
             self.event_ratios_chart = None
+            self.source_code_info = None
             self.source_code_table = None
             self.source_code_line = None
+            self.show_source = None
             self.text_filter = None
             self.title = None
             self.footer = None

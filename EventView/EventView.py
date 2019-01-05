@@ -6,7 +6,7 @@ import tools.GlobalData
 from plotting.FlameGraphUtils import FlameGraph
 from tools.StackData import write_flamegraph_stacks
 from .EventModel import EventModel
-from plotting.SourceCode import generate_source_code_table, generate_empty_table
+from plotting.SourceCode import generate_source_code_table, generate_empty_table, generate_source_code_info
 import re
 import os
 
@@ -33,7 +33,7 @@ def event_view():
     global all_stack_data
     global svgchart
     event = str(request.args.get('event'))
-    custom_event_ratio = bool(re.match(".* / .*",event))
+    custom_event_ratio = bool(re.match(".* / .*", event))
     event_model.event = event
     event_model.custom_event_ratio = custom_event_ratio
     event_model.layout.results = tools.GlobalData.results_files
@@ -81,7 +81,9 @@ def event_view():
         get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
     event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = get_min_max_chart(event, svgchart)
     event_model.layout.timechart = get_timechart(event, custom_event_ratio, svgchart)
-    event_model.layout.source_code_table, event_model.layout.source_code_line = get_source_code("")
+    event_model.layout.show_source = len(tools.GlobalData.hpc_results) > 0
+    event_model.layout.source_code_table,  event_model.layout.source_code_info, event_model.layout.source_code_line \
+        = get_source_code("", event_model.reference_id)
     # Setup general layout
     ids = all_stack_data[event].get_all_process_ids()
     event_model.layout.diff = not custom_event_ratio
@@ -187,7 +189,8 @@ def update_flamegraph_ids():
                 if process_id.label == flamegraph_id:
                     ids.append(process_id)
     all_stack_data[event].set_flamegraph_process_ids(ids)
-    event_model.layout.flamegraph = get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
+    event_model.layout.flamegraph = \
+        get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
     if event_model.custom_event_ratio:
         event_model.layout.scatter_plot = get_2d_plot(event, svgchart)
     return jsonify(event_model.layout.to_dict())
@@ -198,7 +201,9 @@ def update_source_code():
     global event_model
     data = request.get_json()
     source_symbol = data["source_symbol"]
-    event_model.layout.source_code_table, event_model.layout.source_code_line = get_source_code(source_symbol)
+    label = data["id"]
+    event_model.layout.source_code_table, event_model.layout.source_code_info, event_model.layout.source_code_line = \
+        get_source_code(source_symbol, label)
     return jsonify(event_model.layout.to_dict())
 
 
@@ -260,15 +265,18 @@ def get_flamegraph(flamegraph_type, event, custom_event_ratio, diff):
     return svgfile
 
 
-def get_source_code(symbol):
-    job_id = get_job(event_model.reference_id)
+def get_source_code(symbol, label):
+    job_id = get_job(label)
     for i in range(len(tools.GlobalData.hpc_results)):
         if job_id == tools.GlobalData.hpc_results[i].get_job_id():
+            process_id = all_stack_data[event_model.event].get_process_id_from_label(label)
             source_code_table, source_code_line = \
-                generate_source_code_table(all_stack_data[event_model.event], symbol, tools.GlobalData.hpc_results[i])
-            return source_code_table, source_code_line
+                generate_source_code_table(all_stack_data[event_model.event], process_id, symbol,
+                                           tools.GlobalData.hpc_results[i])
+            source_code_info = generate_source_code_info(symbol, tools.GlobalData.hpc_results[i])
+            return source_code_table, source_code_info, source_code_line
     source_code_table, source_code_line = generate_empty_table()
-    return source_code_table, source_code_line
+    return source_code_table, source_code_table, source_code_line
 
 
 def get_barchart(event, diff, svg_chart):
@@ -310,7 +318,8 @@ def get_barchart2(event, diff, svg_chart):
     barchart_filename = timestamp("barchart2.svg")
     output_file = tools.GlobalData.local_data + os.sep + barchart_filename
     if diff:
-        event_totals_chart_title = 'Cumulative Difference Plot for {}: Reference = {}'.format(event, event_model.reference_id)
+        event_totals_chart_title = 'Cumulative Difference Plot for {}: Reference = {}'\
+            .format(event, event_model.reference_id)
         chart = svg_chart.generate_bar_chart_total_diff(all_stack_data[event],
                                                         title=event_totals_chart_title)
         chart.render_to_file(output_file)

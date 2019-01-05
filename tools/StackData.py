@@ -440,6 +440,8 @@ class StackData:
         for task in self.tasks:
             task_id = self.tasks[task].task_id
             job = self.tasks[task].job
+            process = self.tasks[task].process_name
+            event = self.tasks[task].event
             self.totals[task_id] = {}
             self.count[task_id] = {}
             counter = self.tasks[task_id].event_counter
@@ -454,6 +456,7 @@ class StackData:
                     if match:
                         pid = match.group(2)
                         tid = match.group(3)
+                        label = make_label(job, process, event, pid, tid)
                         if pid not in self.totals[task_id]:
                             self.totals[task_id][pid] = {}
                             self.count[task_id][pid] = {}
@@ -469,7 +472,7 @@ class StackData:
                         else:
                             c1 = c0
                         if self.stack_map:
-                            line = job + ";" + stack
+                            line = label + ";" + stack
                             if line in self.stack_map:
                                 self.count[task_id][pid][tid][0] += counter * c0
                                 self.count[task_id][pid][tid][1] += counter * c1
@@ -489,14 +492,6 @@ class StackData:
                     else:
                         c0 = float(self.count[task_id][pid][tid][0])
                         self.totals[task_id][pid][tid] = c0
-
-    def get_label_from_ids(self, task_id, pid, tid):
-        label = ""
-        for process_id in self.ordered_ids:
-            if process_id.task_id == task_id:
-                if process_id.pid == pid and process_id.tid == tid:
-                    label = process_id.label
-        return label
 
     def set_base_case(self, base_case, selected_ids):
         if len(selected_ids) > 0:
@@ -560,14 +555,6 @@ class StackData:
                 events.append(event)
         return events
 
-    def get_all_raw_events(self):
-        raw_events = []
-        for task in self.tasks:
-            raw_event = self.tasks[task].raw_event
-            if raw_event not in raw_events:
-                raw_events.append(raw_event)
-        return raw_events
-
     def get_all_process_ids(self):
         return self.ordered_ids
 
@@ -613,6 +600,13 @@ class StackData:
             if process_id.label == self.base_case:
                 base_id = process_id
         return base_id
+
+    def get_process_id_from_label(self, label):
+        proc_id = None
+        for process_id in self.ordered_ids:
+            if process_id.label == label:
+                proc_id = process_id
+        return proc_id
 
     def get_initial_process_ids(self):
         process_ids = []
@@ -723,18 +717,6 @@ class StackData:
     def get_max_x(self):
         return self.max_x
 
-    def get_min_y(self):
-        return self.min_y
-
-    def get_max_y(self):
-        return self.max_y
-
-    def get_step_x(self):
-        return self.time_interval
-
-    def get_step_y(self):
-        return (self.max_y - self.min_y) / 20.0
-
     def reset_cached_data(self):
         self.filtered_stacks_x = {}
         self.filtered_stacks_y = {}
@@ -744,8 +726,8 @@ class StackData:
         keyword = re.compile(self.text_filter)
         process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
         task_id = process_id.task_id
-        job = process_id.job
         counter = float(self.tasks[task_id].event_counter)
+        pids = {}
         pid = process_id.pid
         tid = process_id.tid
         if task_id in self.filtered_stacks_x:
@@ -755,6 +737,9 @@ class StackData:
         else:
             self.filtered_stacks_x[task_id] = {}
             self.filtered_stacks_y[task_id] = {}
+        for process_id in self.ordered_ids:
+            if process_id.task_id == task_id:
+                pids[(process_id.pid, process_id.tid)] = process_id.label
         input_file = self.tasks[task_id].filename + "_compressed"
         fin = open(input_file, 'r')
         for line in fin:
@@ -764,6 +749,7 @@ class StackData:
                 if match:
                     pid = match.group(2)
                     tid = match.group(3)
+                    label = pids[(pid, tid)]
                     if pid not in self.filtered_stacks_x[task_id]:
                         self.filtered_stacks_x[task_id][pid] = {}
                         self.filtered_stacks_y[task_id][pid] = {}
@@ -772,9 +758,9 @@ class StackData:
                         self.filtered_stacks_y[task_id][pid][tid] = {}
                     stack, par, count2 = line.rpartition(" ")
                     stack, par, count1 = stack.rpartition(" ")
-                    s = job + ";" + stack
+                    s = label + ";" + stack
                     if self.stack_map:
-                        line = job + ";" + stack
+                        line = label + ";" + stack
                         if line in self.stack_map:
                             self.filtered_stacks_x[task_id][pid][tid][s] = counter * float(count2)
                             self.filtered_stacks_y[task_id][pid][tid][s] = counter * float(count1)
@@ -797,8 +783,8 @@ class StackData:
         keyword = re.compile(self.text_filter)
         process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
         task_id = process_id.task_id
-        job = process_id.job
         counter = float(self.tasks[task_id].event_counter)
+        pids = {}
         pid = process_id.pid
         tid = process_id.tid
         if task_id in self.filtered_stacks:
@@ -807,6 +793,9 @@ class StackData:
                     return self.filtered_stacks[task_id][pid][tid]
         else:
             self.filtered_stacks[task_id] = {}
+        for proc_id in self.ordered_ids:
+            if proc_id.task_id == task_id:
+                pids[(proc_id.pid, proc_id.tid)] = proc_id.label
         input_file = self.tasks[task_id].filename + "_compressed"
         fin = open(input_file, 'r')
         for line in fin:
@@ -816,14 +805,15 @@ class StackData:
                 if match:
                     pid = match.group(2)
                     tid = match.group(3)
+                    label = pids[(pid, tid)]
                     if pid not in self.filtered_stacks[task_id]:
                         self.filtered_stacks[task_id][pid] = {}
                     if tid not in self.filtered_stacks[task_id][pid]:
                         self.filtered_stacks[task_id][pid][tid] = {}
                     stack, par, count1 = line.rpartition(" ")
-                    s = job + ";" + stack
+                    s = label + ";" + stack
                     if self.stack_map:
-                        line = job + ";" + stack
+                        line = label + ";" + stack
                         if line in self.stack_map:
                             self.filtered_stacks[task_id][pid][tid][s] = counter * float(count1)
                     else:
@@ -873,10 +863,10 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                 fin.close()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
-            pids = []
+            pids = {}
             for process_id in ids:
                 if process_id.task_id == task_id:
-                    pids.append((process_id.pid, process_id.tid))
+                    pids[(process_id.pid, process_id.tid)] = process_id.label
             if len(pids) > 0:
                 input_file = stack_data.tasks[task].filename + "_compressed"
                 fin = open(input_file, 'r')
@@ -888,7 +878,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                             p = match.group(2)
                             t = match.group(3)
                             if (p, t) in pids:
-                                label = stack_data.get_label_from_ids(task_id, p, t)
+                                label = pids[(p,t)]
                                 if label not in data:
                                     data[label] = OrderedDict()
                                     symbols[label] = {}
@@ -913,8 +903,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                 if symbol in base_symbols:
                     r = float(base_symbols[symbol]) / float(symbols[label][symbol])
                     base_count = int(r * float(count))
-                job = get_job(label)
-                ll = job + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
                 f.write(ll.encode())
         f.close()
     elif flamegraph_type == "diff_stack_traces":
@@ -944,10 +933,10 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                 fin.close()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
-            pids = []
+            pids = {}
             for process_id in ids:
                 if process_id.task_id == task_id:
-                    pids.append((process_id.pid, process_id.tid))
+                    pids[(process_id.pid, process_id.tid)] = process_id.label
             if len(pids) > 0:
                 data[task_id] = OrderedDict()
                 input_file = stack_data.tasks[task].filename + "_compressed"
@@ -960,8 +949,8 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                             p = match.group(2)
                             t = match.group(3)
                             if (p, t) in pids:
-                                label = stack_data.get_label_from_ids(task_id, p, t)
-                                if label not in data:
+                                label = pids[(p, t)]
+                                if (p, t) not in data:
                                     data[label] = OrderedDict()
                                 stack, par, count = line.strip().rpartition(" ")
                                 data[label][stack] = count
@@ -978,8 +967,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                 count = data[label][stack]
                 if s in base_data:
                     base_count = base_data[s]
-                job = get_job(label)
-                ll = job + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
                 f.write(ll.encode())
         f.close()
     elif flamegraph_type == "plot_for_process":
@@ -992,11 +980,10 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
             event_type = stack_data.tasks[task].event_type
-            job = stack_data.tasks[task].job
-            pids = []
+            pids = {}
             for process_id in ids:
                 if process_id.task_id == task_id:
-                    pids.append((process_id.pid, process_id.tid))
+                    pids[(process_id.pid, process_id.tid)] = process_id.label
             if len(pids) > 0:
                 if event_type == output_event_type:
                     input_file = stack_data.tasks[task].filename + "_compressed"
@@ -1010,17 +997,17 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                                 t = match.group(3)
                                 if (p, t) in pids:
                                     if event_type == "custom_event_ratio":
-                                        ll = task_id + ";" + line
+                                        ll = pids[(p, t)] + ";" + line
                                         f.write(ll.encode())
                                     else:
                                         if stack_data.stack_map:
                                             stack, par, count1 = line.rpartition(" ")
-                                            line = job + ";" + stack
+                                            line = pids[(p, t)] + ";" + stack
                                             if line in stack_data.stack_map:
-                                                ll = task_id + ";" + stack_data.stack_map[line] + " " + count1
+                                                ll = stack_data.stack_map[line] + " " + count1
                                                 f.write(ll.encode())
                                         else:
-                                            ll = task_id + ";" + line
+                                            ll = pids[(p, t)] + ";" + line
                                             f.write(ll.encode())
                     fin.close()
         f.close()
@@ -1033,10 +1020,10 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
         ids = stack_data.get_flamegraph_process_ids()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
-            pids = []
+            pids = {}
             for process_id in ids:
                 if process_id.task_id == task_id:
-                    pids.append((process_id.pid, process_id.tid))
+                    pids[(process_id.pid, process_id.tid)] = process_id.label
             if len(pids) > 0:
                 input_file = stack_data.tasks[task].filename + "_compressed"
                 fin = open(input_file, 'r')
@@ -1048,7 +1035,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                             p = match.group(2)
                             t = match.group(3)
                             if (p, t) in pids:
-                                ll = task_id + ";" + line
+                                ll = pids[(p, t)] + ";" + line
                                 f.write(ll.encode())
                 fin.close()
         f.close()

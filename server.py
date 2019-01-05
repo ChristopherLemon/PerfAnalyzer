@@ -9,12 +9,12 @@ from tools.CustomLogging import setup_main_logger
 from tools.HPCExperiment import HPCExperimentHandler, HPCResultsHandler, is_hpc_result
 from werkzeug.utils import secure_filename
 from tools.JobHandler import JobHandler, Job
-from tools.ResultsHandler import get_results_info, get_jobs, get_cpu, get_run_summary
+from tools.ResultsHandler import get_results_info, get_jobs, get_cpu, get_run_summary, get_trace_jobs
 from tools.Utilities import purge, format_percentage, format_number, replace_operators, get_datetime, \
     get_datetime_diff, abs_path_to_rel_path, natural_sort
 from plotting.RunSummaryTables import generate_run_summary_table
 import tools.GlobalData
-from tools.PerfEvents import get_cpu_definition, get_default_cpu, initialise_cpu_definitions
+from tools.PerfEvents import get_cpu_definition, get_default_cpu, initialise_cpu_definitions, reset_enabled_modes
 from multiprocessing import freeze_support
 from io import StringIO
 from flask import Flask, render_template, request, send_from_directory
@@ -35,7 +35,6 @@ log_stream = StringIO()
 submitted_jobs = []
 main_logger = None
 logfile = ""
-raw_events = []
 layout = {"Results": ["None"]}
 status = ""
 initialise = True
@@ -63,8 +62,6 @@ def utility_function():
 
 
 def reset_data_structures():
-    global processes
-    processes = []
     reset_event_view()
     reset_process_view()
     reset_analysis_view()
@@ -125,9 +122,7 @@ def uploaded_file(filename):
 def index():
     # Request handler for job submission and results/settings loading
     global status
-    global processes
     global layout
-    global raw_events
     global main_logger
     global logfile
     global submitted_jobs
@@ -147,6 +142,7 @@ def index():
                     return render_template('index.html',
                                            layout=layout,
                                            events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                                           trace_jobs=tools.GlobalData.trace_jobs,
                                            event_group_map=tools.GlobalData.loaded_cpu_definition
                                            .get_active_event_group_map(),
                                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
@@ -185,10 +181,10 @@ def index():
 
             if experiment_file:
                 analysis_level = request.form["analysis_level"]
-                if re.match("Line", analysis_level):
+                if re.match(".*Line", analysis_level):
                     include_loops = True
                     include_statements = True
-                elif re.match("Loop", analysis_level):
+                elif re.match(".*Loop", analysis_level):
                     include_loops = True
                     include_statements = False
                 else:  # "Procedure"
@@ -216,6 +212,7 @@ def index():
             main_logger.info(u"Loaded Results " + ", ".join(tools.GlobalData.results_files))
             tools.GlobalData.processes, raw_events = get_results_info(tools.GlobalData.local_data,
                                                                       tools.GlobalData.results_files)
+            tools.GlobalData.trace_jobs = get_trace_jobs(tools.GlobalData.local_data, tools.GlobalData.results_files)
             tools.GlobalData.cpu = get_cpu(tools.GlobalData.local_data, tools.GlobalData.results_files)
             tools.GlobalData.loaded_cpu_definition = get_cpu_definition(tools.GlobalData.cpu, raw_events)
             loaded_events = tools.GlobalData.loaded_cpu_definition.get_active_events()
@@ -234,6 +231,7 @@ def index():
                                        layout=layout,
                                        jobs=tools.GlobalData.jobs,
                                        events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                                       trace_jobs=tools.GlobalData.trace_jobs,
                                        event_group_map=tools.GlobalData.loaded_cpu_definition
                                        .get_active_event_group_map(),
                                        all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
@@ -349,6 +347,7 @@ def index():
                     return render_template('index.html',
                                            layout=layout,
                                            events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                                           trace_jobs=tools.GlobalData.trace_jobs,
                                            event_group_map=tools.GlobalData.loaded_cpu_definition
                                            .get_active_event_group_map(),
                                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
@@ -367,6 +366,7 @@ def index():
                 return render_template('index.html',
                                        layout=layout,
                                        events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                                       trace_jobs=tools.GlobalData.trace_jobs,
                                        event_group_map=tools.GlobalData.loaded_cpu_definition
                                        .get_active_event_group_map(),
                                        all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
@@ -404,6 +404,7 @@ def index():
     return render_template('index.html',
                            layout=layout,
                            events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                           trace_jobs=tools.GlobalData.trace_jobs,
                            event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=tools.GlobalData.jobs,
@@ -417,16 +418,17 @@ def clear_loaded_data():
     reset_data_structures()
     cpu = get_default_cpu()
     tools.GlobalData.results_files = []
+    tools.GlobalData.trace_jobs = []
     tools.GlobalData.processes = []
     tools.GlobalData.hpc_results = []
-    tools.GlobalData.enabled_modes = None
-    tools.GlobalData.enabled_modes = {"roofline_analysis": False, "general_analysis": False}
+    tools.GlobalData.enabled_modes = reset_enabled_modes()
     tools.GlobalData.loaded_cpu_definition = get_cpu_definition(cpu)
     layout["footer"] = "Loaded Results: None"
     layout["title"] = "Submit Jobs / Load Profiles: "
     return render_template('index.html',
                            layout=layout,
                            events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                           trace_jobs=tools.GlobalData.trace_jobs,
                            event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=tools.GlobalData.jobs,
@@ -448,6 +450,7 @@ def run_summary():
     return render_template('RunSummary.html',
                            layout=layout,
                            events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                           trace_jobs=tools.GlobalData.trace_jobs,
                            event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=tools.GlobalData.jobs,
@@ -497,6 +500,7 @@ def clear_html_log():
 def about():
     return render_template('aboutword.html',
                            events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                           trace_jobs=tools.GlobalData.trace_jobs,
                            event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=tools.GlobalData.jobs,
@@ -509,6 +513,7 @@ def about():
 def td():
     return render_template('td.html',
                            events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
+                           trace_jobs=tools.GlobalData.trace_jobs,
                            event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
                            all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=tools.GlobalData.jobs,

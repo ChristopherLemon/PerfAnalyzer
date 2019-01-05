@@ -37,7 +37,9 @@ class ProcessModel:
             self.event_time_series = None
             self.event_ratio_time_series = None
             self.source_code_table = None
+            self.source_code_table = None
             self.source_code_line = None
+            self.show_source = None
             self.title = None
             self.footer = None
             self.process_filter = None

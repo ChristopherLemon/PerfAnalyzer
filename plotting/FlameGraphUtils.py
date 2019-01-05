@@ -731,6 +731,7 @@ class FlameGraph:
     def flow(self, last, this, inc, exc, d=None):
         len_a = len(last) - 1
         len_b = len(this) - 1
+        group = this[1] if len_b > 0 else ""
         len_same = 0
         for i in range(0, len_a + 1):
             if i > len_b:
@@ -744,6 +745,7 @@ class FlameGraph:
             k = last[i] + ";" + str(i)
             self.nodes[k + ";" + str(inc)] = Node(self.tmp[k].start_time)
             self.nodes[k + ";" + str(inc)].increment_exclusive_time(self.tmp[k].exclusive_time)
+            self.nodes[k + ";" + str(inc)].group = group
             if self.tmp[k].has_delta:
                 self.nodes[k + ";" + str(inc)].increment_delta(self.tmp[k].delta)
             del self.tmp[k]
@@ -856,7 +858,7 @@ class FlameGraph:
                     color = self.color_handler.color_log_scale(delta, self.mean_delta, self.upper_delta)
             else:
                 color = self.color_handler.color_map(self.image_settings.colors, func)
-            self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"2\" ry=\"2\"")
+            self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"2\" ry=\"2\" group=\"" + node.group + "\"")
             chars = int((float(x2)-float(x1)) / float(fontsize * fontwidth))
             text = ""
             if chars >= 3:

@@ -38,7 +38,7 @@ class HPCExperimentHandler:
         metrics = hpc_experiment.get_metrics()
         results = hpc_experiment.get_results()
         for metric in metrics:
-            info = "event_counter-" + metric.lower() + ":run-" + str(1) + ":" + str(metrics[metric]) + "\n"
+            info = "event_counter-" + metric.lower() + ":run-" + str(1) + ":" + str(1) + "\n"
             f.write(info.encode())
         for result in results:
             out = result + "\n"
@@ -184,7 +184,7 @@ class HPCExperiment:
                         self.results_files[filename].write(out.encode())
                         current_count[unique_id] = 0
                         previous_stack_trace[unique_id] = current_stack_trace[unique_id]
-                    total = int(round(float(elt.attrib['v']) / float(period)))
+                    total = int(round(float(elt.attrib['v'])))
                     current_count[unique_id] += total
         for unique_id in current_stack_trace:
             metric = unique_id[0]

@@ -97,12 +97,13 @@ class ClusterFlameGraph:
                 job = process_id.job
                 pid = process_id.pid
                 tid = process_id.tid
+                label = process_id.label
                 event_type = process_id.event_type
                 if event_type == "original":
                     counts = stack_data.get_original_event_stack_data(process_id)
                     for stack in counts:
                         s = re.sub("(([\-0-9]+)/([0-9]+))", "", stack)
-                        s = re.sub(job + ";", "", s)
+                        s = re.sub(label + ";", "", s)
                         node = s.rpartition(";")[2]
                         if node in self.cluster_map[job][pid][tid]:
                             ci = self.cluster_map[job][pid][tid][node]
@@ -206,6 +207,7 @@ class GeneralAnalysis:
                 job = process_id.job
                 pid = process_id.pid
                 tid = process_id.tid
+                label = process_id.label
                 raw_event = process_id.raw_event
                 if raw_event in self.cluster_events["All"]:
                     if job not in self.data:
@@ -221,7 +223,7 @@ class GeneralAnalysis:
                     counts = stack_data.get_original_event_stack_data(process_id)
                     for stack in counts:
                         s = re.sub("(([\-0-9]+)/([0-9]+))", "", stack)
-                        s = re.sub(job + ";", "", s)
+                        s = re.sub(label + ";", "", s)
                         if s not in self.data[job][pid][tid]:
                             self.data[job][pid][tid][s] = {e: 0.0 for e in self.cluster_events["All"]}
                         self.data[job][pid][tid][s][raw_event] += counts[stack]
