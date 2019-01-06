@@ -80,8 +80,15 @@ def generate_empty_table():
     table_html.append("<td> - </td>")
     table_html.append("</tr>")
     table_html.append("</table>")
+    info_html = ["<table>"]
+    info_html.append("<tr bgcolor=\"white\">")
+    info_html.append("<td>" + str(1).ljust(5) + ": " + "</td>")
+    info_html.append("<td><pre> No Data </pre></td>")
+    info_html.append("</tr>")
+    info_html.append("</table>")
     table = "".join(table_html)
-    return table, "0"
+    info = "".join(info_html)
+    return table, "0", info
 
 
 def generate_source_code_table(stacks_data, process_id, frame, hpc_results):

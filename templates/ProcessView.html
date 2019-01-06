@@ -36,7 +36,7 @@
                                 </div>
                                 <div class="flex-column" style="width:20%;height:100%"></div>
                             </div>
-                            <div class="source-table-container" id="source_code_info" {{show_source}}>{{process_model.layout.source_code_info|safe}}</div>
+                            <div class="source-info-container" id="source_code_info" {{show_source}}>{{process_model.layout.source_code_info|safe}}</div>
                             <div hidden class="row" style="margin-left:0">
                                 <div class="flex-column" style="width:100%;height:100%">
                                     <object class="embedded_svg" type="image/svg+xml" data={{process_model.layout.flamegraph}} id="flamegraph" onload="add_flamegraph_events()"></object>

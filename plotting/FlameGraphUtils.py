@@ -42,7 +42,7 @@ def get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, inv
     var details, searchbtn, matchedtxt, svg, globalscale;
     document.search = search;
     document.reset_search = reset_search;
-    function init(evt) {
+    function init() {
         details = document.getElementById("details").firstChild;
         searchbtn = document.getElementById("search");
         matchedtxt = document.getElementById("matched");
@@ -50,7 +50,7 @@ def get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, inv
         globalscale = svg.viewBox.baseVal.width/svg.width.baseVal.value;
         searching = 0;
     }
-    function resize(evt) {
+    function resize() {
         svg = document.getElementsByTagName("svg")[0];
         globalscale = svg.viewBox.baseVal.width/svg.width.baseVal.value;
     }
@@ -406,7 +406,7 @@ class SVGPackage:
         values = {'width': width, 'height': height}
         svg_header = string.Template("""<?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg version="1.1" width="100%" height="100%" onload="init(evt)" onresize="resize(evt)" viewBox="0 0 $width $height" 
+<svg version="1.1" width="100%" height="100%" onload="init()" onresize="resize()" viewBox="0 0 $width $height" 
 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, 
 and http://www.brendangregg.com/flamegraphs.html for examples. -->""")

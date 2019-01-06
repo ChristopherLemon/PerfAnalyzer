@@ -75,7 +75,7 @@ def event_view():
         event_model.layout.event_totals_chart, event_model.layout.event_totals_table = \
             get_barchart(event, event_model.diff, svgchart)
         event_model.layout.event_totals_chart2, event_model.layout.event_totals_table2 = \
-            get_barchart2(event, event_model.diff, svgchart)
+            get_barchart_totals(event, event_model.diff, svgchart)
         event_model.layout.scatter_plot = None
     event_model.layout.flamegraph = \
         get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
@@ -148,7 +148,7 @@ def update_all_charts():
         event_model.layout.event_totals_chart, event_model.layout.event_totals_table = \
             get_barchart(event, event_model.diff, svgchart)
         event_model.layout.event_totals_chart2, event_model.layout.event_totals_table2 = \
-            get_barchart2(event, event_model.diff, svgchart)
+            get_barchart_totals(event, event_model.diff, svgchart)
     event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = get_min_max_chart(event, svgchart)
     event_model.layout.flamegraph = \
         get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
@@ -226,7 +226,7 @@ def update_flamegraph_mode():
     event_model.layout.event_totals_chart, event_model.layout.event_totals_table = \
         get_barchart(event, event_model.diff, svgchart)
     event_model.layout.event_totals_chart2, event_model.layout.event_totals_table2 = \
-        get_barchart2(event, event_model.diff, svgchart)
+        get_barchart_totals(event, event_model.diff, svgchart)
     event_model.layout.flamegraph = \
         get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
     return jsonify(event_model.layout.to_dict())
@@ -275,8 +275,8 @@ def get_source_code(symbol, label):
                                            tools.GlobalData.hpc_results[i])
             source_code_info = generate_source_code_info(symbol, tools.GlobalData.hpc_results[i])
             return source_code_table, source_code_info, source_code_line
-    source_code_table, source_code_line = generate_empty_table()
-    return source_code_table, source_code_table, source_code_line
+    source_code_table, source_code_info, source_code_line = generate_empty_table()
+    return source_code_table, source_code_info, source_code_line
 
 
 def get_barchart(event, diff, svg_chart):
@@ -313,9 +313,9 @@ def get_barchart(event, diff, svg_chart):
     return svgfile, event_totals_table
 
 
-def get_barchart2(event, diff, svg_chart):
+def get_barchart_totals(event, diff, svg_chart):
     # Setup Bar Chart
-    barchart_filename = timestamp("barchart2.svg")
+    barchart_filename = timestamp("barchart_totals.svg")
     output_file = tools.GlobalData.local_data + os.sep + barchart_filename
     if diff:
         event_totals_chart_title = 'Cumulative Difference Plot for {}: Reference = {}'\

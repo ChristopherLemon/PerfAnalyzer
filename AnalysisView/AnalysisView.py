@@ -538,9 +538,8 @@ def get_source_code(symbol, label):
                 generate_source_code_table(all_stack_data[analysis_model.reference_process], process_id,
                                            symbol, tools.GlobalData.hpc_results[i])
             return source_code_table, source_code_info, source_code_line
-    source_code_table, source_code_line = generate_empty_table()
-    return source_code_table, source_code_table, source_code_line
-
+    source_code_table, source_code_info, source_code_line = generate_empty_table()
+    return source_code_table, source_code_info, source_code_line
 
 def get_barchart(process_list, svg_chart):
     # Setup Bar Chart

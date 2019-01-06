@@ -236,8 +236,8 @@ def get_source_code(symbol, label):
                                            symbol, tools.GlobalData.hpc_results[i])
             source_code_info = generate_source_code_info(symbol, tools.GlobalData.hpc_results[i])
             return source_code_table, source_code_info, source_code_line
-    source_code_table, source_code_line = generate_empty_table()
-    return source_code_table, source_code_table, source_code_line
+    source_code_table, source_code_info, source_code_line = generate_empty_table()
+    return source_code_table, source_code_info, source_code_line
 
 
 def get_barchart(process, svg_chart):

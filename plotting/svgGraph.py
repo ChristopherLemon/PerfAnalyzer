@@ -1146,9 +1146,7 @@ class ChartWriter:
         a narrower time interval"""
         xc = []
         yc = []
-        for i in range(0, len(x)):
-            xi = x[i]
-            yi = y[i]
+        for xi, yi in zip(x, y):
             if xi > 0.0:
                 if xmin <= xi <= xmax:
                     xc.append(xi)
@@ -1156,13 +1154,12 @@ class ChartWriter:
         while len(xc) > self.max_points:
             xw = []
             yw = []
-            for i in range(0, len(xc)):
+            for i, (xci, yci) in enumerate(zip(xc, yc)):
                 if i % 2 == 0:
-                    xw.append(xc[i])
-                    yw.append(yc[i])
+                    xw.append(xci)
+                    yw.append(yci)
             xc = xw
             yc = yw
-
         return xc, yc
 
     def restrict_scatter_multiple(self, plot_data, xmin, xmax, ymin, ymax):
