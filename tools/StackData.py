@@ -727,7 +727,6 @@ class StackData:
         process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
         task_id = process_id.task_id
         counter = float(self.tasks[task_id].event_counter)
-        pids = {}
         pid = process_id.pid
         tid = process_id.tid
         if task_id in self.filtered_stacks_x:
@@ -737,9 +736,8 @@ class StackData:
         else:
             self.filtered_stacks_x[task_id] = {}
             self.filtered_stacks_y[task_id] = {}
-        for process_id in self.ordered_ids:
-            if process_id.task_id == task_id:
-                pids[(process_id.pid, process_id.tid)] = process_id.label
+        ids = self.ordered_ids
+        pids = {(proc_id.pid, proc_id.tid): proc_id.label for proc_id in ids if proc_id.task_id == task_id}
         input_file = self.tasks[task_id].filename + "_compressed"
         fin = open(input_file, 'r')
         for line in fin:
@@ -784,7 +782,6 @@ class StackData:
         process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
         task_id = process_id.task_id
         counter = float(self.tasks[task_id].event_counter)
-        pids = {}
         pid = process_id.pid
         tid = process_id.tid
         if task_id in self.filtered_stacks:
@@ -793,9 +790,8 @@ class StackData:
                     return self.filtered_stacks[task_id][pid][tid]
         else:
             self.filtered_stacks[task_id] = {}
-        for proc_id in self.ordered_ids:
-            if proc_id.task_id == task_id:
-                pids[(proc_id.pid, proc_id.tid)] = proc_id.label
+        ids = self.ordered_ids
+        pids = {(proc_id.pid, proc_id.tid): proc_id.label for proc_id in ids if proc_id.task_id == task_id}
         input_file = self.tasks[task_id].filename + "_compressed"
         fin = open(input_file, 'r')
         for line in fin:
@@ -863,10 +859,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                 fin.close()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
-            pids = {}
-            for process_id in ids:
-                if process_id.task_id == task_id:
-                    pids[(process_id.pid, process_id.tid)] = process_id.label
+            pids = {(proc_id.pid, proc_id.tid): proc_id.label for proc_id in ids if proc_id.task_id == task_id}
             if len(pids) > 0:
                 input_file = stack_data.tasks[task].filename + "_compressed"
                 fin = open(input_file, 'r')
@@ -933,10 +926,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                 fin.close()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
-            pids = {}
-            for process_id in ids:
-                if process_id.task_id == task_id:
-                    pids[(process_id.pid, process_id.tid)] = process_id.label
+            pids = {(proc_id.pid, proc_id.tid): proc_id.label for proc_id in ids if proc_id.task_id == task_id}
             if len(pids) > 0:
                 data[task_id] = OrderedDict()
                 input_file = stack_data.tasks[task].filename + "_compressed"
@@ -980,10 +970,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
             event_type = stack_data.tasks[task].event_type
-            pids = {}
-            for process_id in ids:
-                if process_id.task_id == task_id:
-                    pids[(process_id.pid, process_id.tid)] = process_id.label
+            pids = {(proc_id.pid, proc_id.tid): proc_id.label for proc_id in ids if proc_id.task_id == task_id}
             if len(pids) > 0:
                 if event_type == output_event_type:
                     input_file = stack_data.tasks[task].filename + "_compressed"
@@ -1020,10 +1007,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
         ids = stack_data.get_flamegraph_process_ids()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
-            pids = {}
-            for process_id in ids:
-                if process_id.task_id == task_id:
-                    pids[(process_id.pid, process_id.tid)] = process_id.label
+            pids = {(proc_id.pid, proc_id.tid): proc_id.label for proc_id in ids if proc_id.task_id == task_id}
             if len(pids) > 0:
                 input_file = stack_data.tasks[task].filename + "_compressed"
                 fin = open(input_file, 'r')

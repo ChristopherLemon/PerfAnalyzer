@@ -74,8 +74,14 @@ def get_local_mpirun_params(params=""):
 
 
 def get_mpirun_appfile(mpi_version=None):
-    """Return coorect appfile command line parameter for mpirun version"""
-    if mpi_version:
+    """Return correct appfile command line parameter for mpirun version,
+
+        Args:
+            mpi version: Intel MPI (-configfile), OpenMPI (-app), or Platform MPI (-f).
+            Defaults to empty string"""
+    if mpi_version is None:
+        appfile = ""
+    else:
         # Intel MPI: -configfile, OpenMPI: -app, Platform MPI: -f
         if re.search("Intel", mpi_version):
             appfile = "-configfile"
@@ -83,8 +89,6 @@ def get_mpirun_appfile(mpi_version=None):
             appfile = "-app"
         elif re.search("Platform", mpi_version):
             appfile = "-f"
-    else:
-        appfile = ""
     return appfile
 
 
@@ -127,7 +131,7 @@ def get_stack_collapse_command(in_file, out_file, dt, stack_collapse_script, sys
         .format(in_file, stack_collapse_script, out_file, dt, multiplier)
     if system_wide:
         command += ' --accumulate'  # Include accumulation of sample counts over threads and processes
-    if trace_event:
+    if trace_event is not None:
         command += " --trace_event=" + trace_event  # Trace an event, by recording time stamp of all samples
     command += " &\n"
     return command
@@ -213,17 +217,14 @@ class JobHandler:
             raise Exception(str(e))
 
     def execute_command(self, command, client=None, return_output=False):
-        if client:
-            self.scriptwriting_logger.debug(u" Submitted remote command: " + command)
-            stdin, stdout, stderr = client.exec_command(command)
-            exit_status = stdout.channel.recv_exit_status()
-            if exit_status > 0:
-                self.scriptwriting_logger.error(u" Command error: " + "".join(stderr.readlines()))
-            else:
-                self.scriptwriting_logger.info(u" Executed command: " + command)
-            if return_output:
-                return stdout
-        else:
+        """Execute a command from the command line
+
+            Args:
+                command: command line to run.
+                client: ssh client used to execute remote commands. Defaults to no client,
+                    to run command locally.
+                return_output: Flag to indicate if stdout should be returned."""
+        if client is None:
             self.scriptwriting_logger.debug(u" Submitted local command: " + command)
             try:
                 output = subprocess.check_output(command, shell=True)
@@ -233,17 +234,26 @@ class JobHandler:
                 self.scriptwriting_logger.info(u" Executed command: " + command)
             if return_output:
                 return output
+        else:
+            self.scriptwriting_logger.debug(u" Submitted remote command: " + command)
+            stdin, stdout, stderr = client.exec_command(command)
+            exit_status = stdout.channel.recv_exit_status()
+            if exit_status > 0:
+                self.scriptwriting_logger.error(u" Command error: " + "".join(stderr.readlines()))
+            else:
+                self.scriptwriting_logger.info(u" Executed command: " + command)
+            if return_output:
+                return stdout
 
     def get_file(self, remotefile, localfile, stfp=None):
-        if stfp:
-            self.scriptwriting_logger.info(u" Copying: " + remotefile + " -> " + localfile)
-            try:
-                stfp.get(remotefile, localfile)
-            except Exception as e:
-                self.scriptwriting_logger.error(u"" + str(e))
-            else:
-                self.scriptwriting_logger.info(u" Copy successful")
-        else:
+        """Copy a file from remote file to local file.
+
+            Args:
+                remotefile: absolute path to original file.
+                localfile: relative path to the copied file.
+                stfp: ssh client used to retrieve files from a remote locations.
+                    Defaults to no client, which copes the file locally."""
+        if stfp is None:
             self.scriptwriting_logger.info(u" Copying: " + remotefile + " -> " + localfile)
             try:
                 localdir = os.path.dirname(localfile)
@@ -252,12 +262,28 @@ class JobHandler:
                 self.scriptwriting_logger.error(u"" + str(e))
             else:
                 self.scriptwriting_logger.info(u" Copy successful")
+        else:
+            self.scriptwriting_logger.info(u" Copying: " + remotefile + " -> " + localfile)
+            try:
+                stfp.get(remotefile, localfile)
+            except Exception as e:
+                self.scriptwriting_logger.error(u"" + str(e))
+            else:
+                self.scriptwriting_logger.info(u" Copy successful")
 
     def put_file(self, localfile, remotefile, stfp=None):
-        if stfp:
+        """Copy a file from local file tot remote file.
+
+                    Args:
+                        localfile: relative path to the original file.
+                        remotefile: absolute path to copied file.
+                        stfp: ssh client used to copy to remote file location.
+                            Defaults to no client, which copes the file locally."""
+        if stfp is None:
             self.scriptwriting_logger.info(u" Copying: " + localfile + " -> " + remotefile)
             try:
-                stfp.put(localfile, remotefile)
+                remotedir = os.path.dirname(remotefile)
+                shutil.copy(localfile, remotedir)
             except Exception as e:
                 self.scriptwriting_logger.error(u"" + str(e))
             else:
@@ -265,8 +291,7 @@ class JobHandler:
         else:
             self.scriptwriting_logger.info(u" Copying: " + localfile + " -> " + remotefile)
             try:
-                remotedir = os.path.dirname(remotefile)
-                shutil.copy(localfile, remotedir)
+                stfp.put(localfile, remotefile)
             except Exception as e:
                 self.scriptwriting_logger.error(u"" + str(e))
             else:

@@ -401,10 +401,10 @@ class TraceData:
                 task_id = process_id.task_id
                 for time_index, time_slice in enumerate(self.trace_data[task_id][pid][tid]):
                     if forwards and time_index >= int(t1) or not forwards and time_index <= int(t2):
-                        for i in range(0, len(time_slice)):
-                            trace = time_slice[i]["stack"]
-                            start = time_slice[i]["samples"][0]
-                            end = time_slice[i]["samples"][-1]
+                        for time_slice_interval in time_slice:
+                            trace = time_slice_interval["stack"]
+                            start = time_slice_interval["samples"][0]
+                            end = time_slice_interval["samples"][-1]
                             match = re.search(function_regex, trace)
                             if match:
                                 t1_out = min(t1_out, start)
@@ -435,16 +435,16 @@ class TraceData:
                     if tid not in self.sample_rates[task_id][pid]:
                         self.sample_rates[task_id][pid][tid] = [0.0] * self.timeline_intervals
                     for time_slice in self.trace_data[task_id][pid][tid]:
-                        for i in range(len(time_slice)):
-                            for time in time_slice[i]["samples"]:
+                        for data in time_slice:
+                            for time in data["samples"]:
                                 if t1 <= time <= t2:
                                     index = min(int((time - t1) / dt), self.timeline_intervals - 1)
                                     self.sample_rates[task_id][pid][tid][index] += 1.0
         for task_id in self.sample_rates:
             for pid in self.sample_rates[task_id]:
                 for tid in self.sample_rates[task_id][pid]:
-                    for index in range(len(self.sample_rates[task_id][pid][tid])):
-                        self.sample_rates[task_id][pid][tid][index] /= dt
+                    for sample_rate in self.sample_rates[task_id][pid][tid]:
+                        sample_rate /= dt
 
     def generate_secondary_events(self, t1=-0.0000001, t2=sys.maxsize):
         if t1 <= 0.0 and t2 == sys.maxsize:
@@ -473,10 +473,10 @@ class TraceData:
             for pid in self.trace_data[task_id]:
                 for tid in self.trace_data[task_id][pid]:
                     for time_slice in self.trace_data[task_id][pid][tid]:
-                        for i in range(len(time_slice)):
-                            trace = time_slice[i]["stack"]
-                            start = time_slice[i]["samples"][0]
-                            end = time_slice[i]["samples"][-1]
+                        for time_slice_interval in time_slice:
+                            trace = time_slice_interval["stack"]
+                            start = time_slice_interval["samples"][0]
+                            end = time_slice_interval["samples"][-1]
                             augmented_node = trace.rpartition(";")[2]
                             node = re.sub("_\[\[call_[0-9]+\]\]", "", augmented_node)
                             if node not in nodes:
@@ -580,17 +580,14 @@ class TraceData:
         augmented_hotspots = {}
         ids = self.get_all_process_ids()
         for task_id in self.tasks:
-            pids = []
-            for process_id in ids:
-                if process_id.task_id == task_id:
-                    pids.append((process_id.pid, process_id.tid))
+            pids = [(proc_id.pid, proc_id.tid) for proc_id in ids if proc_id.task_id == task_id]
             for pid, tid in pids:
                 for time_index, time_slice in enumerate(self.trace_data[task_id][pid][tid]):
                     if int(t1) <= time_index <= int(t2) and len(time_slice) > 0:
-                        for i in range(len(time_slice)):
-                            trace = time_slice[i]["stack"]
-                            start = time_slice[i]["samples"][0]
-                            end = time_slice[i]["samples"][-1]
+                        for time_slice_interval in time_slice:
+                            trace = time_slice_interval["stack"]
+                            start = time_slice_interval["samples"][0]
+                            end = time_slice_interval["samples"][-1]
                             if end > t1 and start <= t2:
                                 augmented_node = trace.rpartition(";")[2]
                                 node = re.sub("_\[\[call_[0-9]+\]\]", "", augmented_node)
@@ -602,15 +599,12 @@ class TraceData:
 def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.maxsize):
     output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)
     time_scale = stack_data.time_scale
+    ids = stack_data.get_flamegraph_process_ids()
     if flamegraph_type == "cumulative":
         collapsed_stacks = {}
-        ids = stack_data.get_flamegraph_process_ids()
         for task_id in stack_data.tasks:
             sample_weight = stack_data.tasks[task_id].sample_weight
-            pids = []
-            for process_id in ids:
-                if process_id.task_id == task_id:
-                    pids.append((process_id.pid, process_id.tid))
+            pids = [(proc_id.pid, proc_id.tid) for proc_id in ids if proc_id.task_id == task_id]
             for pid, tid in pids:
                 previous_x2 = t1
                 if pid not in collapsed_stacks:
@@ -619,11 +613,11 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
                     collapsed_stacks[pid][tid] = {}
                 for time_index, time_slice in enumerate(stack_data.trace_data[task_id][pid][tid]):
                     if int(t1) <= time_index <= int(t2):
-                        for i in range(len(time_slice)):
-                            trace = time_slice[i]["stack"]
+                        for time_slice_interval in time_slice:
+                            trace = time_slice_interval["stack"]
                             new_trace = re.sub("_\[\[call_[0-9]+\]\]", "", trace)
-                            start = time_slice[i]["samples"][0]
-                            end = time_slice[i]["samples"][-1]
+                            start = time_slice_interval["samples"][0]
+                            end = time_slice_interval["samples"][-1]
                             if end > t1 and start <= t2:
                                 x1 = max(start, t1)
                                 x2 = min(end, t2)
@@ -659,21 +653,17 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
         max_lines = 2000
         line_num = 0
         f = open(output_file, 'wb')
-        ids = stack_data.get_flamegraph_process_ids()
         for task_id in stack_data.tasks:
             sample_weight = stack_data.tasks[task_id].sample_weight
-            pids = []
-            for process_id in ids:
-                if process_id.task_id == task_id:
-                    pids.append((process_id.pid, process_id.tid))
+            pids = [(proc_id.pid, proc_id.tid) for proc_id in ids if proc_id.task_id == task_id]
             for pid, tid in pids:
                 previous_x2 = t1
                 for time_index, time_slice in enumerate(stack_data.trace_data[task_id][pid][tid]):
                     if int(t1) <= time_index <= int(t2) and len(time_slice) > 0:
-                        for i in range(len(time_slice)):
-                            trace = time_slice[i]["stack"]
-                            start = time_slice[i]["samples"][0]
-                            end = time_slice[i]["samples"][-1]
+                        for time_slice_interval in time_slice:
+                            trace = time_slice_interval["stack"]
+                            start = time_slice_interval["samples"][0]
+                            end = time_slice_interval["samples"][-1]
                             if end > t1 and start <= t2:
                                 x1 = max(start, t1)
                                 x2 = min(end, t2)
@@ -713,18 +703,13 @@ def write_timelines(stack_data):
     output_file = os.path.join(stack_data.path, stack_data.timelines_filename)
     f = open(output_file, 'wb')
     ids = stack_data.get_selected_process_ids()
-    for task in stack_data.tasks:
-        task_id = stack_data.tasks[task].task_id
-        pids = []
-        for process_id in ids:
-            if process_id.task_id == task_id:
-                pids.append((process_id.pid, process_id.tid))
+    for task_id in stack_data.tasks:
+        pids = [(proc_id.pid, proc_id.tid) for proc_id in ids if proc_id.task_id == task_id]
         for pid, tid in pids:
-            prev_stack = stack_data.timelines[task][pid][tid][0]
+            prev_stack = stack_data.timelines[task_id][pid][tid][0]
             count = 0
             start = t1
-            for i in range(len(stack_data.timelines[task][pid][tid])):
-                stack = stack_data.timelines[task][pid][tid][i]
+            for stack in stack_data.timelines[task_id][pid][tid]:
                 if stack == prev_stack:
                     count += 1
                 else:
@@ -737,16 +722,16 @@ def write_timelines(stack_data):
             end = start + count * dt
             out = "{}/{};{} {} {} {}\n".format(str(pid), str(tid), prev_stack, str(start), str(end), str(count))
             f.write(out.encode())
-            for i in range(len(stack_data.sample_rates[task][pid][tid])):
+            for i, rate in enumerate(stack_data.sample_rates[task_id][pid][tid]):
                 time = t1 + (i + 0.5) * dt
-                rate = stack_data.sample_rates[task][pid][tid][i]
+                rate = stack_data.sample_rates[task_id][pid][tid][i]
                 out = "sample-rate;{}/{} {} {}\n".format(str(pid), str(tid), str(time), str(rate))
                 f.write(out.encode())
-            if task in stack_data.secondary_events:
-                if pid in stack_data.secondary_events[task]:
-                    if tid in stack_data.secondary_events[task][pid]:
-                        for event in stack_data.secondary_events[task][pid][tid]:
-                            for time in stack_data.secondary_events[task][pid][tid][event]:
+            if task_id in stack_data.secondary_events:
+                if pid in stack_data.secondary_events[task_id]:
+                    if tid in stack_data.secondary_events[task_id][pid]:
+                        for event in stack_data.secondary_events[task_id][pid][tid]:
+                            for time in stack_data.secondary_events[task_id][pid][tid][event]:
                                 out = "secondary-event;{}/{} {} {}\n".format(str(pid), str(tid), event, str(time))
                                 f.write(out.encode())
     f.close()

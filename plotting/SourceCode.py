@@ -107,17 +107,18 @@ def generate_source_code_table(stacks_data, process_id, frame, hpc_results):
             count = "-"
             pc = "-"
         if line_num == source_lines["focus"]:
-            table_html.append("<tr bgcolor=\"green\">")
+            table_html.append("<tr bgcolor=\"grey\">")
         else:
             table_html.append("<tr bgcolor=\"white\">")
         table_html.append("<td>" + str(line_num).ljust(5) + ": " + "</td>")
-        table_html.append("<td><pre>" + line.rstrip().ljust(max_len) + "</pre></td>")
+        src = line.rstrip().replace("&", "&amp;").replace("<", "&lt").replace(">", "&gt")
+        table_html.append("<td><pre>" + src.ljust(max_len) + "</pre></td>")
         table_html.append("<td>" + count.ljust(16) + "</td>")
         table_html.append("<td>" + pc.ljust(5) + "</td>")
         table_html.append("</tr>")
     table_html.append("</table>")
     table = "".join(table_html)
-    return table.replace("&", "&amp;"), source_lines["focus"]
+    return table, source_lines["focus"]
 
 
 def generate_source_code_info(frame, hpc_results):
@@ -130,14 +131,15 @@ def generate_source_code_info(frame, hpc_results):
     for line in source_lines["lines"]:
         line_num += 1
         if line_num == source_lines["focus"]:
-            table_html.append("<tr bgcolor=\"green\">")
+            table_html.append("<tr bgcolor=\"grey\">")
         elif abs(line_num - source_lines["focus"]) <= 1:
             table_html.append("<tr bgcolor=\"white\">")
         else:
             continue
         table_html.append("<td>" + str(line_num).ljust(5) + ": " + "</td>")
-        table_html.append("<td><pre>" + line.rstrip().ljust(max_len) + "</pre></td>")
+        src = line.rstrip().replace("&", "&amp;").replace("<", "&lt").replace(">", "&gt")
+        table_html.append("<td><pre>" + src.ljust(max_len) + "</pre></td>")
         table_html.append("</tr>")
     table_html.append("</table>")
     table = "".join(table_html)
-    return table.replace("&", "&amp;")
+    return table
