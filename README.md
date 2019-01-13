@@ -1,11 +1,10 @@
 # PerfAnalyzer
 
-PerfAnalyzer is a browser based performance analysis tool which utilizes Linux perf to monitor hardware event counters, software events, and trace events. The tool provides a graphical user interface to handle job submission and visualization of performance profiles using flamegraphs, charts, and tables. These elements are combined with the Flask framework to create highly interactive representations of the data. Databases created by HPCToolKit can also be interpreted, to create loop or source line level flamegraphs, which can then be used to navigate the associated source code.
+PerfAnalyzer is a browser based performance analysis tool which utilizes Linux perf to monitor hardware event counters, software events, and trace events. The tool originated from a need to analyze codes running on multiple processors and with multiple threads, whilst comparing the performance of different code designs. When combined with the Linux perf events interface, flamegraphs proved to be an extremely neat way of visualizing the necessary data. The automation of the job submission process, the data analysis, and the visualization within a web browser, led to the PerfAnalyzer tool.
 
-The PerfAnalyzer tool is designed for use with high performance codes: it can monitor all processes and 
-threads of an application, or it can monitor activity on each processor of the underlying system. Jobs can be submitted 
-using the Message Parsing Interface (MPI), queueing systems such as LSF, and SSH. This permits both local and
-remote profiling of an application, perhaps running on a cluster or a cloud server. Further details can be found in the Wiki
+The tool provides a graphical user interface to handle job submission and visualization of performance profiles using flamegraphs, charts, and tables. These elements are combined with the Flask framework to create highly interactive representations of the data. Databases created by HPCToolKit can also be interpreted, to create loop or source line level flamegraphs, which can then be used to navigate the associated source code.
+
+The PerfAnalyzer tool can be used to monitor all processes and threads of an application, or it can monitor activity on each processor of the underlying system. Jobs can be submitted using the Message Parsing Interface (MPI), queueing systems such as LSF, and SSH. This permits both local and remote profiling of an application, perhaps running on a cluster or a cloud server. Further details can be found in the Wiki
 
 
 
