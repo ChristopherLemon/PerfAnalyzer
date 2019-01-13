@@ -192,15 +192,18 @@ class CpuDefinition:
             if "trace-cpu-clock" in trace_events:
                 trace_event = "trace-cpu-clock"
                 trace_flag = "-F"
+                event_counter = frequency
             elif "trace-task-clock" in active_event_counters:
                 trace_event = "trace-task-clock"
                 trace_flag = "-F"
+                event_counter = frequency
             else:
                 trace_event = "trace-cycles"
                 trace_flag = "-c"
+                event_counter = count
             ordered_trace_events = [trace_event] + [event for event in trace_events if event != trace_event]
             group = \
-                {"flag": trace_flag, "events": ordered_trace_events, "event_counter": frequency, "event_type": "Trace"}
+                {"flag": trace_flag, "events": ordered_trace_events, "event_counter": event_counter, "event_type": "Trace"}
             perf_event_groups.append(copy.deepcopy(group))
         group = {"flag": "-F", "events": [], "event_counter": 0, "event_type": "Standard"}
         n = 0
