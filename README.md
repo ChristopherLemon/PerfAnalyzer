@@ -40,10 +40,11 @@ Performance data can be gathered for a Linux kernel version of 3.x or later, wit
 sufficient privileges to set /proc/sys/kernel/perf_event_paranoid to a suitable value. It is also possible to use PerfAnalyzer on a Windows system to perform remote profiling of a Linux system. The tool can be run within a Python 3 environment, or can be built with PyInstaller to create a standalone directory, which can then simply be copied to the locations required.  
 
 ## Linux Setup
-There are some dependencies on lxml, which are required to run within the python environment or to build the standalone version. These can be installed as follows:  
+There are some dependencies on cryptograph and lxml, which are required to run within the python environment or to build the standalone version. These can be installed as follows:  
 
     sudo apt-get install python-lxml  
     sudo apt-get install libxml2-dev libxslt-dev python3-dev  
+    sudo apt-get install build-essential libssl-dev libffi-dev python-dev
 
 **Create Python 3 Virtual Environment**
 
