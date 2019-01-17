@@ -89,7 +89,7 @@ class ReadTraceTask:
         self.start_time = float(first_line.strip().rpartition(';')[2])
         return self.start_time
 
-    def execute(self, offset=0.0):
+    def execute(self):
         file = self.filename
         process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
         with open(file) as infile:
@@ -111,12 +111,12 @@ class ReadTraceTask:
                         if event not in self.secondary_event_samples[pid][tid]:
                             self.secondary_event_samples[pid][tid][event] = []
                         for sample in samples:
-                            self.secondary_event_samples[pid][tid][event].append(float(sample) + offset)
+                            self.secondary_event_samples[pid][tid][event].append(float(sample))
                         continue
                     this_id = pid + "-" + tid
                     stack = line
                     data = stack.split(" ")
-                    samples = [float(x) + offset for x in data[1:] if is_float(x)]
+                    samples = [float(x) for x in data[1:] if is_float(x)]
                     n = len(data)
                     m = len(samples)
                     stack = " ".join(data[0:n - m])
@@ -204,7 +204,6 @@ class TraceData:
         self.totals = {}
         self.timelines = {}
         self.start_times = {}
-        self.time_offsets = {}
         self.secondary_events = {}
         self.secondary_event_samples = {}
         self.sample_rates = {}
@@ -269,14 +268,12 @@ class TraceData:
                 min_time = min(min_time, time)
             for task_id in self.tasks:
                 time = self.tasks[task_id].get_start_time()
-                offset = time - min_time
-                self.tasks[task_id].execute(offset)
+                self.tasks[task_id].execute()
                 self.totals[task_id] = self.tasks[task_id].totals
                 self.start_times[task_id] = self.tasks[task_id].start_time
                 self.trace_data[task_id] = self.tasks[task_id].trace_data
                 self.secondary_event_samples[task_id] = self.tasks[task_id].secondary_event_samples
                 self.time_norm = max(self.time_norm, self.tasks[task_id].get_time_norm())
-            self.set_time_offsets()
             self.initial_count = self.totals
             self.set_process_ids()
             self.calculate_thread_percentages()
@@ -285,13 +282,6 @@ class TraceData:
             self.compute_hotspots()
             self.reset_hotspots()
             self.create_augmented_hotspots(start, stop)
-
-    def set_time_offsets(self):
-        min_time = sys.maxsize
-        for task_id in self.tasks:
-            min_time = min(self.tasks[task_id].start_time, min_time)
-        for task_id in self.tasks:
-            self.time_offsets[task_id] = self.tasks[task_id].start_time - min_time
 
     def set_process_ids(self):
         vals = [process_id.label for process_id in self.ordered_ids]  # Store previous ids
