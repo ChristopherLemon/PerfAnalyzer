@@ -1,5 +1,3 @@
-__author__ = 'CLemon'
-
 import re
 import os
 import time

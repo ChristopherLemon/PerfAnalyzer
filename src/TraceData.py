@@ -3,9 +3,9 @@ import os
 import sys
 from collections import OrderedDict
 from timeit import default_timer as timer
-from tools.ResultsHandler import get_job_name, get_event_counters
-from tools.CustomEvents import raw_event_to_event
-from tools.Utilities import natural_sort, is_float
+from src.ResultsHandler import get_job_name, get_event_counters
+from src.CustomEvents import raw_event_to_event
+from src.Utilities import natural_sort, is_float
 import operator
 
 

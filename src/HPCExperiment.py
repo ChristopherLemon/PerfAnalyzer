@@ -4,7 +4,7 @@ import pathlib
 import os
 from pathlib import Path
 from lxml import etree
-from plotting.ColourMaps import get_top_ten_colours
+from src.ColourMaps import get_top_ten_colours
 
 
 def is_hpc_result(results_file):

@@ -12,7 +12,7 @@ event_counter-L1-dcache-loads:run-4:320000
 event_counter-cycles:run-5:1280000
 event_counter-instructions:run-5:1280000
 time_interval:0.5
-cpu_id:SandyBridge
+cpu_id:General
 DD_proc0_L1-dcache-loads
 DD_proc0_LLC-load-misses
 DD_proc0_LLC-loads

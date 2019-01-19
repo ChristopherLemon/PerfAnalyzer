@@ -1,4 +1,3 @@
-__author__ = 'CLemon'
 # Python version of flamegraphs transcribed from flamegraph.pl by Brendan Gregg. Contains the
 # subset of functionality required for displaying standard flamecharts and difference plots. Also
 # contains modifications to display stack ordering in time order,

@@ -5,14 +5,14 @@ import shutil
 import threading
 import subprocess
 import pathlib
-from tools.CustomLogging import setup_basic_logger
-from tools.Utilities import purge
-import tools.GlobalData
+from src.CustomLogging import setup_basic_logger
+from src.Utilities import purge
+import src.GlobalData
 import paramiko
 from paramiko import BadHostKeyException, AuthenticationException, SSHException
 import socket
 import logging
-from tools.ResultsHandler import modify_process_ids, modify_system_wide_process_ids, replace_results_file
+from src.ResultsHandler import modify_process_ids, modify_system_wide_process_ids, replace_results_file
 
 
 def get_lsf_params(lsf_params=None, lib_path=None, preload=None, env_variables=None, bin_path=None):
@@ -192,12 +192,12 @@ class JobHandler:
         self.root_directory = root_directory
         self.job = job
         self.stack_collapse_script = 'stackcollapse-perf-modified.pl'
-        log_file = os.path.join(tools.GlobalData.local_data, "scriptwriting.log")
-        setup_basic_logger('scriptwriting_logger', log_file, debug=tools.GlobalData.debug)
+        log_file = os.path.join(src.GlobalData.local_data, "scriptwriting.log")
+        setup_basic_logger('scriptwriting_logger', log_file, debug=src.GlobalData.debug)
         self.scriptwriting_logger = logging.getLogger("scriptwriting_logger")
 
     def execute_perf(self, job_settings):
-        local_data = tools.GlobalData.local_data
+        local_data = src.GlobalData.local_data
         purge(local_data, job_settings["job_name"] + "_proc")
         purge(local_data, job_settings["job_name"] + "_host")
         purge(local_data, job_settings["job_name"] + ".results")

@@ -3,8 +3,8 @@ import re
 import string
 import sys
 from collections import OrderedDict, namedtuple
-from tools.Utilities import natural_sort
-from plotting.ColourMaps import cluster_plot_colours
+from src.Utilities import natural_sort
+from src.ColourMaps import cluster_plot_colours
 
 
 def get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, searchcolor):

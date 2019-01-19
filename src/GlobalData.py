@@ -1,3 +1,6 @@
+# Global data - persists whilst switching between views.
+# The global data is reset when the loaded data is cleared.
+
 selected_cpu_definition = None
 loaded_cpu_definition = None
 hpc_results = []

@@ -1,5 +1,3 @@
-__author__ = 'CLemon'
-
 import re
 import sys
 from math import log10, atan, pi

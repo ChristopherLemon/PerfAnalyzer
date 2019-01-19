@@ -1,15 +1,14 @@
-__author__ = 'CLemon'
 import os
 import re
 import sys
 import multiprocessing as mp
 import pickle
 from timeit import default_timer as timer
-from tools.Utilities import natural_sort
-from tools.CustomEvents import event_to_raw_event, raw_event_to_event, get_event_type, \
+from src.Utilities import natural_sort
+from src.CustomEvents import event_to_raw_event, raw_event_to_event, get_event_type, \
     create_custom_event_stack, is_composite_event
 from collections import OrderedDict, defaultdict
-from tools.ResultsHandler import get_job_name, get_event_counters
+from src.ResultsHandler import get_job_name, get_event_counters
 
 
 def get_job(task_or_label):

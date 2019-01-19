@@ -1,4 +1,3 @@
-from __future__ import division
 import os
 import re
 import sys
@@ -6,7 +5,7 @@ from tempfile import mkstemp
 from shutil import move
 from os import remove, close
 from collections import OrderedDict
-from tools.ResultsHandler import get_job_name, get_process_to_event_map
+from src.ResultsHandler import get_job_name, get_process_to_event_map
 
 
 def sort_by_time(data):

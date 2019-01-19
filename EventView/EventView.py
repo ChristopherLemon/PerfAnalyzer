@@ -1,12 +1,12 @@
-from plotting.svgGraph import ChartWriter
+from src.svgGraph import ChartWriter
 from flask import render_template, request, jsonify, Blueprint
-from tools.Utilities import purge, timestamp
-from tools.StackData import StackData, get_job
-import tools.GlobalData
-from plotting.FlameGraphUtils import FlameGraph
-from tools.StackData import write_flamegraph_stacks
+from src.Utilities import purge, timestamp
+from src.StackData import StackData, get_job
+import src.GlobalData
+from src.FlameGraphUtils import FlameGraph
+from src.StackData import write_flamegraph_stacks
 from .EventModel import EventModel
-from plotting.SourceCode import generate_source_code_table, generate_empty_table, generate_source_code_info
+from src.SourceCode import generate_source_code_table, generate_empty_table, generate_source_code_info
 import re
 import os
 
@@ -36,7 +36,7 @@ def event_view():
     custom_event_ratio = bool(re.match(".* / .*", event))
     event_model.event = event
     event_model.custom_event_ratio = custom_event_ratio
-    event_model.layout.results = tools.GlobalData.results_files
+    event_model.layout.results = src.GlobalData.results_files
     # Stacks already loaded - just update
     if event in all_stack_data:
         update_event_model(event)
@@ -47,13 +47,13 @@ def event_view():
                                         base_case=event_model.reference_id)
     # Load new stack data into memory and set default parameters
     else:
-        all_stack_data[event] = StackData(tools.GlobalData.results_files,
-                                          tools.GlobalData.local_data,
-                                          tools.GlobalData.loaded_cpu_definition,
+        all_stack_data[event] = StackData(src.GlobalData.results_files,
+                                          src.GlobalData.local_data,
+                                          src.GlobalData.loaded_cpu_definition,
                                           data_view="event",
                                           data_id=event,
-                                          debug=tools.GlobalData.debug,
-                                          n_proc=tools.GlobalData.n_proc)
+                                          debug=src.GlobalData.debug,
+                                          n_proc=src.GlobalData.n_proc)
         update_event_model(event)
     event_model.process_names = all_stack_data[event].get_all_process_names()
     event_model.jobs = all_stack_data[event].get_all_jobs()
@@ -65,7 +65,7 @@ def event_view():
     else:
         event_model.reference_count = reference_id.count1
     # Prepare plots
-    purge(tools.GlobalData.local_data, ".svg")
+    purge(src.GlobalData.local_data, ".svg")
     event_model.layout.reference_id = event_model.reference_id
     if custom_event_ratio:
         event_model.layout.event_ratios_chart, event_model.layout.event_ratios_table = \
@@ -81,7 +81,7 @@ def event_view():
         get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
     event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = get_min_max_chart(event, svgchart)
     event_model.layout.timechart = get_timechart(event, custom_event_ratio, svgchart)
-    event_model.layout.show_source = len(tools.GlobalData.hpc_results) > 0
+    event_model.layout.show_source = len(src.GlobalData.hpc_results) > 0
     event_model.layout.source_code_table,  event_model.layout.source_code_info, event_model.layout.source_code_line \
         = get_source_code("", event_model.reference_id)
     # Setup general layout
@@ -90,14 +90,14 @@ def event_view():
     event_model.layout.title = "Event: " + event
     event_model.layout.footer = "Loaded Results: " + " & ".join(event_model.layout.results)
     return render_template('EventView.html',
-                           events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
-                           trace_jobs=tools.GlobalData.trace_jobs,
-                           event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
-                           all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
-                           jobs=tools.GlobalData.jobs,
-                           processes=tools.GlobalData.processes,
+                           events=src.GlobalData.loaded_cpu_definition.get_active_events(),
+                           trace_jobs=src.GlobalData.trace_jobs,
+                           event_group_map=src.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
+                           all_event_groups=src.GlobalData.loaded_cpu_definition.get_event_groups(),
+                           jobs=src.GlobalData.jobs,
+                           processes=src.GlobalData.processes,
                            event_model=event_model,
-                           enabled_modes=tools.GlobalData.enabled_modes,
+                           enabled_modes=src.GlobalData.enabled_modes,
                            ids=ids)
 
 
@@ -139,7 +139,7 @@ def update_all_charts():
                                     text_filter=event_model.text_filter,
                                     selected_ids=event_model.selected_ids,
                                     base_case=event_model.reference_id)
-    purge(tools.GlobalData.local_data, ".svg")
+    purge(src.GlobalData.local_data, ".svg")
     if custom_event_ratio:
         event_model.layout.event_ratios_chart, event_model.layout.event_ratios_table = \
             get_custom_barchart(event, svgchart)
@@ -249,31 +249,31 @@ def get_flamegraph(flamegraph_type, event, custom_event_ratio, diff):
     collapsed_stacks_filename = all_stack_data[event].get_collapsed_stacks_filename()
     color_map = svgchart.get_flamegraph_colour_map()
     if custom_event_ratio or diff:
-        FlameGraph(tools.GlobalData.local_data,
+        FlameGraph(src.GlobalData.local_data,
                    collapsed_stacks_filename,
                    flamegraph_filename,
                    diff=diff,
                    custom_event_ratio=custom_event_ratio)
     else:
-        FlameGraph(tools.GlobalData.local_data,
+        FlameGraph(src.GlobalData.local_data,
                    collapsed_stacks_filename,
                    flamegraph_filename,
                    custom_event_ratio=custom_event_ratio,
                    color_map=color_map)
-    svgfile = tools.GlobalData.local_data + os.sep + flamegraph_filename
+    svgfile = src.GlobalData.local_data + os.sep + flamegraph_filename
     svgfile = os.path.relpath(svgfile, EventView.template_folder)
     return svgfile
 
 
 def get_source_code(symbol, label):
     job_id = get_job(label)
-    for i in range(len(tools.GlobalData.hpc_results)):
-        if job_id == tools.GlobalData.hpc_results[i].get_job_id():
+    for i in range(len(src.GlobalData.hpc_results)):
+        if job_id == src.GlobalData.hpc_results[i].get_job_id():
             process_id = all_stack_data[event_model.event].get_process_id_from_label(label)
             source_code_table, source_code_line = \
                 generate_source_code_table(all_stack_data[event_model.event], process_id, symbol,
-                                           tools.GlobalData.hpc_results[i])
-            source_code_info = generate_source_code_info(symbol, tools.GlobalData.hpc_results[i])
+                                           src.GlobalData.hpc_results[i])
+            source_code_info = generate_source_code_info(symbol, src.GlobalData.hpc_results[i])
             return source_code_table, source_code_info, source_code_line
     source_code_table, source_code_info, source_code_line = generate_empty_table()
     return source_code_table, source_code_info, source_code_line
@@ -282,7 +282,7 @@ def get_source_code(symbol, label):
 def get_barchart(event, diff, svg_chart):
     # Setup Bar Chart
     barchart_filename = timestamp("barchart.svg")
-    output_file = tools.GlobalData.local_data + os.sep + barchart_filename
+    output_file = src.GlobalData.local_data + os.sep + barchart_filename
     if diff:
         event_totals_chart_title = 'Difference Plot for {}: Reference = {}'.format(event, event_model.reference_id)
         chart = svg_chart.generate_vertical_stacked_bar_chart_diff(all_stack_data[event],
@@ -308,7 +308,7 @@ def get_barchart(event, diff, svg_chart):
             event_totals_table = chart.render_table(style=False, transpose=True, total=True)
         except Exception as e:
             event_totals_table = ""
-    svgfile = tools.GlobalData.local_data + os.sep + barchart_filename
+    svgfile = src.GlobalData.local_data + os.sep + barchart_filename
     svgfile = os.path.relpath(svgfile, EventView.template_folder)
     return svgfile, event_totals_table
 
@@ -316,7 +316,7 @@ def get_barchart(event, diff, svg_chart):
 def get_barchart_totals(event, diff, svg_chart):
     # Setup Bar Chart
     barchart_filename = timestamp("barchart_totals.svg")
-    output_file = tools.GlobalData.local_data + os.sep + barchart_filename
+    output_file = src.GlobalData.local_data + os.sep + barchart_filename
     if diff:
         event_totals_chart_title = 'Cumulative Difference Plot for {}: Reference = {}'\
             .format(event, event_model.reference_id)
@@ -338,14 +338,14 @@ def get_barchart_totals(event, diff, svg_chart):
             event_totals_table = chart.render_table(style=False, transpose=True, total=True)
         except Exception as e:
             event_totals_table = ""
-    svgfile = tools.GlobalData.local_data + os.sep + barchart_filename
+    svgfile = src.GlobalData.local_data + os.sep + barchart_filename
     svgfile = os.path.relpath(svgfile, EventView.template_folder)
     return svgfile, event_totals_table
 
 
 def get_custom_barchart(event, svg_chart):
     custom_barchart_filename = timestamp("custom_barchart.svg")
-    output_file = tools.GlobalData.local_data + os.sep + custom_barchart_filename
+    output_file = src.GlobalData.local_data + os.sep + custom_barchart_filename
     event_totals_chart_title = 'Total Event count for {}: Reference = {}'.format(event, event_model.reference_id)
     output_event_type = "custom_event_ratio"
     chart = svg_chart.generate_bar_chart(all_stack_data[event],
@@ -356,14 +356,14 @@ def get_custom_barchart(event, svg_chart):
         event_ratios_table = chart.render_table(style=False, transpose=True, total=False)
     except Exception as e:
         event_ratios_table = ""
-    svgfile = tools.GlobalData.local_data + os.sep + custom_barchart_filename
+    svgfile = src.GlobalData.local_data + os.sep + custom_barchart_filename
     svgfile = os.path.relpath(svgfile, EventView.template_folder)
     return svgfile, event_ratios_table
 
 
 def get_min_max_chart(event, svg_chart):
     min_max_chart_filename = timestamp("min_max_chart.svg")
-    output_file = tools.GlobalData.local_data + os.sep + min_max_chart_filename
+    output_file = src.GlobalData.local_data + os.sep + min_max_chart_filename
     event_min_max_chart_title = 'Hotspots Min/Mean/Max for {}'.format(event)
     chart, chart_table = \
         svg_chart.generate_horizontal_stacked_bar_chart(all_stack_data[event], title=event_min_max_chart_title)
@@ -372,14 +372,14 @@ def get_min_max_chart(event, svg_chart):
         event_min_max_table = chart_table.render_table(style=False, total=True)
     except:
         event_min_max_table = ""
-    svgfile = tools.GlobalData.local_data + os.sep + min_max_chart_filename
+    svgfile = src.GlobalData.local_data + os.sep + min_max_chart_filename
     svgfile = os.path.relpath(svgfile, EventView.template_folder)
     return svgfile, event_min_max_table
 
 
 def get_2d_plot(event, svg_chart):
     scatter_plot_filename = timestamp("scatter_plot.svg")
-    output_file = tools.GlobalData.local_data + os.sep + scatter_plot_filename
+    output_file = src.GlobalData.local_data + os.sep + scatter_plot_filename
     event1, div, event2 = event.partition(" / ")
     scatter_plot_title = '{} vs {}'.format(event1, event2)
     chart = svg_chart.generate_scatter_plot(all_stack_data[event],
@@ -387,7 +387,7 @@ def get_2d_plot(event, svg_chart):
                                             event2,
                                             title=scatter_plot_title)
     chart.render_to_file(output_file)
-    svgfile = tools.GlobalData.local_data + os.sep + scatter_plot_filename
+    svgfile = src.GlobalData.local_data + os.sep + scatter_plot_filename
     svgfile = os.path.relpath(svgfile, EventView.template_folder)
     return svgfile
 
@@ -395,7 +395,7 @@ def get_2d_plot(event, svg_chart):
 def get_timechart(event, custom_event_ratio, svg_chart):
     # Setup Time Lines
     timechart_filename = timestamp("timechart.svg")
-    output_file = tools.GlobalData.local_data + os.sep + timechart_filename
+    output_file = src.GlobalData.local_data + os.sep + timechart_filename
     if custom_event_ratio:
         event_time_series_title = '({})'.format(event)
     else:
@@ -405,6 +405,6 @@ def get_timechart(event, custom_event_ratio, svg_chart):
                                          event_model.stop,
                                          title=event_time_series_title)
     chart.render_to_file(output_file)
-    svgfile = tools.GlobalData.local_data + os.sep + timechart_filename
+    svgfile = src.GlobalData.local_data + os.sep + timechart_filename
     svgfile = os.path.relpath(svgfile, EventView.template_folder)
     return svgfile

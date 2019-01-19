@@ -1,12 +1,12 @@
-from plotting.svgGraph import ChartWriter
-from plotting.ColourMaps import get_top_ten_colours
+from src.svgGraph import ChartWriter
+from src.ColourMaps import get_top_ten_colours
 from flask import render_template, request, jsonify, Blueprint
-from tools.Utilities import purge, timestamp
-from tools.TraceData import TraceData
-import tools.GlobalData
-from plotting.FlameGraphUtils import FlameGraph
-from plotting.TimeLines import TimeLines
-from tools.TraceData import write_flamegraph_stacks, write_timelines
+from src.Utilities import purge, timestamp
+from src.TraceData import TraceData
+import src.GlobalData
+from src.FlameGraphUtils import FlameGraph
+from src.TimeLines import TimeLines
+from src.TraceData import write_flamegraph_stacks, write_timelines
 from .TraceModel import TraceModel
 import sys
 import os
@@ -37,7 +37,7 @@ def trace_view():
     trace_model.job = job
     trace_model.start = 0.0
     trace_model.stop = sys.maxsize
-    trace_model.layout.results = tools.GlobalData.results_files
+    trace_model.layout.results = src.GlobalData.results_files
     # Stacks already loaded - just update
     if job in all_stack_data:
         update_trace_model(job)
@@ -46,18 +46,18 @@ def trace_view():
                                       selected_ids=trace_model.selected_ids)
     # Load new stack data into memory and set default parameters
     else:
-        all_stack_data[job] = TraceData(tools.GlobalData.results_files,
-                                        tools.GlobalData.local_data,
-                                        tools.GlobalData.loaded_cpu_definition,
+        all_stack_data[job] = TraceData(src.GlobalData.results_files,
+                                        src.GlobalData.local_data,
+                                        src.GlobalData.loaded_cpu_definition,
                                         data_id=job,
-                                        debug=tools.GlobalData.debug)
+                                        debug=src.GlobalData.debug)
         update_trace_model(job)
     trace_model.process_names = all_stack_data[job].get_all_process_names()
     trace_model.jobs = all_stack_data[job].get_all_jobs()
     trace_model.system_wide = all_stack_data[job].get_system_wide_mode_enabled()
 
 # Prepare plots
-    purge(tools.GlobalData.local_data, ".svg")
+    purge(src.GlobalData.local_data, ".svg")
     flamegraph_type = "cumulative"
     trace_model.layout.flamegraph = get_flamegraph(flamegraph_type, job, trace_model.start, trace_model.stop)
     trace_model.layout.timelines = get_timelines(job, trace_model.start, trace_model.stop)
@@ -67,14 +67,14 @@ def trace_view():
     trace_model.layout.title = "Trace Analysis: " + job
     trace_model.layout.footer = "Loaded Results: " + " & ".join(trace_model.layout.results)
     return render_template('TraceView.html',
-                           events=tools.GlobalData.loaded_cpu_definition.get_active_events(),
-                           trace_jobs=tools.GlobalData.trace_jobs,
-                           event_group_map=tools.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
-                           all_event_groups=tools.GlobalData.loaded_cpu_definition.get_event_groups(),
-                           jobs=tools.GlobalData.jobs,
-                           processes=tools.GlobalData.processes,
+                           events=src.GlobalData.loaded_cpu_definition.get_active_events(),
+                           trace_jobs=src.GlobalData.trace_jobs,
+                           event_group_map=src.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
+                           all_event_groups=src.GlobalData.loaded_cpu_definition.get_event_groups(),
+                           jobs=src.GlobalData.jobs,
+                           processes=src.GlobalData.processes,
                            trace_model=trace_model,
-                           enabled_modes=tools.GlobalData.enabled_modes,
+                           enabled_modes=src.GlobalData.enabled_modes,
                            ids=ids)
 
 
@@ -117,7 +117,7 @@ def reset_timelines():
     job = trace_model.job
     trace_model.start = -0.0000001
     trace_model.stop = sys.maxsize
-    purge(tools.GlobalData.local_data, ".svg")
+    purge(src.GlobalData.local_data, ".svg")
     trace_model.layout.start = trace_model.start
     trace_model.layout.stop = trace_model.stop
     trace_model.layout.flamegraph = get_flamegraph(trace_model.flamegraph_type, job, trace_model.start,
@@ -212,13 +212,13 @@ def get_flamegraph(flamegraph_type, job, start, stop):
     hotspots = all_stack_data[job].get_hotspots(augmented=augmented)
     colors = get_top_ten_colours()
     color_map = {h: colors[hotspots[h]] for h in hotspots}
-    FlameGraph(tools.GlobalData.local_data,
+    FlameGraph(src.GlobalData.local_data,
                collapsed_stacks_filename,
                flamegraph_filename,
                color_map=color_map,
                sort_by_time=sort_by_time,
                unit=unit)
-    svgfile = tools.GlobalData.local_data + os.sep + flamegraph_filename
+    svgfile = src.GlobalData.local_data + os.sep + flamegraph_filename
     svgfile = os.path.relpath(svgfile, TraceView.template_folder)
     return svgfile
 
@@ -227,18 +227,18 @@ def get_timelines(job, start, stop):
     all_stack_data[job].generate_timelines(start, stop)
     write_timelines(all_stack_data[job])
     intervals = all_stack_data[job].get_num_timeline_intervals()
-    event_map = tools.GlobalData.loaded_cpu_definition.get_available_event_map(event_to_raw_event=False)
+    event_map = src.GlobalData.loaded_cpu_definition.get_available_event_map(event_to_raw_event=False)
     timelines_trace_filename = all_stack_data[job].get_timelines_filename()
     timelines_filename = timestamp("timelines.svg")
     hotspots = all_stack_data[job].get_hotspots(augmented=True)
     colors = get_top_ten_colours()
     color_map = {h: colors[hotspots[h]] for h in hotspots}
-    TimeLines(tools.GlobalData.local_data,
+    TimeLines(src.GlobalData.local_data,
               timelines_trace_filename,
               timelines_filename,
               intervals,
               event_map,
               color_map=color_map)
-    svgfile = tools.GlobalData.local_data + os.sep + timelines_filename
+    svgfile = src.GlobalData.local_data + os.sep + timelines_filename
     svgfile = os.path.relpath(svgfile, TraceView.template_folder)
     return svgfile

@@ -1,6 +1,6 @@
 import os
 import re
-from tools.Utilities import natural_sort
+from src.Utilities import natural_sort
 from collections import OrderedDict
 from tempfile import mkstemp
 from shutil import move

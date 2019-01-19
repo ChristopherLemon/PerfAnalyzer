@@ -1,11 +1,10 @@
-
 import pygal
 import sys
 from pygal.style import Style
 import operator
 from collections import OrderedDict
-from plotting.ColourMaps import get_gradient_colours, get_top_ten_colours, get_distinct_colours
-from tools.Utilities import format_number
+from src.ColourMaps import get_gradient_colours, get_top_ten_colours, get_distinct_colours
+from src.Utilities import format_number
 
 custom_style_barchart = Style(
   font_family='googlefont:Roboto',
