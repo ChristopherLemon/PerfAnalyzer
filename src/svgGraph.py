@@ -637,7 +637,7 @@ class ChartWriter:
         else:
             return self.generate_empty_chart()
 
-    def generate_vertical_stacked_bar_chart(self, stack_data, number_to_rank=11, title="",
+    def generate_vertical_stacked_bar_chart(self, stack_data, start=1, number_to_rank=11, title="",
                                             output_event_type="any", write_colourmap=False):
         """Create vertical stacked bar chart\table for the functions with the largest contributions
         (according to the reference case) to the total event count."""
@@ -676,7 +676,8 @@ class ChartWriter:
                 y[node] += y_data[stack]
             ratios = {s: float(y[s]) / float(x[s]) for s in x if float(x[s]) >= 0.1}
             sorted_vals = sorted(ratios.items(), key=operator.itemgetter(1), reverse=True)
-        n_sorted = min(number_to_rank, len(sorted_vals))
+        start_index = min(start - 1, len(sorted_vals))
+        end_index = min(start - 1 + number_to_rank, len(sorted_vals))
         plot_data = OrderedDict()
         x_labels = []
         n_events = 0
@@ -719,7 +720,7 @@ class ChartWriter:
                                     y[node] = 0.0
                                 y[node] += y_data[stack]
                             vals = {s: float(y[s]) / float(x[s]) for s in x if float(x[s]) >= 0.1}
-                        for v in sorted_vals[0:n_sorted]:
+                        for v in sorted_vals[start_index:end_index]:
                             s = v[0]
                             if s in vals:
                                 y = vals[s]
@@ -742,7 +743,7 @@ class ChartWriter:
                 colours = get_top_ten_colours()
                 self.hotspot_map = {"other": colours[0]}
             n = 0
-            for v in sorted_vals[0:n_sorted]:
+            for v in sorted_vals[start_index:end_index]:
                 s = v[0]
                 if write_colourmap:
                     self.hotspot_map[s] = colours[n]
@@ -761,7 +762,7 @@ class ChartWriter:
             return self.generate_empty_chart()
 
     def generate_vertical_stacked_bar_chart_multiple_jobs(self, all_stack_data, process_list, reference_process,
-                                                          reference_id, number_to_rank=11, title="",
+                                                          reference_id, start=1, number_to_rank=11, title="",
                                                           output_event_type="any", write_colourmap=False):
         """Create vertical stacked bar chart\table for the functions with the largest contributions
         (according to the reference case) to the total event count.
@@ -808,7 +809,8 @@ class ChartWriter:
                 y[node] += y_data[stack]
             ratios = {s: float(y[s]) / float(x[s]) for s in x if float(x[s]) >= 0.1}
             sorted_vals = sorted(ratios.items(), key=operator.itemgetter(1), reverse=True)
-        n_sorted = min(number_to_rank, len(sorted_vals))
+        start_index = min(start - 1, len(sorted_vals))
+        end_index = min(start - 1 + number_to_rank, len(sorted_vals))
         plot_data = OrderedDict()
         x_labels = []
         n_events = 0
@@ -862,7 +864,7 @@ class ChartWriter:
                             if event not in events:
                                 events.append(event)
                             label_to_event_map[label] = event
-                            for v in sorted_vals[0:n_sorted]:
+                            for v in sorted_vals[start_index:end_index]:
                                 s = v[0]
                                 if s in vals:
                                     y = vals[s]
@@ -897,7 +899,7 @@ class ChartWriter:
                 colours = get_top_ten_colours()
                 self.hotspot_map = {"other": colours[0]}
             n = 0
-            for v in sorted_vals[0:n_sorted]:
+            for v in sorted_vals[start_index:end_index]:
                 s = v[0]
                 if write_colourmap:
                     self.hotspot_map[s] = colours[n]

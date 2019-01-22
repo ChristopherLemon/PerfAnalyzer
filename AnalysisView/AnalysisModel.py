@@ -17,6 +17,7 @@ class AnalysisModel:
         self.clusters = []
         self.event1 = ""
         self.event2 = ""
+        self.hotspots = 1
         self.xlower = -sys.maxsize
         self.xupper = sys.maxsize
         self.ylower = -sys.maxsize

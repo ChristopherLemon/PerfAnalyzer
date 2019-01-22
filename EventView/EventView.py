@@ -73,7 +73,7 @@ def event_view():
         event_model.layout.scatter_plot = get_2d_plot(event, svgchart)
     else:
         event_model.layout.event_totals_chart, event_model.layout.event_totals_table = \
-            get_barchart(event, event_model.diff, svgchart)
+            get_barchart(event, event_model.hotspots, event_model.diff, svgchart)
         event_model.layout.event_totals_chart2, event_model.layout.event_totals_table2 = \
             get_barchart_totals(event, event_model.diff, svgchart)
         event_model.layout.scatter_plot = None
@@ -134,6 +134,11 @@ def update_all_charts():
                 event_model.selected_ids.append(process_id)
     if 'reference_id' in data:
         event_model.reference_id = data["reference_id"]
+    if 'direction' in data:
+        if data["direction"] == "next":
+            event_model.hotspots += 10
+        else:
+            event_model.hotspots -= 10
     all_stack_data[event].read_data(start=event_model.start,
                                     stop=event_model.stop,
                                     text_filter=event_model.text_filter,
@@ -146,7 +151,7 @@ def update_all_charts():
         event_model.layout.scatter_plot = get_2d_plot(event, svgchart)
     else:
         event_model.layout.event_totals_chart, event_model.layout.event_totals_table = \
-            get_barchart(event, event_model.diff, svgchart)
+            get_barchart(event, event_model.hotspots, event_model.diff, svgchart)
         event_model.layout.event_totals_chart2, event_model.layout.event_totals_table2 = \
             get_barchart_totals(event, event_model.diff, svgchart)
     event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = get_min_max_chart(event, svgchart)
@@ -224,7 +229,7 @@ def update_flamegraph_mode():
         event_model.diff = True
         event_model.flamegraph_type = "diff_stack_traces"
     event_model.layout.event_totals_chart, event_model.layout.event_totals_table = \
-        get_barchart(event, event_model.diff, svgchart)
+        get_barchart(event, event_model.hotspots, event_model.diff, svgchart)
     event_model.layout.event_totals_chart2, event_model.layout.event_totals_table2 = \
         get_barchart_totals(event, event_model.diff, svgchart)
     event_model.layout.flamegraph = \
@@ -279,7 +284,7 @@ def get_source_code(symbol, label):
     return source_code_table, source_code_info, source_code_line
 
 
-def get_barchart(event, diff, svg_chart):
+def get_barchart(event, hotspots, diff, svg_chart):
     # Setup Bar Chart
     barchart_filename = timestamp("barchart.svg")
     output_file = src.GlobalData.local_data + os.sep + barchart_filename
@@ -296,14 +301,11 @@ def get_barchart(event, diff, svg_chart):
         event_totals_chart_title = 'Total Event count for {}: Reference = {}'.format(event, event_model.reference_id)
         output_event_type = "original"
         chart = svg_chart.generate_vertical_stacked_bar_chart(all_stack_data[event],
+                                                              start=hotspots,
                                                               title=event_totals_chart_title,
                                                               output_event_type=output_event_type,
                                                               write_colourmap=True)
         chart.render_to_file(output_file)
-        chart = svg_chart.generate_vertical_stacked_bar_chart(all_stack_data[event],
-                                                              title=event_totals_chart_title,
-                                                              number_to_rank=30,
-                                                              output_event_type=output_event_type)
         try:
             event_totals_table = chart.render_table(style=False, transpose=True, total=True)
         except Exception as e:

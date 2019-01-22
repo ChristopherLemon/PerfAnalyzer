@@ -20,7 +20,7 @@ frequency. This makes it far simpler to control the number of samples collected,
 In the standard mode a profile job is submitted by attaching perf to each process of the application. All threads will be monitored for each process of the application, and profiling data is obtained for
 each of the individual processes/threads. The permissions required to run perf correctly depend on the value set in /proc/sys/kernel/perf_event_paranoid. It is recommended to run with
 /proc/sys/kernel/perf_event_paranoid equal to either -1 or 0 for application profiling (i.e. sudo sh -c 'echo -1 >/proc/sys/kernel/perf_event_paranoid'),
-to avoid the need to run perf as root. To associate kernel function calls with the applications call sites the value of /proc/sys/kernel/kptr_restrict should be set to 0.
+to avoid the need to run perf as root. To associate kernel function calls with the applications call sites the value of /proc/sys/kernel/kptr_restrict should be set to 0 (i.e. sudo sh -c 'echo 0 >/proc/sys/kernel/kptr_restrict').
 
 <h3>System Wide Profiling</h3>
 For system wide profiling perf is attached to one process on each node and monitors the activity on all cores of the node. In this case all of the threads running on each of the underlying cores are monitored, and profiling data is obtained for each individual core/thread.

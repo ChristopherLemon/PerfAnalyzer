@@ -10,6 +10,7 @@ class EventModel:
         self.reference_id = ""
         self.selected_ids = []
         self.event = ""
+        self.hotspots = 1
         self.custom_event_ratio = False
         self.text_filter = ""
         self.diff = False

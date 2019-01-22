@@ -105,7 +105,7 @@ def general_analysis():
     analysis_model.layout.scatter_plot = \
         get_hotspot_scatter_plot(analysis_data, event1, event2, svgchart, centred, log_scale)
     analysis_model.layout.event_totals_chart, analysis_model.layout.event_totals_table = \
-        get_barchart(analysis_model.process_list, svgchart)
+        get_barchart(analysis_model.process_list, analysis_model.hotspots, svgchart)
     if analysis_model.num_custom_event_ratios > 0:
         analysis_model.layout.event_ratios_chart = get_custom_barchart(analysis_model.process_list, svgchart)
     analysis_model.layout.flamegraph = \
@@ -391,6 +391,11 @@ def update_all_charts():
                         break
     if "reset_filters" in data:
         run_new_analysis = True
+    if 'direction' in data:
+        if data["direction"] == "next":
+            analysis_model.hotspots += 10
+        else:
+            analysis_model.hotspots -= 10
     for process in analysis_model.process_list:
         if process in all_stack_data:
             update_analysis_model_process_data(process)
@@ -444,7 +449,7 @@ def update_all_charts():
                                                                       svgchart, centred, log_scale, xlower=xlower,
                                                                       xupper=xupper, ylower=ylower, yupper=yupper)
     analysis_model.layout.event_totals_chart, analysis_model.layout.event_totals_table = \
-        get_barchart(analysis_model.process_list, svgchart)
+        get_barchart(analysis_model.process_list, analysis_model.hotspots, svgchart)
     analysis_model.layout.flamegraph = get_flamegraph(analysis_data, analysis_model.process_list,
                                                       analysis_model.flamegraph_mode,
                                                       flamegraph_event_type=analysis_model.flamegraph_event_type)
@@ -541,7 +546,7 @@ def get_source_code(symbol, label):
     source_code_table, source_code_info, source_code_line = generate_empty_table()
     return source_code_table, source_code_info, source_code_line
 
-def get_barchart(process_list, svg_chart):
+def get_barchart(process_list, hotspots, svg_chart):
     # Setup Bar Chart
     barchart_filename = timestamp("barchart.svg")
     output_file = src.GlobalData.local_data + os.sep + barchart_filename
@@ -552,17 +557,11 @@ def get_barchart(process_list, svg_chart):
                                                                         process_list,
                                                                         analysis_model.reference_process,
                                                                         analysis_model.reference_id,
+                                                                        start=hotspots,
                                                                         title=event_totals_chart_title,
                                                                         output_event_type=output_event_type,
                                                                         write_colourmap=True)
     chart.render_to_file(output_file)
-    chart = svg_chart.generate_vertical_stacked_bar_chart_multiple_jobs(all_stack_data,
-                                                                        process_list,
-                                                                        analysis_model.reference_process,
-                                                                        analysis_model.reference_id,
-                                                                        title=event_totals_chart_title,
-                                                                        number_to_rank=30,
-                                                                        output_event_type="any")
     try:
         event_totals_table = chart.render_table(style=False, transpose=True, total=True)
     except Exception as e:

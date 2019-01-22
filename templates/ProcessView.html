@@ -118,18 +118,31 @@
                                 <object class="embedded_svg toggle_event_totals_chart" type="image/svg+xml" data={{process_model.layout.event_ratios_chart}} id="event_ratios_chart" hidden onload="add_barchart_events('event_ratios_chart')"></object>
                             {% endif %}
                             <div class="table-container toggle_event_totals_chart filter_event_totals_table percentages_table highlighted" id="event_totals_table" hidden>{{process_model.layout.event_totals_table|safe}}</div>
-                            <div class="btn-group" data-toggle="buttons" >
-                                <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_event_totals_chart('event_totals_chart', false)">
-                                    <input type="radio"  autocomplete="off" checked> Chart
-                                </label>
-                                {% if process_model.layout.event_ratios_chart %}
-                                    <label style="margin:1px;" class="btn btn-primary" onclick="toggle_event_totals_chart('event_ratios_chart', false)">
-                                        <input type="radio"  autocomplete="off"> Chart (Ratios)
-                                    </label>
-                                {% endif %}
-                                <label style="margin:1px;" class="btn btn-primary" onclick="toggle_event_totals_chart('event_totals_table', true)">
-                                    <input type="radio" autocomplete="off"> Table
-                                </label>
+                            <div class="flex-row" style="margin-left:0;margin-right:0">
+                                <div class="flex-column" style="width:80%;height:100%;">
+                                    <div class="btn-group" data-toggle="buttons" >
+                                        <label style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_event_totals_chart('event_totals_chart', false)">
+                                            <input type="radio"  autocomplete="off" checked> Chart
+                                        </label>
+                                        {% if process_model.layout.event_ratios_chart %}
+                                            <label style="margin:1px;" class="btn btn-primary" onclick="toggle_event_totals_chart('event_ratios_chart', false)">
+                                                <input type="radio"  autocomplete="off"> Chart (Ratios)
+                                            </label>
+                                        {% endif %}
+                                        <label style="margin:1px;" class="btn btn-primary" onclick="toggle_event_totals_chart('event_totals_table', true)">
+                                            <input type="radio" autocomplete="off"> Table
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="flex-column" style="width:20%;height:100%;flex-direction:row-reverse;">
+                                    <div class="btn-group" data-toggle="buttons">
+                                        <label style="margin:1px;" class="btn btn-primary" onclick="get_hotspots('previous')">&lt&lt Previous
+                                            <input type="radio" autocomplete="off" checked> 
+                                        </label>
+                                        <label style="margin:1px;margin-right:12px;" class="btn btn-primary" onclick="get_hotspots('next')">Next &gt&gt
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -267,7 +280,7 @@
                                 {% for job in process_model.jobs %}
                                     <div class="counted_checklist">
                                         <div class="flex-row" style="margin-left:0">
-                                            <div class="flex-column" style="width:30%;height:100%"><a type="button" class="btn btn-info collapsed collapsible_btn" data-toggle="collapse" style="padding-left:0%width:25%" data-target="#{{job}}_process_list2">Select {{unit}} Event Counts for Job {{job}} <span class="checkboxcount"></span><span class="fa chevron pull-right"></span></a></div>
+                                            <div class="flex-column" style="width:30%;height:100%"><a type="button" class="btn btn-info collapsed collapsible_btn" data-toggle="collapse" data-target="#{{job}}_process_list2">Select {{unit}} Event Counts for Job {{job}} <span class="checkboxcount"></span><span class="fa chevron pull-right"></span></a></div>
                                             <div class="flex-column" style="width:25%;height:100%"><label><input type="checkbox" onclick="check_process_boxes(this,'{{job}}_')" class="process_checkbox" id="check_all_processes_{{job}}" name="check_all_processes_{{job}}"><b>Select {{unit}} Event Counts For All Events</b></label></div>
                                             <div class="flex-column" style="width:20%;height:100%"><span class="gradient_bar sum_checkbox_percentages"></span></div>
                                             <div class="flex-column" style="width:25%;height:100%"><span style="font-weight:bold" class="dynamic_text sum_checkbox_percentages"></span></div>
@@ -446,6 +459,12 @@
                 console.log(error);
             }
         });
+    }
+    function get_hotspots(direction){
+        let vals = {"direction": direction}
+        x = JSON.stringify(vals);
+        let reference_id = document.getElementById("reference_id").value;
+        update_all_charts(reference_id, x);
     }
     function check_thread_boxes(thisBox, match) {
         let boxes = document.getElementsByClassName("thread_checkbox");
@@ -783,7 +802,6 @@
         if ( zoom ) {
             vals = {"start":minx,"stop":maxx};
             let x = JSON.stringify(vals);
-            let data = {json:x};
             let reference_id = document.getElementById("reference_id").value;
             update_all_charts(reference_id, x);
             $('#dynamic_rectangle').hide();
@@ -794,7 +812,6 @@
         maxx = Number.MAX_VALUE;
         vals = {"start":minx,"stop":maxx};
         let x = JSON.stringify(vals);
-        let data = {json:x};
         update_all_charts(reference_id, x);
         $('#dynamic_rectangle').hide();
     }

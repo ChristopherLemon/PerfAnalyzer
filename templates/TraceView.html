@@ -29,7 +29,7 @@
                             <div class="flex-column" style="width:20%;height:100%;">
                                 <div id="prev_button" class="btn-group" data-toggle="buttons">
                                     <label style="margin:1px;margin-left:12px" class="btn btn-primary" onclick="find_function('prev')">
-                                        <input type="radio" autocomplete="off"> Prev
+                                        <input type="radio" autocomplete="off"> &lt&lt Previous
                                     </label>
                                 </div>
                             </div>
@@ -39,7 +39,7 @@
                             <div class="flex-column" style="width:20%;height:100%;">
                                 <div id="next_button" class="btn-group pull-right" data-toggle="buttons">
                                     <label style="margin:1px;margin-right:12px" class="btn btn-primary pull-right" onclick="find_function('next')">
-                                        <input type="radio" autocomplete="off"> Next
+                                        <input type="radio" autocomplete="off"> Next &gt&gt
                                     </label>
                                 </div>
                             </div>
@@ -49,7 +49,7 @@
                                 <object class="embedded_svg" type="image/svg+xml" data={{trace_model.layout.flamegraph}} id="flamegraph" onload="add_flamegraph_events()"></object>
                             </div>
                         </div>
-                        <div class="flex-row" style=";margin-left:0;margin-right:0">
+                        <div class="flex-row" style="margin-left:0;margin-right:0">
                             <div class="flex-column" style="width:60%;height:100%;">
                                 <div class="btn-group" data-toggle="buttons" >
                                     <label id="cumulative_button" style="margin:1px;margin-left:12px;" class="btn btn-primary active" onclick="toggle_flamegraph_mode('cumulative')">
@@ -204,7 +204,7 @@
                                 {% for job in trace_model.jobs %}
                                     <div class="counted_checklist">
                                         <div class="flex-row" style="margin-left:0">
-                                            <div class="flex-column" style="width:30%;height:100%"><a type="button" class="btn btn-info collapsed collapsible_btn" data-toggle="collapse" style="padding-left:0%width:25%" data-target="#{{job}}_process_list2">Select {{unit}} Event Counts for Job {{job}} </span><span class="checkboxcount"></span><span class="fa chevron pull-right"></span></a></div>
+                                            <div class="flex-column" style="width:30%;height:100%"><a type="button" class="btn btn-info collapsed collapsible_btn" data-toggle="collapse" data-target="#{{job}}_process_list2">Select {{unit}} Event Counts for Job {{job}} </span><span class="checkboxcount"></span><span class="fa chevron pull-right"></span></a></div>
                                             <div class="flex-column" style="width:25%;height:100%"><label><input type="checkbox" onclick="check_process_boxes(this,'{{job}}_')" class="process_checkbox" id="check_all_processes_{{job}}" name="check_all_processes_{{job}}"><b>Select {{unit}} Event Counts For All Processes</b></label></div>
                                             <div class="flex-column" style="width:20%;height:100%"><span class="gradient_bar sum_checkbox_percentages"></span></div>
                                             <div class="flex-column" style="width:25%;height:100%"><span style="font-weight:bold" class="dynamic_text sum_checkbox_percentages"></span></div>
@@ -599,7 +599,6 @@
         if ( zoom ) {
             vals = {"start": minx, "stop": maxx, "selection_mode": selection_mode};
             let x = JSON.stringify(vals);
-            let data = {json:x};
             label = "Range"
             update_all_charts(label, x);
             if (selection_mode == "zoom") {

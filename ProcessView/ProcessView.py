@@ -66,7 +66,8 @@ def process_view():
 # Prepare plots
     purge(src.GlobalData.local_data, ".svg")
     process_model.layout.reference_id = process_model.reference_id
-    process_model.layout.event_totals_chart, process_model.layout.event_totals_table = get_barchart(process, svgchart)
+    process_model.layout.event_totals_chart, process_model.layout.event_totals_table = \
+        get_barchart(process, process_model.hotspots, svgchart)
     if process_model.num_custom_event_ratios > 0:
         process_model.layout.event_ratios_chart = get_custom_barchart(process, svgchart)
     process_model.layout.flamegraph = get_flamegraph(process)
@@ -127,6 +128,11 @@ def update_all_charts():
                 process_model.selected_ids.append(process_id)
     if 'reference_id' in data:
         process_model.reference_id = data["reference_id"]
+    if 'direction' in data:
+        if data["direction"] == "next":
+            process_model.hotspots += 10
+        else:
+            process_model.hotspots -= 10
     all_stack_data[process].read_data(start=process_model.start,
                                       stop=process_model.stop,
                                       text_filter=process_model.text_filter,
@@ -134,7 +140,8 @@ def update_all_charts():
                                       base_case=process_model.reference_id)
     process_model.reference_event_type = all_stack_data[process].get_base_case_id().event_type
     purge(src.GlobalData.local_data, ".svg")
-    process_model.layout.event_totals_chart, process_model.layout.event_totals_table = get_barchart(process, svgchart)
+    process_model.layout.event_totals_chart, process_model.layout.event_totals_table = \
+        get_barchart(process, process_model.hotspots, svgchart)
     if process_model.num_custom_event_ratios > 0:
         process_model.layout.event_ratios_chart = get_custom_barchart(process, svgchart)
     process_model.layout.flamegraph = get_flamegraph(process, flamegraph_event_type=process_model.flamegraph_event_type)
@@ -240,20 +247,17 @@ def get_source_code(symbol, label):
     return source_code_table, source_code_info, source_code_line
 
 
-def get_barchart(process, svg_chart):
+def get_barchart(process, hotspots, svg_chart):
     # Setup Bar Charts
     event_totals_chart_title = 'Total Event Counts for {}: Reference = {}'.format(process, process_model.reference_id)
     barchart_filename = timestamp("barchart.svg")
     output_file = src.GlobalData.local_data + os.sep + barchart_filename
     chart = svg_chart.generate_vertical_stacked_bar_chart(all_stack_data[process],
+                                                          start=hotspots,
                                                           title=event_totals_chart_title,
                                                           output_event_type="original",
                                                           write_colourmap=True)
     chart.render_to_file(output_file)
-    chart = svg_chart.generate_vertical_stacked_bar_chart(all_stack_data[process],
-                                                          title=event_totals_chart_title,
-                                                          number_to_rank=30,
-                                                          output_event_type="any")
     try:
         event_totals_table = chart.render_table(style=False, transpose=True, total=True)
     except Exception as e:

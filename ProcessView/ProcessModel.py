@@ -12,6 +12,7 @@ class ProcessModel:
         self.custom_event_ratio = False
         self.text_filter = ""
         self.diff = False
+        self.hotspots = 1
         self.flamegraph_type = "plot_for_process"
         self.num_custom_event_ratios = 0
         self.reference_event_type = "original"
