@@ -103,7 +103,8 @@ def general_analysis():
     purge(src.GlobalData.local_data, ".svg")
     analysis_model.layout.reference_id = analysis_model.reference_id
     analysis_model.layout.scatter_plot = \
-        get_hotspot_scatter_plot(analysis_data, event1, event2, svgchart, centred, log_scale)
+        get_hotspot_scatter_plot(analysis_data, event1, event2, svgchart, centred, 
+                                 analysis_model.hotspots, log_scale)
     analysis_model.layout.event_totals_chart, analysis_model.layout.event_totals_table = \
         get_barchart(analysis_model.process_list, analysis_model.hotspots, svgchart)
     if analysis_model.num_custom_event_ratios > 0:
@@ -223,7 +224,8 @@ def get_new_chart():
         scatter_plot = get_cluster_plot(analysis_data, event1, event2, svgchart, centred, log_scale)
     else:
         scatter_plot = \
-            get_hotspot_scatter_plot(analysis_data, event1, event2, svgchart, centred, log_scale)
+            get_hotspot_scatter_plot(analysis_data, event1, event2, svgchart, centred, 
+                                     analysis_model.hotspots, log_scale)
     return scatter_plot
 
 
@@ -295,7 +297,8 @@ def update_scatter_plot_mode():
             reference_process = []
         analysis_data.make_data(reference_process, centred=centred, log_scale=log_scale)
         scatter_plot = \
-            get_hotspot_scatter_plot(analysis_data, event1, event2, svgchart, centred, log_scale)
+            get_hotspot_scatter_plot(analysis_data, event1, event2, svgchart, centred, 
+                                     analysis_model.hotspots, log_scale)
     return scatter_plot
 
 
@@ -446,8 +449,10 @@ def update_all_charts():
                                                               ylower=ylower, yupper=yupper)
     else:
         analysis_model.layout.scatter_plot = get_hotspot_scatter_plot(analysis_data, event1, event2,
-                                                                      svgchart, centred, log_scale, xlower=xlower,
-                                                                      xupper=xupper, ylower=ylower, yupper=yupper)
+                                                                      svgchart, centred, 
+                                                                      analysis_model.hotspots, log_scale, 
+                                                                      xlower=xlower, xupper=xupper,
+                                                                      ylower=ylower, yupper=yupper)
     analysis_model.layout.event_totals_chart, analysis_model.layout.event_totals_table = \
         get_barchart(analysis_model.process_list, analysis_model.hotspots, svgchart)
     analysis_model.layout.flamegraph = get_flamegraph(analysis_data, analysis_model.process_list,
@@ -696,7 +701,7 @@ def get_cluster_plot(analysis_data, event1, event2, svg_chart, centred,
     return svgfile
 
 
-def get_hotspot_scatter_plot(analysis_data, event1, event2, svg_chart, centred,
+def get_hotspot_scatter_plot(analysis_data, event1, event2, svg_chart, centred, hotspots,
                              log_scale=False, xlower=None, xupper=None, ylower=None, yupper=None):
     scatter_plot_filename = timestamp("scatter_plot.svg")
     output_file = src.GlobalData.local_data + os.sep + scatter_plot_filename
@@ -716,6 +721,7 @@ def get_hotspot_scatter_plot(analysis_data, event1, event2, svg_chart, centred,
                                                     raw_event1,
                                                     raw_event2,
                                                     centred,
+                                                    start=hotspots,
                                                     xlower=xlower,
                                                     ylower=ylower,
                                                     xupper=xupper,

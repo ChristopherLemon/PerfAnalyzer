@@ -291,7 +291,8 @@ class ChartWriter:
             return self.generate_empty_chart()
 
     def generate_hotspot_scatter_plot(self, analysis_data, process_list, reference_process, reference_id,
-                                      raw_event1, raw_event2, centred, yt="", xt="", title="", xlower=None,
+                                      raw_event1, raw_event2, centred, 
+                                      start=1, number_to_rank=11, yt="", xt="", title="", xlower=None,
                                       ylower=None, xupper=None, yupper=None):
         """Create 2-D scatterplot of event1 vs event 2.
         Colours of points are determined by hotspots for reference event"""
@@ -314,13 +315,13 @@ class ChartWriter:
         colours = get_top_ten_colours()
         default_color = colours[-1]
         hotspot_colour_map = {}
+        start_index = min(start - 1, len(sorted_vals))
+        end_index = min(start - 1 + number_to_rank, len(sorted_vals))
         n = 0
-        for v in sorted_vals:
+        for v in sorted_vals[start_index:end_index]:
             node = v[0]
             hotspot_colour_map[node] = colours[n]
             n += 1
-            if n == len(colours) - 1:
-                break
         data = analysis_data.get_cluster_data()
         plot_data = {i: [] for i in range(0, len(colours))}
         nseries = 0
