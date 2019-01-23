@@ -398,7 +398,8 @@ def update_all_charts():
         if data["direction"] == "next":
             analysis_model.hotspots += 10
         else:
-            analysis_model.hotspots -= 10
+            if analysis_model.hotspots > 10:
+                analysis_model.hotspots -= 10
     for process in analysis_model.process_list:
         if process in all_stack_data:
             update_analysis_model_process_data(process)

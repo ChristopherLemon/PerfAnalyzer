@@ -132,7 +132,8 @@ def update_all_charts():
         if data["direction"] == "next":
             process_model.hotspots += 10
         else:
-            process_model.hotspots -= 10
+            if process_model.hotspots > 10:
+                process_model.hotspots -= 10
     all_stack_data[process].read_data(start=process_model.start,
                                       stop=process_model.stop,
                                       text_filter=process_model.text_filter,

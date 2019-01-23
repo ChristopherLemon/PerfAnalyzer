@@ -395,7 +395,7 @@ class ChartWriter:
             return self.generate_empty_chart()
 
     @staticmethod
-    def generate_horizontal_stacked_bar_chart(stack_data, number_to_rank=20, title=""):
+    def generate_horizontal_stacked_bar_chart(stack_data, start=1, number_to_rank=11, title=""):
         """Create horizontal stacked bar chart/table of top hotspots, including min/mean/max accross all processes,
         for each loaded job"""
         chart = pygal.HorizontalStackedBar(style=custom_style_hotspots,
@@ -432,7 +432,8 @@ class ChartWriter:
                 y[node] += y_data[stack]
             ratios = {s: float(y[s]) / float(x[s]) for s in x if float(x[s]) >= 0.1}
             sorted_vals = sorted(ratios.items(), key=operator.itemgetter(1), reverse=True)
-        n_sorted = min(number_to_rank, len(sorted_vals))
+        start_index = min(start - 1, len(sorted_vals))
+        end_index = min(start - 1 + number_to_rank, len(sorted_vals))
         plot_data = {}
         plot_labels = {}
         n_procs = {}
@@ -472,7 +473,7 @@ class ChartWriter:
                         y[node] = 0.0
                     y[node] += y_data[stack]
                 vals = {s: float(y[s]) / float(x[s]) for s in x if float(x[s]) >= 0.1}
-            for v in sorted_vals[0:n_sorted]:
+            for v in sorted_vals[start_index:end_index]:
                 s = v[0]
                 if s in vals:
                     y = vals[s]
@@ -500,7 +501,7 @@ class ChartWriter:
         data_min = {job: [] for job in plot_data}
         data_mean = {job: [] for job in plot_data}
         data_max = {job: [] for job in plot_data}
-        for v in sorted_vals[n_sorted-1::-1]:
+        for v in sorted_vals[end_index-1::-1]:
             s = v[0]
             for job in plot_data:
                 mean = float(plot_data[job][s]["mean"]/float(n_procs[job]))
@@ -516,6 +517,8 @@ class ChartWriter:
                         data_max[job].append({'value': 0.0})
                         data_mean[job].append({"value": 0.0})
                         data_min[job].append({'value': 0.0})
+            if s == sorted_vals[start_index][0]:
+                break
         for job in plot_data:
             chart.add(job + ": min", data_min[job])
             chart.add(job + ": mean", data_mean[job])
@@ -530,7 +533,7 @@ class ChartWriter:
                                                  height=500,
                                                  value_formatter=lambda val: format_number(val),
                                                  show_legend=False)
-        for v in sorted_vals[0:n_sorted]:
+        for v in sorted_vals[start_index:end_index]:
             s = v[0]
             for job in plot_data:
                 x_labels.append(job + ": " + s)

@@ -79,7 +79,8 @@ def event_view():
         event_model.layout.scatter_plot = None
     event_model.layout.flamegraph = \
         get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
-    event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = get_min_max_chart(event, svgchart)
+    event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = \
+        get_min_max_chart(event, event_model.hotspots, svgchart)
     event_model.layout.timechart = get_timechart(event, custom_event_ratio, svgchart)
     event_model.layout.show_source = len(src.GlobalData.hpc_results) > 0
     event_model.layout.source_code_table,  event_model.layout.source_code_info, event_model.layout.source_code_line \
@@ -138,7 +139,8 @@ def update_all_charts():
         if data["direction"] == "next":
             event_model.hotspots += 10
         else:
-            event_model.hotspots -= 10
+            if event_model.hotspots > 10:
+                event_model.hotspots -= 10
     all_stack_data[event].read_data(start=event_model.start,
                                     stop=event_model.stop,
                                     text_filter=event_model.text_filter,
@@ -154,7 +156,8 @@ def update_all_charts():
             get_barchart(event, event_model.hotspots, event_model.diff, svgchart)
         event_model.layout.event_totals_chart2, event_model.layout.event_totals_table2 = \
             get_barchart_totals(event, event_model.diff, svgchart)
-    event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = get_min_max_chart(event, svgchart)
+    event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = \
+        get_min_max_chart(event, event_model.hotspots, svgchart)
     event_model.layout.flamegraph = \
         get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
     event_model.layout.timechart = get_timechart(event, custom_event_ratio, svgchart)
@@ -301,7 +304,7 @@ def get_barchart(event, hotspots, diff, svg_chart):
         event_totals_chart_title = 'Total Event count for {}: Reference = {}'.format(event, event_model.reference_id)
         output_event_type = "original"
         chart = svg_chart.generate_vertical_stacked_bar_chart(all_stack_data[event],
-                                                              start=hotspots,
+                                                              hotspots,
                                                               title=event_totals_chart_title,
                                                               output_event_type=output_event_type,
                                                               write_colourmap=True)
@@ -363,12 +366,13 @@ def get_custom_barchart(event, svg_chart):
     return svgfile, event_ratios_table
 
 
-def get_min_max_chart(event, svg_chart):
+def get_min_max_chart(event, hotspots, svg_chart):
     min_max_chart_filename = timestamp("min_max_chart.svg")
     output_file = src.GlobalData.local_data + os.sep + min_max_chart_filename
     event_min_max_chart_title = 'Hotspots Min/Mean/Max for {}'.format(event)
     chart, chart_table = \
-        svg_chart.generate_horizontal_stacked_bar_chart(all_stack_data[event], title=event_min_max_chart_title)
+        svg_chart.generate_horizontal_stacked_bar_chart(all_stack_data[event], start=hotspots, 
+                                                        title=event_min_max_chart_title)
     chart.render_to_file(output_file)
     try:
         event_min_max_table = chart_table.render_table(style=False, total=True)
