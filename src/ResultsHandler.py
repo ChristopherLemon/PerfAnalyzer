@@ -1,11 +1,11 @@
 import os
 import re
-from src.Utilities import natural_sort
 from collections import OrderedDict
 from tempfile import mkstemp
 from shutil import move
 from os import remove, close
 
+from src.Utilities import natural_sort
 
 def modify_process_ids(orig_pid, orig_file):
     # Replace process and thread ids with sets of sequential ids, starting from zero

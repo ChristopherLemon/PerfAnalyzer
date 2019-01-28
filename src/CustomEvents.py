@@ -5,6 +5,7 @@ from tempfile import mkstemp
 from shutil import move
 from os import remove, close
 from collections import OrderedDict
+
 from src.ResultsHandler import get_job_name, get_process_to_event_map
 
 

@@ -3,6 +3,7 @@ import re
 import string
 import sys
 from collections import OrderedDict, namedtuple
+
 from src.Utilities import natural_sort
 from src.ColourMaps import cluster_plot_colours
 

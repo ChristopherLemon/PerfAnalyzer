@@ -1,19 +1,22 @@
-from src.svgGraph import ChartWriter
-from flask import render_template, request, jsonify, Blueprint
-from src.Utilities import purge, timestamp, replace_operators
-from src.StackData import StackData, get_job, get_process, get_pid, get_tid, get_event, make_label
-from src.ColourMaps import get_top_ten_colours
-from src.SourceCode import generate_source_code_table, generate_empty_table, generate_source_code_info
-import src.GlobalData
-from src.FlameGraphUtils import FlameGraph
-from src.StackData import write_flamegraph_stacks
-from src.DataAnalysis import GeneralAnalysis
-from src.CustomEvents import event_to_raw_event, raw_event_to_event
-from .AnalysisModel import AnalysisModel
 from collections import OrderedDict
 import re
 import os
 import sys
+
+from flask import render_template, request, jsonify, Blueprint
+
+from src.PlotUtils import ChartWriter
+from src.Utilities import purge, timestamp, replace_operators
+from src.StackData import StackData, get_job, get_process, get_pid, get_tid, get_event, make_label
+from src.ColourMaps import get_top_ten_colours
+from src.SourceCode import generate_source_code_table, generate_empty_table, generate_source_code_info
+import src.GlobalData as GlobalData
+from src.FlameGraphUtils import FlameGraph
+from src.StackData import write_flamegraph_stacks
+from src.DataAnalysis import GeneralAnalysis
+from src.CustomEvents import event_to_raw_event, raw_event_to_event
+from AnalysisView.AnalysisModel import AnalysisModel
+
 
 all_stack_data = {}
 all_analysis_data = {}
@@ -43,11 +46,11 @@ def general_analysis():
     analysis_type = "general"
     analysis_model.analysis_type = analysis_type
     analysis_data, cluster_events = get_analysis(analysis_type)
-    analysis_model.layout.results = src.GlobalData.results_files
+    analysis_model.layout.results = GlobalData.results_files
     analysis_model.event1, analysis_model.event2 = initialise_analysis_model_cluster_data(analysis_data)
-    analysis_model.base_event = src.GlobalData.loaded_cpu_definition.get_base_event()
+    analysis_model.base_event = GlobalData.loaded_cpu_definition.get_base_event()
     base_event = analysis_model.base_event
-    events = src.GlobalData.loaded_cpu_definition.get_active_events()
+    events = GlobalData.loaded_cpu_definition.get_active_events()
 # Load base event to generate complete list of available processes - for selection of required processes
     if base_event in all_stack_data:
         update_analysis_model_base_event_data(base_event, events)
@@ -56,13 +59,13 @@ def general_analysis():
                                              text_filter=analysis_model.text_filter,
                                              selected_ids=analysis_model.base_event_selected_ids)
     else:
-        all_stack_data[base_event] = StackData(src.GlobalData.results_files,
-                                               src.GlobalData.local_data,
-                                               src.GlobalData.loaded_cpu_definition,
+        all_stack_data[base_event] = StackData(GlobalData.results_files,
+                                               GlobalData.local_data,
+                                               GlobalData.loaded_cpu_definition,
                                                data_view="event",
                                                data_id=base_event,
-                                               debug=src.GlobalData.debug,
-                                               n_proc=src.GlobalData.n_proc)
+                                               debug=GlobalData.debug,
+                                               n_proc=GlobalData.n_proc)
         update_analysis_model_base_event_data(base_event, events)
 
 # Now load selected events on each of the selected processes
@@ -75,13 +78,13 @@ def general_analysis():
                                               selected_ids=analysis_model.selected_ids[process],
                                               base_case=analysis_model.reference_id)
         else:
-            all_stack_data[process] = StackData(src.GlobalData.results_files,
-                                                src.GlobalData.local_data,
-                                                src.GlobalData.loaded_cpu_definition,
+            all_stack_data[process] = StackData(GlobalData.results_files,
+                                                GlobalData.local_data,
+                                                GlobalData.loaded_cpu_definition,
                                                 data_view="process",
                                                 data_id=process,
-                                                debug=src.GlobalData.debug,
-                                                n_proc=src.GlobalData.n_proc)
+                                                debug=GlobalData.debug,
+                                                n_proc=GlobalData.n_proc)
             update_analysis_model_process_data(process)
             # Update process ids and reference id
             all_stack_data[process].set_selected_process_ids(analysis_model.selected_ids[process])
@@ -91,7 +94,7 @@ def general_analysis():
         analysis_data.add_data(all_stack_data[process], process)
 # Setup General plot utility
     colours = get_top_ten_colours(return_hex=False)
-    analysis_model.num_custom_event_ratios = src.GlobalData.loaded_cpu_definition.get_num_custom_event_ratios()
+    analysis_model.num_custom_event_ratios = GlobalData.loaded_cpu_definition.get_num_custom_event_ratios()
     centred = (analysis_model.centred_scatter_plot == "centred")
     append_cluster_labels = (analysis_model.flamegraph_mode == "clusters")
     event1 = analysis_model.event1
@@ -100,7 +103,7 @@ def general_analysis():
     analysis_model.cluster_labels = \
         run_analysis(analysis_data, event1, event2, centred, append_cluster_labels, log_scale)
 # Prepare plots
-    purge(src.GlobalData.local_data, ".svg")
+    purge(GlobalData.local_data, ".svg")
     analysis_model.layout.reference_id = analysis_model.reference_id
     analysis_model.layout.scatter_plot = \
         get_hotspot_scatter_plot(analysis_data, event1, event2, svgchart, centred, 
@@ -111,7 +114,7 @@ def general_analysis():
         analysis_model.layout.event_ratios_chart = get_custom_barchart(analysis_model.process_list, svgchart)
     analysis_model.layout.flamegraph = \
         get_flamegraph(analysis_data, analysis_model.process_list, analysis_model.flamegraph_mode)
-    analysis_model.layout.show_source = len(src.GlobalData.hpc_results) > 0
+    analysis_model.layout.show_source = len(GlobalData.hpc_results) > 0
     analysis_model.layout.source_code_table, analysis_model.layout.source_code_info, \
         analysis_model.layout.source_code_line = get_source_code("", analysis_model.reference_id)
 # Setup general layout
@@ -120,19 +123,19 @@ def general_analysis():
     ids = all_stack_data[base_event].get_all_process_ids()
     return render_template('AnalysisView.html',
                            events=events,
-                           trace_jobs=src.GlobalData.trace_jobs,
-                           event_group_map=src.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
-                           all_event_groups=src.GlobalData.loaded_cpu_definition.get_event_groups(),
-                           jobs=src.GlobalData.jobs,
-                           processes=src.GlobalData.processes,
+                           trace_jobs=GlobalData.trace_jobs,
+                           event_group_map=GlobalData.loaded_cpu_definition.get_active_event_group_map(),
+                           all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
+                           jobs=GlobalData.jobs,
+                           processes=GlobalData.processes,
                            analysis_model=analysis_model,
-                           enabled_modes=src.GlobalData.enabled_modes,
+                           enabled_modes=GlobalData.enabled_modes,
                            ids=ids,
                            colours=colours)
 
 
 def initialise_analysis_model_cluster_data(analysis_data):
-    events_dict = OrderedDict([(raw_event_to_event(event, src.GlobalData.loaded_cpu_definition), event) for event in
+    events_dict = OrderedDict([(raw_event_to_event(event, GlobalData.loaded_cpu_definition), event) for event in
                                analysis_data.get_events()])
     analysis_model.cluster_events = events_dict.keys()
     event1 = list(events_dict.keys())[0]
@@ -158,8 +161,8 @@ def update_analysis_model_base_event_data(base_event, events):
     analysis_model.reference_pid = get_pid(analysis_model.base_event_reference_id)
     analysis_model.reference_tid = get_tid(analysis_model.base_event_reference_id)
     analysis_model.process_list = []
-    for job in src.GlobalData.processes:
-        for process in src.GlobalData.processes[job]:
+    for job in GlobalData.processes:
+        for process in GlobalData.processes[job]:
             for process_id in analysis_model.base_event_selected_ids:
                 if job == process_id.job and process == process_id.process_name:
                     analysis_model.process_list.append(job + "_" + process)
@@ -360,8 +363,8 @@ def update_all_charts():
             if process_id.label in data["process_ids"]:
                 analysis_model.base_event_selected_ids.append(process_id)
         analysis_model.process_list = []
-        for job in src.GlobalData.processes:
-            for process in src.GlobalData.processes[job]:
+        for job in GlobalData.processes:
+            for process in GlobalData.processes[job]:
                 for process_id in analysis_model.base_event_selected_ids:
                     if job == process_id.job and process == process_id.process_name:
                         analysis_model.process_list.append(job + "_" + process)
@@ -382,12 +385,12 @@ def update_all_charts():
                 analysis_model.selected_clusters.append(cluster)
     if "selected_events" in data:
         analysis_model.selected_events = []
-        for event in src.GlobalData.loaded_cpu_definition.get_active_events():
+        for event in GlobalData.loaded_cpu_definition.get_active_events():
             if event in data["selected_events"]:
                 analysis_model.selected_events.append(event)
         analysis_model.process_list = []
-        for job in src.GlobalData.processes:
-            for process in src.GlobalData.processes[job]:
+        for job in GlobalData.processes:
+            for process in GlobalData.processes[job]:
                 for process_id in analysis_model.base_event_selected_ids:
                     if job == process_id.job and process == process_id.process_name:
                         analysis_model.process_list.append(job + "_" + process)
@@ -409,13 +412,13 @@ def update_all_charts():
                                               selected_ids=analysis_model.selected_ids[process],
                                               base_case=analysis_model.reference_id)
         else:
-            all_stack_data[process] = StackData(src.GlobalData.results_files,
-                                                src.GlobalData.local_data,
-                                                src.GlobalData.loaded_cpu_definition,
+            all_stack_data[process] = StackData(GlobalData.results_files,
+                                                GlobalData.local_data,
+                                                GlobalData.loaded_cpu_definition,
                                                 data_view="process",
                                                 data_id=process,
-                                                debug=src.GlobalData.debug,
-                                                n_proc=src.GlobalData.n_proc)
+                                                debug=GlobalData.debug,
+                                                n_proc=GlobalData.n_proc)
             update_analysis_model_process_data(process)
             # Update process ids and reference id
             all_stack_data[process].set_selected_process_ids(analysis_model.selected_ids[process])
@@ -423,11 +426,11 @@ def update_all_charts():
             ids = [all_stack_data[process].get_base_case_id()]
             all_stack_data[process].set_flamegraph_process_ids(ids)
         analysis_data.add_data(all_stack_data[process], process)
-    purge(src.GlobalData.local_data, ".svg")
+    purge(GlobalData.local_data, ".svg")
     event1 = analysis_model.event1
     event2 = analysis_model.event2
-    raw_event1 = event_to_raw_event(analysis_model.event1, src.GlobalData.loaded_cpu_definition)
-    raw_event2 = event_to_raw_event(analysis_model.event2, src.GlobalData.loaded_cpu_definition)
+    raw_event1 = event_to_raw_event(analysis_model.event1, GlobalData.loaded_cpu_definition)
+    raw_event2 = event_to_raw_event(analysis_model.event2, GlobalData.loaded_cpu_definition)
     centred = (analysis_model.centred_scatter_plot == "centred")
     append_cluster_labels = (analysis_model.flamegraph_mode == "clusters")
     log_scale = analysis_model.log_scale
@@ -524,8 +527,8 @@ def update_flamegraph_mode():
     data = request.get_json()
     analysis_model.flamegraph_mode = data['flamegraph_mode']
     append_cluster_labels = (analysis_model.flamegraph_mode == "clusters")
-    raw_event1 = event_to_raw_event(analysis_model.event1, src.GlobalData.loaded_cpu_definition)
-    raw_event2 = event_to_raw_event(analysis_model.event2, src.GlobalData.loaded_cpu_definition)
+    raw_event1 = event_to_raw_event(analysis_model.event1, GlobalData.loaded_cpu_definition)
+    raw_event2 = event_to_raw_event(analysis_model.event2, GlobalData.loaded_cpu_definition)
     xlower = analysis_model.xlower
     xupper = analysis_model.xupper
     ylower = analysis_model.ylower
@@ -541,13 +544,13 @@ def get_source_code(symbol, label):
     if re.match(".*\[\[cluster", symbol):
         symbol = symbol.rpartition("[[cluster")[0]
     job_id = get_job(label)
-    for i in range(len(src.GlobalData.hpc_results)):
-        if job_id == src.GlobalData.hpc_results[i].get_job_id():
+    for i in range(len(GlobalData.hpc_results)):
+        if job_id == GlobalData.hpc_results[i].get_job_id():
             process_id = all_stack_data[analysis_model.reference_process].get_process_id_from_label(label)
-            source_code_info = generate_source_code_info(symbol, src.GlobalData.hpc_results[i])
+            source_code_info = generate_source_code_info(symbol, GlobalData.hpc_results[i])
             source_code_table, source_code_line = \
                 generate_source_code_table(all_stack_data[analysis_model.reference_process], process_id,
-                                           symbol, src.GlobalData.hpc_results[i])
+                                           symbol, GlobalData.hpc_results[i])
             return source_code_table, source_code_info, source_code_line
     source_code_table, source_code_info, source_code_line = generate_empty_table()
     return source_code_table, source_code_info, source_code_line
@@ -555,7 +558,7 @@ def get_source_code(symbol, label):
 def get_barchart(process_list, hotspots, svg_chart):
     # Setup Bar Chart
     barchart_filename = timestamp("barchart.svg")
-    output_file = src.GlobalData.local_data + os.sep + barchart_filename
+    output_file = GlobalData.local_data + os.sep + barchart_filename
     event_totals_chart_title = 'Total Event count for selected Events/Threads: Reference = {}'\
         .format(analysis_model.reference_id)
     output_event_type = "original"
@@ -572,14 +575,14 @@ def get_barchart(process_list, hotspots, svg_chart):
         event_totals_table = chart.render_table(style=False, transpose=True, total=True)
     except Exception as e:
         event_totals_table = ""
-    svgfile = src.GlobalData.local_data + os.sep + barchart_filename
+    svgfile = GlobalData.local_data + os.sep + barchart_filename
     svgfile = os.path.relpath(svgfile, AnalysisView.template_folder)
     return svgfile, event_totals_table
 
 
 def get_custom_barchart(process_list, svg_chart):
     custom_barchart_filename = timestamp("custom_barchart.svg")
-    output_file = src.GlobalData.local_data + os.sep + custom_barchart_filename
+    output_file = GlobalData.local_data + os.sep + custom_barchart_filename
     event_totals_chart_title = 'Total Event count for Event Ratios: Reference = {}'.format(analysis_model.reference_id)
     output_event_type = "custom_event_ratio"
     chart = svg_chart.generate_bar_chart_multiple_jobs(all_stack_data,
@@ -587,7 +590,7 @@ def get_custom_barchart(process_list, svg_chart):
                                                        title=event_totals_chart_title,
                                                        output_event_type=output_event_type)
     chart.render_to_file(output_file)
-    svgfile = src.GlobalData.local_data + os.sep + custom_barchart_filename
+    svgfile = GlobalData.local_data + os.sep + custom_barchart_filename
     svgfile = os.path.relpath(svgfile, AnalysisView.template_folder)
     return svgfile
 
@@ -601,13 +604,13 @@ def get_analysis(analysis_type):
     else:
         analysis_data = all_analysis_data['general']
     cluster_events = {"All": [], "Ratios": []}  # Re-populate, as custom events may have been added
-    for event in src.GlobalData.loaded_cpu_definition.get_active_events():
+    for event in GlobalData.loaded_cpu_definition.get_active_events():
         if re.match(".* / .*", event):
             e1, par, e2 = event.partition(" / ")
-            cluster_events["Ratios"].append([event_to_raw_event(e1, src.GlobalData.loaded_cpu_definition),
-                                             event_to_raw_event(e2, src.GlobalData.loaded_cpu_definition)])
+            cluster_events["Ratios"].append([event_to_raw_event(e1, GlobalData.loaded_cpu_definition),
+                                             event_to_raw_event(e2, GlobalData.loaded_cpu_definition)])
         else:
-            cluster_events["All"].append(event_to_raw_event(event, src.GlobalData.loaded_cpu_definition))
+            cluster_events["All"].append(event_to_raw_event(event, GlobalData.loaded_cpu_definition))
     analysis_data.set_events(cluster_events)
     return analysis_data, cluster_events
 
@@ -620,8 +623,8 @@ def run_analysis(analysis_data, event1, event2, centred, append_cluster_labels, 
         reference_process = analysis_model.reference_process
     else:
         reference_process = []
-    raw_event1 = event_to_raw_event(event1, src.GlobalData.loaded_cpu_definition)
-    raw_event2 = event_to_raw_event(event2, src.GlobalData.loaded_cpu_definition)
+    raw_event1 = event_to_raw_event(event1, GlobalData.loaded_cpu_definition)
+    raw_event2 = event_to_raw_event(event2, GlobalData.loaded_cpu_definition)
     analysis_data.make_data(reference_process, centred=centred, log_scale=log_scale)
     analysis_data.calculate_ratios(num_clusters, raw_event1, raw_event2, xlower, xupper, ylower, yupper)
     n = analysis_data.get_num_clusters()
@@ -653,19 +656,19 @@ def get_flamegraph(analysis_data, process_list, mode, flamegraph_event_type="ori
     flamegraph_filename = timestamp("flamegraph.svg")
     flamegraph_description = {}
     if flamegraph_event_type == "custom_event_ratio":
-        FlameGraph(src.GlobalData.local_data,
+        FlameGraph(GlobalData.local_data,
                    collapsed_stacks_filename,
                    flamegraph_filename,
                    description=flamegraph_description,
                    custom_event_ratio=True)
     else:  # original
-        FlameGraph(src.GlobalData.local_data,
+        FlameGraph(GlobalData.local_data,
                    collapsed_stacks_filename,
                    flamegraph_filename,
                    description=flamegraph_description,
                    custom_event_ratio=False,
                    color_map=color_map)
-    svgfile = src.GlobalData.local_data + os.sep + flamegraph_filename
+    svgfile = GlobalData.local_data + os.sep + flamegraph_filename
     svgfile = os.path.relpath(svgfile, AnalysisView.template_folder)
     return svgfile
 
@@ -673,7 +676,7 @@ def get_flamegraph(analysis_data, process_list, mode, flamegraph_event_type="ori
 def get_cluster_plot(analysis_data, event1, event2, svg_chart, centred,
                      log_scale=False, xlower=None, xupper=None, ylower=None, yupper=None):
     cluster_plot_filename = timestamp("scatter_plot.svg")
-    output_file = src.GlobalData.local_data + os.sep + cluster_plot_filename
+    output_file = GlobalData.local_data + os.sep + cluster_plot_filename
     n = analysis_data.get_num_clusters()
     cluster_chart_title = event1 + " vs " + event2 + ": " + str(n) + " clusters"
     if log_scale:
@@ -682,8 +685,8 @@ def get_cluster_plot(analysis_data, event1, event2, svg_chart, centred,
     else:
         yt = event1
         xt = event2
-    raw_event1 = event_to_raw_event(event1, src.GlobalData.loaded_cpu_definition)
-    raw_event2 = event_to_raw_event(event2, src.GlobalData.loaded_cpu_definition)
+    raw_event1 = event_to_raw_event(event1, GlobalData.loaded_cpu_definition)
+    raw_event2 = event_to_raw_event(event2, GlobalData.loaded_cpu_definition)
     chart = svg_chart.generate_cluster_plot(analysis_data,
                                             analysis_model.process_list,
                                             raw_event1,
@@ -697,7 +700,7 @@ def get_cluster_plot(analysis_data, event1, event2, svg_chart, centred,
                                             xt=xt,
                                             title=cluster_chart_title)
     chart.render_to_file(output_file)
-    svgfile = src.GlobalData.local_data + os.sep + cluster_plot_filename
+    svgfile = GlobalData.local_data + os.sep + cluster_plot_filename
     svgfile = os.path.relpath(svgfile, AnalysisView.template_folder)
     return svgfile
 
@@ -705,7 +708,7 @@ def get_cluster_plot(analysis_data, event1, event2, svg_chart, centred,
 def get_hotspot_scatter_plot(analysis_data, event1, event2, svg_chart, centred, hotspots,
                              log_scale=False, xlower=None, xupper=None, ylower=None, yupper=None):
     scatter_plot_filename = timestamp("scatter_plot.svg")
-    output_file = src.GlobalData.local_data + os.sep + scatter_plot_filename
+    output_file = GlobalData.local_data + os.sep + scatter_plot_filename
     cluster_chart_title = event1 + " vs " + event2 + ": hotspots"
     if log_scale:
         yt = "Log10(" + event1 + ")"
@@ -713,8 +716,8 @@ def get_hotspot_scatter_plot(analysis_data, event1, event2, svg_chart, centred, 
     else:
         yt = event1
         xt = event2
-    raw_event1 = event_to_raw_event(event1, src.GlobalData.loaded_cpu_definition)
-    raw_event2 = event_to_raw_event(event2, src.GlobalData.loaded_cpu_definition)
+    raw_event1 = event_to_raw_event(event1, GlobalData.loaded_cpu_definition)
+    raw_event2 = event_to_raw_event(event2, GlobalData.loaded_cpu_definition)
     chart = svg_chart.generate_hotspot_scatter_plot(analysis_data,
                                                     analysis_model.process_list,
                                                     analysis_model.reference_process,
@@ -731,6 +734,6 @@ def get_hotspot_scatter_plot(analysis_data, event1, event2, svg_chart, centred, 
                                                     xt=xt,
                                                     title=cluster_chart_title)
     chart.render_to_file(output_file)
-    svgfile = src.GlobalData.local_data + os.sep + scatter_plot_filename
+    svgfile = GlobalData.local_data + os.sep + scatter_plot_filename
     svgfile = os.path.relpath(svgfile, AnalysisView.template_folder)
     return svgfile

@@ -3,11 +3,12 @@ import re
 import sys
 import multiprocessing as mp
 import pickle
+from collections import OrderedDict, defaultdict
 from timeit import default_timer as timer
+
 from src.Utilities import natural_sort
 from src.CustomEvents import event_to_raw_event, raw_event_to_event, get_event_type, \
     create_custom_event_stack, is_composite_event
-from collections import OrderedDict, defaultdict
 from src.ResultsHandler import get_job_name, get_event_counters
 
 

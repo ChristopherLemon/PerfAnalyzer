@@ -1,13 +1,15 @@
-from src.svgGraph import ChartWriter
+import os
+
 from flask import render_template, request, jsonify, Blueprint
+
+from src.PlotUtils import ChartWriter
 from src.Utilities import purge, timestamp
 from src.StackData import StackData
-import src.GlobalData
+import src.GlobalData as GlobalData
 from src.FlameGraphUtils import FlameGraph
 from src.StackData import write_flamegraph_stacks, get_job
-from .ProcessModel import ProcessModel
+from ProcessView.ProcessModel import ProcessModel
 from src.SourceCode import generate_source_code_table, generate_empty_table, generate_source_code_info
-import os
 
 all_stack_data = {}
 process_model = ProcessModel()
@@ -34,7 +36,7 @@ def process_view():
     global svgchart
     process = str(request.args.get('process'))
     process_model.process = process
-    process_model.layout.results = src.GlobalData.results_files
+    process_model.layout.results = GlobalData.results_files
     if process in all_stack_data:
         update_process_model(process)
         all_stack_data[process].read_data(start=process_model.start,
@@ -43,13 +45,13 @@ def process_view():
                                           selected_ids=process_model.selected_ids,
                                           base_case=process_model.reference_id)
     else:
-        all_stack_data[process] = StackData(src.GlobalData.results_files,
-                                            src.GlobalData.local_data,
-                                            src.GlobalData.loaded_cpu_definition,
+        all_stack_data[process] = StackData(GlobalData.results_files,
+                                            GlobalData.local_data,
+                                            GlobalData.loaded_cpu_definition,
                                             data_view="process",
                                             data_id=process,
-                                            debug=src.GlobalData.debug,
-                                            n_proc=src.GlobalData.n_proc)
+                                            debug=GlobalData.debug,
+                                            n_proc=GlobalData.n_proc)
         update_process_model(process)
     process_model.event_names = all_stack_data[process].get_all_event_names()
     process_model.jobs = all_stack_data[process].get_all_jobs()
@@ -62,9 +64,9 @@ def process_view():
         process_model.reference_count = float(reference_id.count2) / float(reference_id.count1)
     else:
         process_model.reference_count = reference_id.count1
-    process_model.num_custom_event_ratios = src.GlobalData.loaded_cpu_definition.get_num_custom_event_ratios()
+    process_model.num_custom_event_ratios = GlobalData.loaded_cpu_definition.get_num_custom_event_ratios()
 # Prepare plots
-    purge(src.GlobalData.local_data, ".svg")
+    purge(GlobalData.local_data, ".svg")
     process_model.layout.reference_id = process_model.reference_id
     process_model.layout.event_totals_chart, process_model.layout.event_totals_table = \
         get_barchart(process, process_model.hotspots, svgchart)
@@ -73,7 +75,7 @@ def process_view():
     process_model.layout.flamegraph = get_flamegraph(process)
     process_model.layout.event_time_series, process_model.layout.event_ratio_time_series = \
         get__timechart(process, svgchart)
-    process_model.layout.show_source = len(src.GlobalData.hpc_results) > 0
+    process_model.layout.show_source = len(GlobalData.hpc_results) > 0
     process_model.layout.source_code_table, process_model.layout.source_code_info, \
         process_model.layout.source_code_line = get_source_code("", process_model.reference_id)
 # Setup general layout
@@ -82,14 +84,14 @@ def process_view():
     process_model.layout.title = "Process: " + process
     process_model.layout.footer = "Loaded Results: " + " & ".join(process_model.layout.results)
     return render_template('ProcessView.html',
-                           events=src.GlobalData.loaded_cpu_definition.get_active_events(),
-                           trace_jobs=src.GlobalData.trace_jobs,
-                           event_group_map=src.GlobalData.loaded_cpu_definition.get_active_event_group_map(),
-                           all_event_groups=src.GlobalData.loaded_cpu_definition.get_event_groups(),
-                           jobs=src.GlobalData.jobs,
-                           processes=src.GlobalData.processes,
+                           events=GlobalData.loaded_cpu_definition.get_active_events(),
+                           trace_jobs=GlobalData.trace_jobs,
+                           event_group_map=GlobalData.loaded_cpu_definition.get_active_event_group_map(),
+                           all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
+                           jobs=GlobalData.jobs,
+                           processes=GlobalData.processes,
                            process_model=process_model,
-                           enabled_modes=src.GlobalData.enabled_modes,
+                           enabled_modes=GlobalData.enabled_modes,
                            ids=ids)
 
 
@@ -140,7 +142,7 @@ def update_all_charts():
                                       selected_ids=process_model.selected_ids,
                                       base_case=process_model.reference_id)
     process_model.reference_event_type = all_stack_data[process].get_base_case_id().event_type
-    purge(src.GlobalData.local_data, ".svg")
+    purge(GlobalData.local_data, ".svg")
     process_model.layout.event_totals_chart, process_model.layout.event_totals_table = \
         get_barchart(process, process_model.hotspots, svgchart)
     if process_model.num_custom_event_ratios > 0:
@@ -219,30 +221,30 @@ def get_flamegraph(process, flamegraph_event_type="original"):
     flamegraph_filename = timestamp("flamegraph.svg")
     collapsed_stacks_filename = all_stack_data[process].get_collapsed_stacks_filename()
     if flamegraph_event_type == "custom_event_ratio":
-        FlameGraph(src.GlobalData.local_data,
+        FlameGraph(GlobalData.local_data,
                    collapsed_stacks_filename,
                    flamegraph_filename,
                    custom_event_ratio=True)
     else:  # original
-        FlameGraph(src.GlobalData.local_data,
+        FlameGraph(GlobalData.local_data,
                    collapsed_stacks_filename,
                    flamegraph_filename,
                    color_map=color_map,
                    custom_event_ratio=False)
-    svgfile = src.GlobalData.local_data + os.sep + flamegraph_filename
+    svgfile = GlobalData.local_data + os.sep + flamegraph_filename
     svgfile = os.path.relpath(svgfile, ProcessView.template_folder)
     return svgfile
 
 
 def get_source_code(symbol, label):
     job_id = get_job(label)
-    for i in range(len(src.GlobalData.hpc_results)):
-        if job_id == src.GlobalData.hpc_results[i].get_job_id():
+    for i in range(len(GlobalData.hpc_results)):
+        if job_id == GlobalData.hpc_results[i].get_job_id():
             process_id = all_stack_data[process_model.process].get_process_id_from_label(label)
             source_code_table, source_code_line = \
                 generate_source_code_table(all_stack_data[process_model.process], process_id,
-                                           symbol, src.GlobalData.hpc_results[i])
-            source_code_info = generate_source_code_info(symbol, src.GlobalData.hpc_results[i])
+                                           symbol, GlobalData.hpc_results[i])
+            source_code_info = generate_source_code_info(symbol, GlobalData.hpc_results[i])
             return source_code_table, source_code_info, source_code_line
     source_code_table, source_code_info, source_code_line = generate_empty_table()
     return source_code_table, source_code_info, source_code_line
@@ -252,7 +254,7 @@ def get_barchart(process, hotspots, svg_chart):
     # Setup Bar Charts
     event_totals_chart_title = 'Total Event Counts for {}: Reference = {}'.format(process, process_model.reference_id)
     barchart_filename = timestamp("barchart.svg")
-    output_file = src.GlobalData.local_data + os.sep + barchart_filename
+    output_file = GlobalData.local_data + os.sep + barchart_filename
     chart = svg_chart.generate_vertical_stacked_bar_chart(all_stack_data[process],
                                                           start=hotspots,
                                                           title=event_totals_chart_title,
@@ -263,7 +265,7 @@ def get_barchart(process, hotspots, svg_chart):
         event_totals_table = chart.render_table(style=False, transpose=True, total=True)
     except Exception as e:
         event_totals_table = ""
-    svgfile = src.GlobalData.local_data + os.sep + barchart_filename
+    svgfile = GlobalData.local_data + os.sep + barchart_filename
     svgfile = os.path.relpath(svgfile, ProcessView.template_folder)
     return svgfile, event_totals_table
 
@@ -271,12 +273,12 @@ def get_barchart(process, hotspots, svg_chart):
 def get_custom_barchart(process, svg_chart):
     event_ratios_chart_title = 'Average Event Ratios for {}: Reference = {}'.format(process, process_model.reference_id)
     custom_barchart_filename = timestamp("custom_barchart.svg")
-    output_file = src.GlobalData.local_data + os.sep + custom_barchart_filename
+    output_file = GlobalData.local_data + os.sep + custom_barchart_filename
     chart = svg_chart.generate_bar_chart(all_stack_data[process],
                                          title=event_ratios_chart_title,
                                          output_event_type="custom_event_ratio")
     chart.render_to_file(output_file)
-    svgfile = src.GlobalData.local_data + os.sep + custom_barchart_filename
+    svgfile = GlobalData.local_data + os.sep + custom_barchart_filename
     svgfile = os.path.relpath(svgfile, ProcessView.template_folder)
     return svgfile
 
@@ -285,8 +287,8 @@ def get__timechart(process, svg_chart):
     # Setup Time Lines
     event_time_series_filename = timestamp("event_time_series.svg")
     event_ratio_time_series_filename = timestamp("event_ratio_time_series.svg")
-    event_time_series_output_file = src.GlobalData.local_data + os.sep + event_time_series_filename
-    event_ratio_time_series_output_file = src.GlobalData.local_data + os.sep + event_ratio_time_series_filename
+    event_time_series_output_file = GlobalData.local_data + os.sep + event_time_series_filename
+    event_ratio_time_series_output_file = GlobalData.local_data + os.sep + event_ratio_time_series_filename
     event_time_series_title = '(Event Counts / second) for {}'.format(process)
     event_ratio_time_series_title = 'Event Ratios for {}'.format(process)
     chart = svg_chart.generate_timechart(all_stack_data[process],
@@ -301,8 +303,8 @@ def get__timechart(process, svg_chart):
                                          title=event_ratio_time_series_title,
                                          event_type="custom_event_ratio")
     chart.render_to_file(event_ratio_time_series_output_file)
-    svgfile1 = src.GlobalData.local_data + os.sep + event_time_series_filename
+    svgfile1 = GlobalData.local_data + os.sep + event_time_series_filename
     svgfile1 = os.path.relpath(svgfile1, ProcessView.template_folder)
-    svgfile2 = src.GlobalData.local_data + os.sep + event_ratio_time_series_filename
+    svgfile2 = GlobalData.local_data + os.sep + event_ratio_time_series_filename
     svgfile2 = os.path.relpath(svgfile2, ProcessView.template_folder)
     return svgfile1, svgfile2

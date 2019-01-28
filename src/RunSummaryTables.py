@@ -1,7 +1,7 @@
-from src.Utilities import round_sig
-from src.CustomEvents import raw_event_to_event
 import operator
 
+from src.Utilities import round_sig
+from src.CustomEvents import raw_event_to_event
 
 def generate_run_summary_table(cpu_definition, event_counters, run_numbers, run_durations, run_parameters):
     """Return raw html table with run summary data"""

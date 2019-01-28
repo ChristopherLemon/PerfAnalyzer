@@ -1,14 +1,14 @@
-__author__ = 'CLemon'
 from collections import namedtuple, OrderedDict
-from src.Utilities import natural_sort
-from src.CustomEvents import add_custom_events_to_active_events, raw_event_to_event, get_event_type
-import src.GlobalData
 from tempfile import mkstemp
 from shutil import move
 import copy
 import os
 import re
 import operator
+
+from src.Utilities import natural_sort
+from src.CustomEvents import add_custom_events_to_active_events, raw_event_to_event, get_event_type
+import src.GlobalData as GlobalData
 
 EventDefinition = namedtuple('EventDefinition',
                              ['event',
@@ -20,7 +20,7 @@ event_definitions = OrderedDict()
 
 
 def initialise_cpu_definitions():
-    perf_events_location = src.GlobalData.perf_events
+    perf_events_location = GlobalData.perf_events
     cpus = OrderedDict()
     for f in os.listdir(perf_events_location):
         cpu, dot, ext = f.rpartition(".")
@@ -51,7 +51,7 @@ def initialise_cpu_definitions():
 
 
 def modify_event_definitions(cpu, definitions):
-    perf_events_location = src.GlobalData.perf_events
+    perf_events_location = GlobalData.perf_events
     orig_file = os.path.join(perf_events_location, cpu + ".events")
     fh, abs_path = mkstemp()
     start_edit = True
