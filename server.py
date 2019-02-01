@@ -471,7 +471,8 @@ def check_for_results():
             if os.path.isfile(filename):
                 main_logger.info(u"Job " + job["job_name"] + " has finished at "
                                  + time_now.strftime("%Y-%m-%d %H:%M:%S") + " (" + str(duration) + ")")
-                main_logger.info(u"Load perf profile " + job["job_name"] + ".results")
+                main_logger.info(u"Load perf profile " + GlobalData.local_data + os.sep + \
+                                 job["job_name"] + ".results")
                 job["job_status"] = "finished"
             else:
                 job_durations[job_name] = str(duration)
@@ -532,11 +533,11 @@ def shutdown_server():
 
 if __name__ == "__main__":
     freeze_support()
-    parser = argparse.ArgumentParser(description='Perf Profiler')
+    parser = argparse.ArgumentParser(description='Perf Analyzer')
     parser.add_argument('-host', '--host', default="127.0.0.1", dest="host", help="Set host (default: 127.0.0.1)")
     parser.add_argument('-port', '--port', default="9999",  dest="port", help="Set port number (default: 9999)")
-    parser.add_argument('-processes', '--processes', type=int, dest="n_proc", default=4,
-                        help="Number of processes for processing results data (default: 4)")
+    parser.add_argument('-processes', '--processes', type=int, dest="n_proc", default=1,
+                        help="Number of processes for processing results data (default: 1)")
     parser.add_argument('-debug', '--debug', action="store_true", default=False, dest="debug",
                         help="Output debug info")
     parser.add_argument('-browser', '--browser', default="default", dest="browser",

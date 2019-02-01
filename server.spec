@@ -13,7 +13,7 @@ a = Analysis(['server.py'],
              datas=[(exe_full_path + os.sep + 'templates','templates'),
              (exe_full_path + os.sep + 'static','static'),
 			 (exe_full_path + os.sep + 'perf_events','perf_events'),
-			 (exe_full_path + os.sep + 'perl','perl'),
+			 (exe_full_path + os.sep + 'src' + os.sep + 'StackCollapse.py','src'),
              (exe_full_path + os.sep + 'pygal' + os.sep + 'css','pygal' + os.sep + 'css'),
              (exe_full_path + os.sep + 'results','results')],
              hiddenimports=[

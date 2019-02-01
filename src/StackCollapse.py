@@ -120,6 +120,9 @@ def collapse_stacks(input_file):
     global start_time
     global previous_time
     stack = []
+    pname = ""
+    pname_sum_threads = ""
+    pname_sum_processes = ""
     primary_event = ""
     pid = ""
     tid = ""
@@ -130,25 +133,19 @@ def collapse_stacks(input_file):
                 continue
             line = line.strip()
             if len(line) == 0:
-                if pname:
-                    stack.append(pname)
-                else:
-                    stack.append("")
                 if trace_event != "":
-                    record_trace(primary_event, ";".join(stack[::-1]), exe_name, pid, tid, time - start_time)
+                    record_trace(primary_event, ";".join([pname] + stack), exe_name, pid, tid, time - start_time)
                 else:
-                    remember_stack(primary_event, ";".join(stack[::-1]), int(period))
+                    remember_stack(primary_event, ";".join([pname] + stack), int(period))
                 if accumulate:
-                    stack[-1] = pname_sum_threads
                     if trace_event != "":
-                        record_trace(primary_event, ";".join(stack[::-1]), exe_name, pid, "all", time - start_time)
+                        record_trace(primary_event, ";".join([pname_sum_threads] + stack), exe_name, pid, "all", time - start_time)
                     else:
-                        remember_stack(primary_event, ";".join(stack[::-1]), int(period))
-                    stack[-1] = pname_sum_processes
+                        remember_stack(primary_event, ";".join([pname_sum_threads] + stack), int(period))
                     if trace_event != "":
-                        record_trace(primary_event, ";".join(stack[::-1]), exe_name, "all", "all", time - start_time)
+                        record_trace(primary_event, ";".join([pname_sum_processes] + stack), exe_name, "all", "all", time - start_time)
                     else:
-                        remember_stack(primary_event, ";".join(stack[::-1]), int(period))
+                        remember_stack(primary_event, ";".join([pname_sum_processes] + stack), int(period))
                 stack = []
                 pname = ""
                 pname_sum_threads = ""
@@ -228,7 +225,7 @@ def collapse_stacks(input_file):
 
 if __name__ == "__main__":
     """Simplified stack collapse script, based on stackcollapse.pl by Brendan Gregg"""
-    parser = argparse.ArgumentParser(description='Perf Profiler')
+    parser = argparse.ArgumentParser(description='perf stack collapse script')
     parser.add_argument('-pid', '--pid', action="store_true", default=False,  dest="include_pid", help="include pid with process names")
     parser.add_argument('-tid', '--tid', action="store_true", default=False,  dest="include_tid", help="include tid and pid with process names")
     parser.add_argument('-dt', '--dt', type=float, dest="dt", help="time interval (s) of sample bins")
