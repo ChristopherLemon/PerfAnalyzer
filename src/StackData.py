@@ -137,8 +137,8 @@ class ReadStacksTask:
                 elif start_time <= time <= stop_time:
                     stack = line
                     if event_type == "custom_event_ratio":
-                        stack, par, secondary = stack.rpartition(' ')
-                    stack, par, primary = stack.rpartition(' ')
+                        stack, _, secondary = stack.rpartition(' ')
+                    stack, _, primary = stack.rpartition(' ')
                     match = re.search(process_id_regex, line)
                     if match:
                         pid = match.group(2)
@@ -464,8 +464,8 @@ class StackData:
                             self.totals[task_id][pid][tid] = 0.0
                             self.count[task_id][pid][tid] = [0, 0]
                         if event_type == "custom_event_ratio":
-                            stack, par, secondary = stack.rpartition(' ')
-                        stack, par, primary = stack.rpartition(' ')
+                            stack, _, secondary = stack.rpartition(' ')
+                        stack, _, primary = stack.rpartition(' ')
                         c0 = int(primary)
                         if event_type == "custom_event_ratio":
                             c1 = int(secondary)
@@ -754,8 +754,8 @@ class StackData:
                     if tid not in self.filtered_stacks_x[task_id][pid]:
                         self.filtered_stacks_x[task_id][pid][tid] = {}
                         self.filtered_stacks_y[task_id][pid][tid] = {}
-                    stack, par, count2 = line.rpartition(" ")
-                    stack, par, count1 = stack.rpartition(" ")
+                    stack, _, count2 = line.rpartition(" ")
+                    stack, _, count1 = stack.rpartition(" ")
                     s = label + ";" + stack
                     if self.stack_map:
                         line = label + ";" + stack
@@ -806,7 +806,7 @@ class StackData:
                         self.filtered_stacks[task_id][pid] = {}
                     if tid not in self.filtered_stacks[task_id][pid]:
                         self.filtered_stacks[task_id][pid][tid] = {}
-                    stack, par, count1 = line.rpartition(" ")
+                    stack, _, count1 = line.rpartition(" ")
                     s = label + ";" + stack
                     if self.stack_map:
                         line = label + ";" + stack
@@ -850,7 +850,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                             p = match.group(2)
                             t = match.group(3)
                             if p == base_pid and t == base_tid:
-                                stack, par, count = line.strip().rpartition(" ")
+                                stack, _, count = line.strip().rpartition(" ")
                                 symbol = stack.rpartition(";")[2]
                                 c = int(count)
                                 if symbol in base_symbols:

@@ -389,7 +389,7 @@ def get_min_max_chart(event, hotspots, svg_chart):
 def get_2d_plot(event, svg_chart):
     scatter_plot_filename = timestamp("scatter_plot.svg")
     output_file = GlobalData.local_data + os.sep + scatter_plot_filename
-    event1, div, event2 = event.partition(" / ")
+    event1, _, event2 = event.partition(" / ")
     scatter_plot_title = '{} vs {}'.format(event1, event2)
     chart = svg_chart.generate_scatter_plot(all_stack_data[event],
                                             event1,

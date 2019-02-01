@@ -363,7 +363,7 @@ class TimeLines:
                     tid = match.group(3)
                     match2 = re.match("secondary-event;(.*)\s+(.*)\s+(.*)", line)
                     if match2:
-                        line, par, time = line.rpartition(' ')
+                        line, _, time = line.rpartition(' ')
                         event = line.rpartition(' ')[2]
                         if pid not in self.secondary_events:
                             self.secondary_events[pid] = OrderedDict()
@@ -379,7 +379,7 @@ class TimeLines:
                         self.sample_rates[pid] = OrderedDict()
                     if tid not in self.sample_rates[pid]:
                         self.sample_rates[pid][tid] = []
-                    line, par, rate = line.rpartition(' ')
+                    line, _, rate = line.rpartition(' ')
                     time = line.rpartition(' ')[2]
                     self.sample_rates[pid][tid].append((float(time), float(rate)))
                     self.max_sample_rate = max(self.max_sample_rate, float(rate))
@@ -393,9 +393,9 @@ class TimeLines:
                     if tid not in self.timelines[pid]:
                         self.timelines[pid][tid] = []
                         self.nlevels += 1
-                    line, par, count = line.rpartition(' ')
-                    line, par, end = line.rpartition(' ')
-                    line, par, start = line.rpartition(' ')
+                    line, _, count = line.rpartition(' ')
+                    line, _, end = line.rpartition(' ')
+                    line, _, start = line.rpartition(' ')
                     func = line.rpartition(";")[2]
                     if func:
                         self.timelines[pid][tid].append((func, start, end, int(count)))

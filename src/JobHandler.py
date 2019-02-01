@@ -142,45 +142,41 @@ def get_stack_collapse_command(in_file, out_file, dt, stack_collapse_script, sys
 class Job:
     """Object representing a perf job submission"""
 
-    def __init__(self, job_id, copy_files, run_parallel, run_system_wide, run_as_root, processes,
-                 processes_per_node, exe, exe_args, working_dir,
-                 queue, cpu_definition, events, period, frequency, dt, max_events_per_run,
-                 proc_attach, env_variables, bin_path, lib_path, preload, global_mpirun_params, local_mpirun_params,
-                 mpirun_version, lsf_params, perf_params, use_mpirun, use_lsf, use_ssh):
-        self.job_id = job_id
-        self.processes = processes
-        self.processes_per_node = processes_per_node
-        self.exe = exe
-        self.exe_args = exe_args
-        self.copy_files = re.sub(",", " ", copy_files)
-        self.run_parallel = run_parallel
-        self.system_wide = run_system_wide
-        self.run_as_root = run_as_root
-        self.working_dir = working_dir
-        self.queue = queue
+    def __init__(self, job_settings, cpu_definition, events):
+        self.job_id = job_settings.job_name
+        self.processes = job_settings.processes
+        self.processes_per_node = job_settings.processes_per_node
+        self.exe = job_settings.executable
+        self.exe_args = job_settings.arguments
+        self.copy_files = re.sub(",", " ", job_settings.copy_files)
+        self.run_parallel = job_settings.run_parallel
+        self.system_wide = job_settings.run_system_wide
+        self.run_as_root = job_settings.run_as_root
+        self.working_dir = job_settings.working_directory_linux
+        self.queue = job_settings.queue
         self.cpu_definition = cpu_definition
         self.cpu = self.cpu_definition.cpu_name
         self.mpi_config_files = []
-        self.events = events
-        self.period = period
-        self.frequency = frequency
-        self.dt = dt
-        self.proc_attach = proc_attach
-        self.env_variables = env_variables
-        self.bin_path = re.sub(",", ":", bin_path)
-        self.lib_path = re.sub(",", ":", lib_path)
-        self.preload = re.sub(",", ":", preload)
-        self.lsf_env = get_lsf_env(lib_path, preload, env_variables, bin_path)
-        self.sudo_command = get_sudo_command(run_as_root, env_variables, self.lib_path, self.preload)
-        self.global_mpirun_params = global_mpirun_params
-        self.local_mpirun_params = local_mpirun_params
-        self.mpirun_appfile = get_mpirun_appfile(mpirun_version)
-        self.lsf_params = get_lsf_params(lsf_params, lib_path, preload, env_variables, bin_path)
-        self.perf_params = perf_params
-        self.use_mpirun = use_mpirun
-        self.use_lsf = use_lsf
-        self.use_ssh = use_ssh
-        self.max_events_per_run = max_events_per_run
+        self.events = job_settings.events
+        self.period = job_settings.period
+        self.frequency = job_settings.frequency
+        self.dt = job_settings.dt
+        self.proc_attach = job_settings.proc_attach
+        self.env_variables = job_settings.env_variables
+        self.bin_path = re.sub(",", ":", job_settings.bin_path)
+        self.lib_path = re.sub(",", ":", job_settings.lib_path)
+        self.preload = re.sub(",", ":", job_settings.preload)
+        self.lsf_env = get_lsf_env(self.lib_path, self.preload, self.env_variables, self.bin_path)
+        self.sudo_command = get_sudo_command(self.run_as_root, self.env_variables, self.lib_path, self.preload)
+        self.global_mpirun_params = job_settings.global_mpirun_params
+        self.local_mpirun_params = job_settings.local_mpirun_params
+        self.mpirun_appfile = get_mpirun_appfile(job_settings.mpirun_version)
+        self.lsf_params = get_lsf_params(job_settings.lsf_params, self.lib_path, self.preload, self.env_variables, self.bin_path)
+        self.perf_params = job_settings.perf_params
+        self.use_mpirun = job_settings.use_mpirun
+        self.use_lsf = job_settings.use_lsf
+        self.use_ssh = job_settings.use_ssh
+        self.max_events_per_run = job_settings.max_events_per_run
 
 
 class JobHandler:
@@ -200,14 +196,14 @@ class JobHandler:
 
     def execute_perf(self, job_settings):
         local_data = GlobalData.local_data
-        purge(local_data, job_settings["job_name"] + "_proc")
-        purge(local_data, job_settings["job_name"] + "_host")
-        purge(local_data, job_settings["job_name"] + ".results")
-        purge(local_data, job_settings["job_name"] + ".done")
+        purge(local_data, job_settings.job_name + "_proc")
+        purge(local_data, job_settings.job_name + "_host")
+        purge(local_data, job_settings.job_name + ".results")
+        purge(local_data, job_settings.job_name + ".done")
         self.scriptwriting_logger.info(u" Write perf script")
         perf_script = self.write_perf_script(local_data)
         self.scriptwriting_logger.info(u" Setup background threads")
-        working_dir = job_settings["working_directory_linux"]
+        working_dir = job_settings.working_directory_linux
         try:
             background_thread = threading.Thread(target=self.run_perf_job,
                                                  args=(working_dir, self.job.use_ssh, self.job.job_id, local_data,
@@ -318,22 +314,22 @@ class JobHandler:
                 return True
 
     def check_perf_event_paranoid(self, job_settings):
-        if job_settings["use_ssh"]:
+        if job_settings.use_ssh:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             try:
-                hostname = job_settings["server"]
+                hostname = job_settings.server
                 port = 22
                 match = re.match("(.+):([0-9]+)", hostname)
                 if match:
                     hostname = match.group(1)
                     port = int(match.group(2))
-                if len(job_settings["private_key"]) > 0:
-                    key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
-                    client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
+                if len(job_settings.private_key) > 0:
+                    key = paramiko.RSAKey.from_private_key_file(job_settings.private_key)
+                    client.connect(hostname, port=port, username=job_settings.username, pkey=key)
                 else:
-                    client.connect(hostname, port=port, username=job_settings["username"],
-                                   password=job_settings["password"])
+                    client.connect(hostname, port=port, username=job_settings.username,
+                                   password=job_settings.password)
                 perf_event_paranoid_out = self.execute_command("cat /proc/sys/kernel/perf_event_paranoid",
                                                                client=client, return_output=True)
                 client.close()
@@ -357,18 +353,18 @@ class JobHandler:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            hostname = job_settings["server"]
+            hostname = job_settings.server
             port = 22
             match = re.match("(.+):([0-9]+)", hostname)
             if match:
                 hostname = match.group(1)
                 port = int(match.group(2))
-            if len(job_settings["private_key"]) > 0:
-                key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
-                client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
+            if len(job_settings.private_key) > 0:
+                key = paramiko.RSAKey.from_private_key_file(job_settings.private_key)
+                client.connect(hostname, port=port, username=job_settings.username, pkey=key)
             else:
-                client.connect(hostname, port=port, username=job_settings["username"],
-                               password=job_settings["password"])
+                client.connect(hostname, port=port, username=job_settings.username,
+                               password=job_settings.password)
             client.close()
             return ""
         except (BadHostKeyException, AuthenticationException,
@@ -380,18 +376,18 @@ class JobHandler:
         if job.use_ssh:
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            hostname = job_settings["server"]
+            hostname = job_settings.server
             port = 22
             match = re.match("(.+):([0-9]+)", hostname)
             if match:
                 hostname = match.group(1)
                 port = int(match.group(2))
-            if len(job_settings["private_key"]) > 0:
-                key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
-                client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
+            if len(job_settings.private_key) > 0:
+                key = paramiko.RSAKey.from_private_key_file(job_settings.private_key)
+                client.connect(hostname, port=port, username=job_settings.username, pkey=key)
             else:
-                client.connect(hostname, port=port, username=job_settings["username"],
-                               password=job_settings["password"])
+                client.connect(hostname, port=port, username=job_settings.username,
+                               password=job_settings.password)
             stfp = client.open_sftp()
         else:
             client = None
@@ -417,18 +413,18 @@ class JobHandler:
             self.scriptwriting_logger.info(u" Open ssh connection")
             client = paramiko.SSHClient()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            hostname = job_settings["server"]
+            hostname = job_settings.server
             port = 22
             match = re.match("(.+):([0-9]+)", hostname)
             if match:
                 hostname = match.group(1)
                 port = int(match.group(2))
-            if len(job_settings["private_key"]) > 0:
-                key = paramiko.RSAKey.from_private_key_file(job_settings["private_key"])
-                client.connect(hostname, port=port, username=job_settings["username"], pkey=key)
+            if len(job_settings.private_key) > 0:
+                key = paramiko.RSAKey.from_private_key_file(job_settings.private_key)
+                client.connect(hostname, port=port, username=job_settings.username, pkey=key)
             else:
-                client.connect(hostname, port=port, username=job_settings["username"],
-                               password=job_settings["password"])
+                client.connect(hostname, port=port, username=job_settings.username,
+                               password=job_settings.password)
             self.scriptwriting_logger.info(u" Open stfp connection")
             stfp = client.open_sftp()
         else:

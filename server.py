@@ -9,18 +9,20 @@ from multiprocessing import freeze_support
 from io import StringIO
 
 from flask import Flask, render_template, request, send_from_directory
+from werkzeug.utils import secure_filename
 
 from src.CustomLogging import setup_main_logger
 from src.HPCExperiment import HPCExperimentHandler, HPCResultsHandler, is_hpc_result
-from werkzeug.utils import secure_filename
 from src.ResultsHandler import get_results_info, get_jobs, get_cpu, get_run_summary, get_trace_jobs
-from src.Utilities import purge, format_percentage, format_number, replace_operators, get_datetime, \
-    get_datetime_diff, abs_path_to_rel_path, natural_sort
+from src.Utilities import purge, get_datetime, get_datetime_diff, format_number
+from src.Utilities import format_percentage as utils_format_percentage
+from src.Utilities import replace_operators as utils_replace_operators
+from src.Utilities import abs_path_to_rel_path as utils_abs_path_to_rel_path
+from src.Utilities import natural_sort as utils_natural_sort
 from src.RunSummaryTables import generate_run_summary_table
 import src.GlobalData as GlobalData
 from src.PerfEvents import get_cpu_definition, get_default_cpu, initialise_cpu_definitions, reset_enabled_modes
 from src.JobHandler import JobHandler, Job
-
 from TraceView.TraceView import TraceView, reset_trace_view
 from EventView.EventView import EventView, reset_event_view
 from CustomEventsView.CustomEventsView import CustomEventsView
@@ -34,14 +36,6 @@ GlobalData.local_data = os.path.join(GlobalData.root_directory, 'results')
 UPLOAD_FOLDER = os.path.relpath(GlobalData.local_data, os.getcwd())
 ALLOWED_EXTENSIONS = set(['results', 'settings', 'xml'])
 
-log_stream = StringIO()
-submitted_jobs = []
-main_logger = None
-logfile = ""
-layout = {"Results": ["None"]}
-status = ""
-initialise = True
-
 
 app.register_blueprint(TraceView, url_prefix='/trace')
 app.register_blueprint(EventView, url_prefix='/event')
@@ -51,17 +45,42 @@ app.register_blueprint(SettingsView, url_prefix='/settings')
 app.register_blueprint(CustomEventsView, url_prefix='/custom_events')
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
-app.jinja_env.filters['format_percentage'] = format_percentage
-app.jinja_env.filters['replace_operators'] = replace_operators
-app.jinja_env.filters['abs_path_to_rel_path'] = abs_path_to_rel_path
-app.jinja_env.filters['natural_sort'] = natural_sort
 app.config['PROPAGATE_EXCEPTIONS'] = True
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
+@app.template_filter('format_percentage')
+def format_percentage(x):
+    return utils_format_percentage(x)
+
+
+@app.template_filter('replace_operators')
+def replace_operators(x):
+    return utils_replace_operators(x)
+
+
+@app.template_filter('abs_path_to_rel_path')
+def abs_path_to_rel_path(abs_path, start):
+    return utils_abs_path_to_rel_path(abs_path, start)
+
+
+@app.template_filter('natural_sort')
+def natural_sort(x):
+    return utils_natural_sort(x)
+
+
 @app.context_processor
 def utility_function():
-    return {'format_number': format_number, 'abs_path_to_rel_path': abs_path_to_rel_path}
+    return {'format_number': format_number, 'abs_path_to_rel_path': utils_abs_path_to_rel_path}
+
+
+log_stream = StringIO()
+submitted_jobs = []
+main_logger = None
+logfile = ""
+layout = {"Results": ["None"]}
+status = ""
+initialise = True
 
 
 def reset_data_structures():
@@ -98,7 +117,7 @@ def initialise_app():
     GlobalData.selected_cpu_definition = get_cpu_definition(cpu)
     GlobalData.selected_cpu_definition.set_default_active_events()
     GlobalData.loaded_cpu_definition = get_cpu_definition(cpu)
-    initialise_default_job_settings(cpu)
+    GlobalData.job_settings = initialise_default_job_settings(cpu, GlobalData.loaded_cpu_definition)
 
 
 def allowed_file(filename):
@@ -151,7 +170,7 @@ def index():
                                            all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
                                            jobs=GlobalData.jobs,
                                            processes=GlobalData.processes,
-                                           job_settings=GlobalData.job_settings,
+                                           job_settings=GlobalData.job_settings.to_dict(),
                                            enabled_modes=GlobalData.enabled_modes)
                 if (load_profile_data and allowed_file(foundfile.filename)) or load_hpc_data or load_perf_data:
                     filename = secure_filename(foundfile.filename)
@@ -239,7 +258,7 @@ def index():
                                        .get_active_event_group_map(),
                                        all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
                                        processes=GlobalData.processes,
-                                       job_settings=GlobalData.job_settings,
+                                       job_settings=GlobalData.job_settings.to_dict(),
                                        enabled_modes=GlobalData.enabled_modes)
             if foundfile and allowed_file(foundfile.filename):
                 filename = secure_filename(foundfile.filename)
@@ -260,91 +279,64 @@ def index():
 
 # Get details of job to be submitted, and submit job
         elif 'run_btn' in request.form:
-            GlobalData.job_settings["arguments"] = request.form["perf_args"]
-            GlobalData.job_settings["job_name"] = request.form["perf_job_name"]
-            GlobalData.job_settings["copy_files"] = request.form["copy_files"]
+            GlobalData.job_settings.arguments = request.form["perf_args"]
+            GlobalData.job_settings.job_name = request.form["perf_job_name"]
+            GlobalData.job_settings.copy_files = request.form["copy_files"]
             if 'use_ssh' in request.form:
-                GlobalData.job_settings["use_ssh"] = True
-                GlobalData.job_settings["server"] = request.form["server"]
-                GlobalData.job_settings["username"] = request.form["username"]
+                GlobalData.job_settings.use_ssh = True
+                GlobalData.job_settings.server = request.form["server"]
+                GlobalData.job_settings.username = request.form["username"]
                 if 'password' in request.form:
-                    GlobalData.job_settings["password"] = request.form["password"]
-                    GlobalData.job_settings["private_key"] = ""
+                    GlobalData.job_settings.password = request.form["password"]
+                    GlobalData.job_settings.private_key = ""
                 else:
-                    GlobalData.job_settings["private_key"] = request.form["private_key"]
-                    GlobalData.job_settings["password"] = ""
+                    GlobalData.job_settings.private_key = request.form["private_key"]
+                    GlobalData.job_settings.password = ""
             else:
-                GlobalData.job_settings["use_ssh"] = False
+                GlobalData.job_settings.use_ssh = False
             if 'use_lsf' in request.form:
-                GlobalData.job_settings["use_lsf"] = True
-                GlobalData.job_settings["lsf_params"] = request.form["lsf_params"]
-                GlobalData.job_settings["queue"] = request.form["queue"]
-                GlobalData.job_settings["processes_per_node"] = int(request.form["processes_per_node"])
+                GlobalData.job_settings.use_lsf = True
+                GlobalData.job_settings.lsf_params = request.form["lsf_params"]
+                GlobalData.job_settings.queue = request.form["queue"]
+                GlobalData.job_settings.processes_per_node = int(request.form["processes_per_node"])
             else:
-                GlobalData.job_settings["use_lsf"] = False
-                GlobalData.job_settings["processes_per_node"] = 1
+                GlobalData.job_settings.use_lsf = False
+                GlobalData.job_settings.processes_per_node = 1
             if 'use_mpirun' in request.form:
-                GlobalData.job_settings["use_mpirun"] = True
-                GlobalData.job_settings["global_mpirun_params"] = request.form["global_mpirun_params"]
-                GlobalData.job_settings["local_mpirun_params"] = request.form["local_mpirun_params"]
-                GlobalData.job_settings["mpirun_version"] = request.form["mpirun_version"]
-                GlobalData.job_settings["processes"] = int(request.form["processes"])
+                GlobalData.job_settings.use_mpirun = True
+                GlobalData.job_settings.global_mpirun_params = request.form["global_mpirun_params"]
+                GlobalData.job_settings.local_mpirun_params = request.form["local_mpirun_params"]
+                GlobalData.job_settings.mpirun_version = request.form["mpirun_version"]
+                GlobalData.job_settings.processes = int(request.form["processes"])
             else:
-                GlobalData.job_settings["use_mpirun"] = False
-                GlobalData.job_settings["processes"] = 1
-            GlobalData.job_settings["run_parallel"] = ('run_parallel' in request.form)
-            GlobalData.job_settings["run_system_wide"] = ('run_system_wide' in request.form)
-            GlobalData.job_settings["run_as_root"] = ('run_as_root' in request.form)
-            GlobalData.job_settings["perf_params"] = request.form["perf_params"]
-            GlobalData.job_settings["frequency"] = request.form["frequency"]
-            GlobalData.job_settings["period"] = request.form["period"]
-            GlobalData.job_settings["working_directory_linux"] = request.form["working_directory_linux"]
-            GlobalData.job_settings["executable"] = request.form["executable"]
-            GlobalData.job_settings["env_variables"] = request.form["env_variables"]
-            GlobalData.job_settings["bin_path"] = request.form["bin_path"]
-            GlobalData.job_settings["lib_path"] = request.form["lib_path"]
-            GlobalData.job_settings["preload"] = request.form["preload"]
+                GlobalData.job_settings.use_mpirun = False
+                GlobalData.job_settings.processes = 1
+            GlobalData.job_settings.run_parallel = ('run_parallel' in request.form)
+            GlobalData.job_settings.run_system_wide = ('run_system_wide' in request.form)
+            GlobalData.job_settings.run_as_root = ('run_as_root' in request.form)
+            GlobalData.job_settings.perf_params = request.form["perf_params"]
+            GlobalData.job_settings.frequency = request.form["frequency"]
+            GlobalData.job_settings.period = request.form["period"]
+            GlobalData.job_settings.working_directory_linux = request.form["working_directory_linux"]
+            GlobalData.job_settings.executable = request.form["executable"]
+            GlobalData.job_settings.env_variables = request.form["env_variables"]
+            GlobalData.job_settings.bin_path = request.form["bin_path"]
+            GlobalData.job_settings.lib_path = request.form["lib_path"]
+            GlobalData.job_settings.preload = request.form["preload"]
             status = 'Submitted Jobs: '
-            main_logger.info(u"Preparing job " + GlobalData.job_settings["job_name"])
+            main_logger.info(u"Preparing job " + GlobalData.job_settings.job_name)
 
-            job = Job(GlobalData.job_settings["job_name"],
-                      GlobalData.job_settings["copy_files"],
-                      GlobalData.job_settings["run_parallel"],
-                      GlobalData.job_settings["run_system_wide"],
-                      GlobalData.job_settings["run_as_root"],
-                      GlobalData.job_settings["processes"],
-                      GlobalData.job_settings["processes_per_node"],
-                      GlobalData.job_settings["executable"],
-                      GlobalData.job_settings["arguments"],
-                      GlobalData.job_settings["working_directory_linux"],
-                      GlobalData.job_settings["queue"],
+            job = Job(GlobalData.job_settings,
                       GlobalData.selected_cpu_definition,
-                      GlobalData.selected_cpu_definition.get_active_raw_events(),
-                      GlobalData.job_settings["period"],
-                      GlobalData.job_settings["frequency"],
-                      GlobalData.job_settings["dt"],
-                      GlobalData.job_settings["max_events_per_run"],
-                      GlobalData.job_settings["proc_attach"],
-                      GlobalData.job_settings["env_variables"],
-                      GlobalData.job_settings["bin_path"],
-                      GlobalData.job_settings["lib_path"],
-                      GlobalData.job_settings["preload"],
-                      GlobalData.job_settings["global_mpirun_params"],
-                      GlobalData.job_settings["local_mpirun_params"],
-                      GlobalData.job_settings["mpirun_version"],
-                      GlobalData.job_settings["lsf_params"],
-                      GlobalData.job_settings["perf_params"],
-                      GlobalData.job_settings["use_mpirun"],
-                      GlobalData.job_settings["use_lsf"],
-                      GlobalData.job_settings["use_ssh"])
+                      GlobalData.selected_cpu_definition.get_active_raw_events())
 
             jobhandler = JobHandler(GlobalData.root_directory, job)
 
-            if GlobalData.job_settings["use_ssh"]:
+            if GlobalData.job_settings.use_ssh:
                 e = jobhandler.check_connection(GlobalData.job_settings)
                 if e != "":
-                    main_logger.info(u"Job " + GlobalData.job_settings["job_name"] + ": " + e)
-                    main_logger.info(u"Job " + GlobalData.job_settings["job_name"] + " Aborted")
+                    main_logger.info(u"Job " + GlobalData.job_settings.job_name + ": " + e)
+                    main_logger.info(u"Job " + GlobalData.job_settings.job_name + " Aborted")
                     status = "Error - connection error"
                     layout["title"] = "Submit Jobs / Load Profiles: " + status
                     return render_template('index.html',
@@ -356,14 +348,14 @@ def index():
                                            all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
                                            jobs=GlobalData.jobs,
                                            processes=GlobalData.processes,
-                                           job_settings=GlobalData.job_settings,
+                                           job_settings=GlobalData.job_settings.to_dict(),
                                            enabled_modes=GlobalData.enabled_modes)
             failed_paths = jobhandler.get_failed_paths(job, GlobalData.job_settings)
             if len(failed_paths) > 0:
                 for path in failed_paths:
-                    main_logger.info(u"Job " + GlobalData.job_settings["job_name"] + ": "
+                    main_logger.info(u"Job " + GlobalData.job_settings.job_name + ": "
                                      + path + " was not found")
-                main_logger.info(u"Job " + GlobalData.job_settings["job_name"] + " Aborted")
+                main_logger.info(u"Job " + GlobalData.job_settings.job_name + " Aborted")
                 status = "Error - remote directory is invalid"
                 layout["title"] = "Submit Jobs / Load Profiles: " + status
                 return render_template('index.html',
@@ -375,7 +367,7 @@ def index():
                                        all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
                                        jobs=GlobalData.jobs,
                                        processes=GlobalData.processes,
-                                       job_settings=GlobalData.job_settings,
+                                       job_settings=GlobalData.job_settings.to_dict(),
                                        enabled_modes=GlobalData.enabled_modes)
             main_logger.info(u"perf_event_paranoid: "
                              + jobhandler.check_perf_event_paranoid(GlobalData.job_settings))
@@ -387,15 +379,15 @@ def index():
             except Exception as e:
                 main_logger.info(u"Error Running Perf Job. " + str(e))
             main_logger.debug(u" Finished executing scripts")
-            status = "Submitted Job " + GlobalData.job_settings["job_name"]
+            status = "Submitted Job " + GlobalData.job_settings.job_name
             layout["title"] = "Submit Jobs / Load Profiles: " + status
             layout["footer"] = "Loaded Results: " + " & ".join(layout["Results"])
             start_time = get_datetime()
-            main_logger.info(u"Job " + GlobalData.job_settings["job_name"] + " submitted at "
+            main_logger.info(u"Job " + GlobalData.job_settings.job_name + " submitted at "
                              + start_time.strftime("%Y-%m-%d %H:%M:%S"))
-            submitted_jobs.append({'job_name': GlobalData.job_settings["job_name"], 'job_status': "running",
+            submitted_jobs.append({'job_name': GlobalData.job_settings.job_name, 'job_status': "running",
                                    "start_time": start_time})
-            main_logger.info(u"Job " + GlobalData.job_settings["job_name"] + " is running")
+            main_logger.info(u"Job " + GlobalData.job_settings.job_name + " is running")
 
 # Display
     if initialise:
@@ -412,7 +404,7 @@ def index():
                            all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=GlobalData.jobs,
                            processes=GlobalData.processes,
-                           job_settings=GlobalData.job_settings,
+                           job_settings=GlobalData.job_settings.to_dict(),
                            enabled_modes=GlobalData.enabled_modes)
 
 
@@ -436,7 +428,7 @@ def clear_loaded_data():
                            all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=GlobalData.jobs,
                            processes=GlobalData.processes,
-                           job_settings=GlobalData.job_settings,
+                           job_settings=GlobalData.job_settings.to_dict(),
                            enabled_modes=GlobalData.enabled_modes)
 
 
@@ -508,7 +500,7 @@ def about():
                            all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=GlobalData.jobs,
                            processes=GlobalData.processes,
-                           job_settings=GlobalData.job_settings,
+                           job_settings=GlobalData.job_settings.to_dict(),
                            enabled_modes=GlobalData.enabled_modes)
 
 
@@ -521,7 +513,7 @@ def td():
                            all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
                            jobs=GlobalData.jobs,
                            processes=GlobalData.processes,
-                           job_settings=GlobalData.job_settings,
+                           job_settings=GlobalData.job_settings.to_dict(),
                            enabled_modes=GlobalData.enabled_modes)
 
 

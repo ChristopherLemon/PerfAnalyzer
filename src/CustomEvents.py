@@ -68,7 +68,7 @@ def create_composite_event_stack(stack_data, results_files):
                                 t = s.partition("=")[2]
                                 data[t] = OrderedDict()
                             else:
-                                s, par, count = s.rpartition(' ')
+                                s, _, count = s.rpartition(' ')
                                 if s:
                                     data[t][s] = [int(count), 0]
                     file1 = os.path.join(stack_data.path, filenames[1])
@@ -80,7 +80,7 @@ def create_composite_event_stack(stack_data, results_files):
                                 if t not in data:
                                     data[t] = OrderedDict()
                             else:
-                                s, par, count = s.rpartition(' ')
+                                s, _, count = s.rpartition(' ')
                                 if s:
                                     if s in data[t]:
                                         data[t][s][1] = int(count)
@@ -158,8 +158,8 @@ def create_cumulative_count_stack(local_data, results_files, output_job_totals=T
                                                 thread_counts[t][pid] = OrderedDict()
                                             stack = line.strip()
                                             if event_type == "custom_event_ratio":
-                                                stack, par, secondary = stack.rpartition(' ')
-                                            stack, par, primary = stack.rpartition(' ')
+                                                stack, _, secondary = stack.rpartition(' ')
+                                            stack, _, primary = stack.rpartition(' ')
                                             if stack:
                                                 thread_stack = re.sub("/" + tid, "/all", stack)
                                                 process_stack = re.sub(pid + "/", "all/", thread_stack)
@@ -258,7 +258,7 @@ def event_to_raw_event(event, cpu_definition):
     if event in derived_event_map:
         return derived_event_map[event]
     event_map = cpu_definition.get_available_event_map(event_to_raw_event=True)
-    r1, par, r2 = event.partition(" / ")
+    r1, _, r2 = event.partition(" / ")
     if r1 != "":
         e1 = "-plus-".join([event_map[e] if e in event_map else e for e in re.split(" \+ ", r1)])
     if r2 != "":
@@ -273,7 +273,7 @@ def raw_event_to_event(raw_event, cpu_definition):
     if raw_event in derived_events:
         return derived_events[raw_event]["event"]
     event_map = cpu_definition.get_available_event_map(event_to_raw_event=False)
-    r1, par, r2 = raw_event.partition("-divide-")
+    r1, _, r2 = raw_event.partition("-divide-")
     if r1 != "":
         e1 = " + ".join([event_map[e] if e in event_map else e for e in re.split("-plus-", r1)])
     if r2 != "":
@@ -312,7 +312,7 @@ def split_raw_event(raw_event, cpu_definition):
 def get_composite_event_counter(raw_event, raw_event_counters):
     c1 = sys.maxsize
     c2 = sys.maxsize
-    r1, par, r2 = raw_event.partition("-divide-")
+    r1, _, r2 = raw_event.partition("-divide-")
     if r1 != "":
         e1 = [raw_event_counters[e] for e in re.split("-plus-", r1)]
         c1 = min(e1)

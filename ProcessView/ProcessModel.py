@@ -1,5 +1,3 @@
-
-
 class ProcessModel:
 
     def __init__(self):

@@ -606,7 +606,7 @@ def get_analysis(analysis_type):
     cluster_events = {"All": [], "Ratios": []}  # Re-populate, as custom events may have been added
     for event in GlobalData.loaded_cpu_definition.get_active_events():
         if re.match(".* / .*", event):
-            e1, par, e2 = event.partition(" / ")
+            e1, _, e2 = event.partition(" / ")
             cluster_events["Ratios"].append([event_to_raw_event(e1, GlobalData.loaded_cpu_definition),
                                              event_to_raw_event(e2, GlobalData.loaded_cpu_definition)])
         else:

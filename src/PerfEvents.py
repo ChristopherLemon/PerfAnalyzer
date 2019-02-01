@@ -23,7 +23,7 @@ def initialise_cpu_definitions():
     perf_events_location = GlobalData.perf_events
     cpus = OrderedDict()
     for f in os.listdir(perf_events_location):
-        cpu, dot, ext = f.rpartition(".")
+        cpu, _, ext = f.rpartition(".")
         if ext == "events":
             cpus[cpu] = f
     for cpu in cpus:

@@ -239,7 +239,7 @@ class TraceData:
                     elif re.match("system_wide", line):
                         self.system_wide = True
                     else:
-                        process, par, raw_event = line.strip().rpartition('_')
+                        process, _, raw_event = line.strip().rpartition('_')
                         if re.search("trace", raw_event):
                             process_name = re.sub(job + "_", "", process)
                             full_path = os.path.join(self.path, line.strip())
