@@ -126,11 +126,11 @@ def get_perf_script_command(in_file, out_file, system_wide, frequency_sampling, 
 
 
 def get_stack_collapse_command(in_file, out_file, dt, stack_collapse_script, system_wide, multiplier, trace_event=None):
-    """Return command line for perl script stackcollapse-perf-modified.pl. This is used
+    """Return command line for python scrript StackCollapse.py. This is used
     to process the output from running the perf script command, to produce the
     collapsed stack data"""
-    command = 'cat {} | perl {} --pid --tid --output_file={} --dt={} --multiplier={}' \
-        .format(in_file, stack_collapse_script, out_file, dt, multiplier)
+    command = 'python {} --pid --tid --input_file={} --output_file={} --dt={} --multiplier={}' \
+        .format(stack_collapse_script, in_file, out_file, dt, multiplier)
     if system_wide:
         command += ' --accumulate'  # Include accumulation of sample counts over threads and processes
     if trace_event is not None:
@@ -189,7 +189,7 @@ class JobHandler:
     def __init__(self, root_directory, job=None):
         self.root_directory = root_directory
         self.job = job
-        self.stack_collapse_script = 'stackcollapse-perf-modified.pl'
+        self.stack_collapse_script = 'StackCollapse.py'
         log_file = os.path.join(GlobalData.local_data, "scriptwriting.log")
         setup_basic_logger('scriptwriting_logger', log_file, debug=GlobalData.debug)
         self.scriptwriting_logger = logging.getLogger("scriptwriting_logger")
@@ -431,7 +431,7 @@ class JobHandler:
             client = None
             stfp = None
         root_directory = self.root_directory
-        localfile = os.path.join(root_directory, "perl" + os.sep + self.stack_collapse_script)
+        localfile = os.path.join(root_directory, "src" + os.sep + self.stack_collapse_script)
         remotefile = working_directory + "/" + self.stack_collapse_script
         self.execute_command("rm -f {}".format(remotefile), client)
         self.put_file(localfile, remotefile, stfp)
