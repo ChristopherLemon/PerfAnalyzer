@@ -96,6 +96,7 @@ table {
     margin:12px auto;
     margin-left:12px;
     margin-right:12px;
+    overflow-x:scroll;
 }
 
 .source-table-container pre, .source-info-container pre {
