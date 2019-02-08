@@ -101,12 +101,13 @@ class HPCExperiment:
         self.color_map = {}
         self.header = ""
         self.metric_info = None
+        self.parser = etree.XMLParser(huge_tree=True) # Nesting level can be excessively high!
 
     def read_experiment(self, experiment_file, include_loops=True, include_statements=False):
         self.experiment_file = experiment_file
         self.include_loops = include_loops
         self.include_statements = include_statements
-        self.experiment_tree = etree.parse(experiment_file)
+        self.experiment_tree = etree.parse(experiment_file, parser=self.parser)
         self.procedure_map = self.get_procedure_names(self.experiment_tree)
         self.file_map = self.get_file_names(self.experiment_tree)
 

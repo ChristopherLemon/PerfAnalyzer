@@ -140,7 +140,7 @@ def generate_source_code_info(frame, hpc_results):
         line_num += 1
         if line_num == source_lines["focus"]:
             table_html.append("<tr bgcolor=\"grey\">")
-        elif abs(line_num - source_lines["focus"]) <= 1:
+        elif abs(line_num - source_lines["focus"]) <= 2:
             table_html.append("<tr bgcolor=\"white\">")
         else:
             continue
