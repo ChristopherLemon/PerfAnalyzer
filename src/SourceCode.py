@@ -59,9 +59,12 @@ def get_percentages(stacks_data, process_id, frame, hpc_results):
                         count1 = x_data[stack]
                         count2 = y_data[stack]
                         line_num = int(info[1])
+                        if line_num not in line_counts:
+                            line_counts[line_num] = 0
+                            ratios[line_num] = 0.0
+                        line_counts[line_num] += count1
                         if float(count1) >= 0.1:
                             ratios[line_num] = float(count2) / float(count1)
-                            line_counts[line_num] = count1
             total += float(x_data[stack])
         line_percentages = {}
         for line_num in line_counts:
