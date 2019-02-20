@@ -91,6 +91,8 @@ def get_mpirun_appfile(mpi_version=None):
             appfile = "-app"
         elif re.search("Platform", mpi_version):
             appfile = "-f"
+        else:
+            appfile = ""
     return appfile
 
 

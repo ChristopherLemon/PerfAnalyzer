@@ -136,6 +136,10 @@ class HPCExperiment:
                     current_stack[-1] = p_name
                 else:
                     current_stack.append(p_name)
+                frame = current_stack[-1]
+                frame = re.sub(" ", "", frame)
+                if frame not in self.frames[frame]:
+                    self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
             elif self.include_loops and elt.tag == 'L':
                 line = elt.attrib['l']
                 p_name = self.get_procedure_name(elt, self.procedure_map)
@@ -145,6 +149,10 @@ class HPCExperiment:
                     current_stack[-1] = unique_id
                 else:
                     current_stack.append(unique_id)
+                frame = current_stack[-1]
+                frame = re.sub(" ", "", frame)
+                if frame not in self.frames[frame]:
+                    self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
             elif self.include_statements and elt.tag == 'S':
                 line = elt.attrib['l']
                 p_name = self.get_procedure_name(elt, self.procedure_map)
@@ -154,6 +162,10 @@ class HPCExperiment:
                     current_stack[-1] = unique_id
                 else:
                     current_stack.append(unique_id)
+                frame = current_stack[-1]
+                frame = re.sub(" ", "", frame)
+                if frame not in self.frames[frame]:
+                    self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
             elif elt.tag == 'M':
                 n = elt.attrib['n']
                 if n in self.metric_info:
@@ -176,9 +188,6 @@ class HPCExperiment:
                         out = "{}-{}/{};{} {}\n"\
                             .format(self.header, process, thread, previous_stack_trace[unique_id],
                                     str(current_count[unique_id]))
-                        frame = current_stack[-1]
-                        frame = re.sub(" ", "", frame)
-                        self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
                         filename = self.get_results_file_name(metric, process)
                         if filename not in self.results_files:
                             self.results_files[filename] = open(filename, 'wb')
