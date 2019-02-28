@@ -45,13 +45,12 @@ def process_view():
                                           selected_ids=process_model.selected_ids,
                                           base_case=process_model.reference_id)
     else:
-        all_stack_data[process] = StackData(GlobalData.results_files,
-                                            GlobalData.local_data,
-                                            GlobalData.loaded_cpu_definition,
-                                            data_view="process",
-                                            data_id=process,
-                                            debug=GlobalData.debug,
-                                            n_proc=GlobalData.n_proc)
+        all_stack_data[process] = StackData.create_process_data(GlobalData.results_files,
+                                                                GlobalData.local_data,
+                                                                GlobalData.loaded_cpu_definition,
+                                                                data_id=process,
+                                                                debug=GlobalData.debug,
+                                                                n_proc=GlobalData.n_proc)
         update_process_model(process)
     process_model.event_names = all_stack_data[process].get_all_event_names()
     process_model.jobs = all_stack_data[process].get_all_jobs()

@@ -244,7 +244,7 @@ class StackData:
     across all events and threads.
     Stack data can be processed by multiple processes."""
 
-    def __init__(self, results_files, path, cpu_definition, data_view="event", data_id="", debug=True, n_proc=4):
+    def __init__(self, results_files, path, cpu_definition, event=None, process=None, debug=True, n_proc=1):
         self.selected_ids = []
         self.all_jobs = []
         self.start = -1.0
@@ -254,11 +254,8 @@ class StackData:
         self.event_counters = {}
         self.path = path
         self.system_wide = False
-        self.data_view = data_view
         self.min_x = sys.float_info.max
         self.max_x = -sys.float_info.max
-        self.min_y = sys.float_info.max
-        self.max_y = -sys.float_info.max
         self.time_interval = 0.0
         self.cpu = ""
         self.tasks = OrderedDict()
@@ -275,15 +272,13 @@ class StackData:
         self.event_counters = get_event_counters(path, results_files)
         self.collapsed_stacks_filename = "data_stacks_collapsed"
         self.initial_count = 0
-        if data_view == "event":  # Load a single event for all jobs, processes and threads
-            self.event = event_to_raw_event(data_id, self.cpu_definition)
-            self.process = None
+        self.event = event
+        self.process = process
+        if self.event:  # Check for composite event
             if is_composite_event(self.event):
                 create_custom_event_stack(self, results_files, self.event)
                 self.event_counters = get_event_counters(path, results_files)  # Update counters with new custom event
-        if data_view == "process":  # Load all events\threads for a single process
-            self.process = data_id
-            self.event = None
+        assert not (event and process)
         self.ordered_ids = []
         self.default_ids = []
         self.debug = debug
@@ -295,15 +290,25 @@ class StackData:
             end = timer()
             print("Time to load data: " + str(end - start))
         self.selected_ids = self.get_initial_process_ids()
-        if data_view == "event":
+        if self.event:
             self.set_biggest_process_ids_for_each_job()
             self.base_case = self.get_dominant_id(self.default_ids).label
-        if data_view == "process":
+        if self.process:
             self.base_case = self.get_dominant_id(self.selected_ids).label
         self.flamegraph_process_ids = [self.get_base_case_id()]
         self.start = self.get_min_x()
         self.stop = self.get_max_x()
         self.text_filter = ""
+
+    @classmethod
+    def create_event_data(cls, results_files, path, cpu_definition, data_id="", debug=True, n_proc=1):
+        event = event_to_raw_event(data_id, cpu_definition)
+        return cls(results_files, path, cpu_definition, event=event, debug=debug, n_proc=n_proc)
+    
+    @classmethod
+    def create_process_data(cls, results_files, path, cpu_definition, data_id="", debug=True, n_proc=1):
+        process = data_id
+        return cls(results_files, path, cpu_definition, process=process, debug=debug, n_proc=n_proc)
 
     def create_tasks(self):
         for result_file in self.results_files:
@@ -334,7 +339,7 @@ class StackData:
                         else:  # Hz
                             counter = 1
                         task_id = process + "_" + event
-                        if self.data_view == "process":
+                        if self.process:
                             if process == self.process:
                                 self.tasks[task_id] = ReadStacksTask(task_id,
                                                                      full_path,
@@ -345,7 +350,7 @@ class StackData:
                                                                      event_type,
                                                                      counter,
                                                                      self.time_interval)
-                        if self.data_view == "event":
+                        if self.event:
                             if raw_event == self.event:
                                 self.tasks[task_id] = ReadStacksTask(task_id,
                                                                      full_path,
@@ -367,7 +372,8 @@ class StackData:
         return update
 
     def read_data(self, start=0.0, stop=sys.float_info.max,
-                  text_filter="", selected_ids=[], base_case="", initialise=False):
+                  text_filter="", selected_ids=None, base_case="", initialise=False):
+        selected_ids = [] if selected_ids is None else selected_ids
         self.reset_cached_data()
         self.selected_ids = selected_ids
         self.set_base_case(base_case, self.selected_ids)
@@ -414,12 +420,6 @@ class StackData:
                     for x in self.X[task][pid][tid]:
                         self.min_x = min(self.min_x, x)
                         self.max_x = max(self.max_x, x)
-        for task in self.Y:
-            for pid in self.Y[task]:
-                for tid in self.Y[task][pid]:
-                    for y in self.Y[task][pid][tid]:
-                        self.min_y = min(self.min_y, y)
-                        self.max_y = max(self.max_y, y)
         total_count = 0
         for task in self.totals:
             for pid in self.totals[task]:
@@ -561,7 +561,7 @@ class StackData:
     def get_dominant_id(self, ids):
         max_percentage = 0.0
         for process_id in ids:
-            if self.data_view == "process" and process_id.event_type == "custom_event_ratio":
+            if self.process and process_id.event_type == "custom_event_ratio":
                 continue
             if process_id.total_percentage > max_percentage:
                 max_percentage = process_id.total_percentage
@@ -659,7 +659,7 @@ class StackData:
                 max_count1[0] = max(max_count1[0], process_id.count1)
                 max_count2[0] = max(max_count2[0], process_id.count2)
                 if event_type == "custom_event_ratio":
-                    if self.data_view == "event":
+                    if self.event:
                         total_count[0] += process_id.count2
                 else:
                     total_count[0] += process_id.count1
@@ -667,7 +667,7 @@ class StackData:
                 max_count1[1] = max(max_count1[1], process_id.count1)
                 max_count2[1] = max(max_count2[1], process_id.count2)
                 if event_type == "custom_event_ratio":
-                    if self.data_view == "event":
+                    if self.event:
                         total_count[1] += process_id.count2
                 else:
                     total_count[1] += process_id.count1
@@ -675,7 +675,7 @@ class StackData:
                 max_count1[2] = max(max_count1[2], process_id.count1)
                 max_count2[2] = max(max_count2[2], process_id.count2)
                 if event_type == "custom_event_ratio":
-                    if self.data_view == "event":
+                    if self.event:
                         total_count[2] += process_id.count2
                 else:
                     total_count[2] += process_id.count1

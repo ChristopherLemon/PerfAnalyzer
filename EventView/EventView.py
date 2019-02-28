@@ -50,13 +50,12 @@ def event_view():
                                         base_case=event_model.reference_id)
     # Load new stack data into memory and set default parameters
     else:
-        all_stack_data[event] = StackData(GlobalData.results_files,
-                                          GlobalData.local_data,
-                                          GlobalData.loaded_cpu_definition,
-                                          data_view="event",
-                                          data_id=event,
-                                          debug=GlobalData.debug,
-                                          n_proc=GlobalData.n_proc)
+        all_stack_data[event] = StackData.create_event_data(GlobalData.results_files,
+                                                            GlobalData.local_data,
+                                                            GlobalData.loaded_cpu_definition,
+                                                            data_id=event,
+                                                            debug=GlobalData.debug,
+                                                            n_proc=GlobalData.n_proc)
         update_event_model(event)
     event_model.process_names = all_stack_data[event].get_all_process_names()
     event_model.jobs = all_stack_data[event].get_all_jobs()

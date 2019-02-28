@@ -59,13 +59,12 @@ def general_analysis():
                                              text_filter=analysis_model.text_filter,
                                              selected_ids=analysis_model.base_event_selected_ids)
     else:
-        all_stack_data[base_event] = StackData(GlobalData.results_files,
-                                               GlobalData.local_data,
-                                               GlobalData.loaded_cpu_definition,
-                                               data_view="event",
-                                               data_id=base_event,
-                                               debug=GlobalData.debug,
-                                               n_proc=GlobalData.n_proc)
+        all_stack_data[base_event] = StackData.create_event_data(GlobalData.results_files,
+                                                                 GlobalData.local_data,
+                                                                 GlobalData.loaded_cpu_definition,
+                                                                 data_id=base_event,
+                                                                 debug=GlobalData.debug,
+                                                                 n_proc=GlobalData.n_proc)
         update_analysis_model_base_event_data(base_event, events)
 
 # Now load selected events on each of the selected processes
@@ -78,13 +77,12 @@ def general_analysis():
                                               selected_ids=analysis_model.selected_ids[process],
                                               base_case=analysis_model.reference_id)
         else:
-            all_stack_data[process] = StackData(GlobalData.results_files,
-                                                GlobalData.local_data,
-                                                GlobalData.loaded_cpu_definition,
-                                                data_view="process",
-                                                data_id=process,
-                                                debug=GlobalData.debug,
-                                                n_proc=GlobalData.n_proc)
+            all_stack_data[process] = StackData.create_process_data(GlobalData.results_files,
+                                                                    GlobalData.local_data,
+                                                                    GlobalData.loaded_cpu_definition,
+                                                                    data_id=process,
+                                                                    debug=GlobalData.debug,
+                                                                    n_proc=GlobalData.n_proc)
             update_analysis_model_process_data(process)
             # Update process ids and reference id
             all_stack_data[process].set_selected_process_ids(analysis_model.selected_ids[process])
@@ -412,13 +410,12 @@ def update_all_charts():
                                               selected_ids=analysis_model.selected_ids[process],
                                               base_case=analysis_model.reference_id)
         else:
-            all_stack_data[process] = StackData(GlobalData.results_files,
-                                                GlobalData.local_data,
-                                                GlobalData.loaded_cpu_definition,
-                                                data_view="process",
-                                                data_id=process,
-                                                debug=GlobalData.debug,
-                                                n_proc=GlobalData.n_proc)
+            all_stack_data[process] = StackData.create_process_data(GlobalData.results_files,
+                                                                    GlobalData.local_data,
+                                                                    GlobalData.loaded_cpu_definition,
+                                                                    data_id=process,
+                                                                    debug=GlobalData.debug,
+                                                                    n_proc=GlobalData.n_proc)
             update_analysis_model_process_data(process)
             # Update process ids and reference id
             all_stack_data[process].set_selected_process_ids(analysis_model.selected_ids[process])
