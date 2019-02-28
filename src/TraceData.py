@@ -257,7 +257,8 @@ class TraceData:
                                                                 event, raw_event, event_type, counter,
                                                                 self.time_scale, self.sample_weight)
 
-    def read_data(self, start=-0.0000001, stop=sys.float_info.max, selected_ids=[], initialise=False):
+    def read_data(self, start=-0.0000001, stop=sys.float_info.max, selected_ids=None, initialise=False):
+        selected_ids = [] if selected_ids is None else selected_ids
         start = start
         stop = stop
         if initialise:
