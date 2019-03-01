@@ -160,7 +160,7 @@ class GeneralAnalysis:
             self.events.append(label)
 
     def add_data(self, stack_data, process):
-        processes = [c.process for c in self.all_stack_data.values() if stack_data.data_view == "process"]
+        processes = [c.process for c in self.all_stack_data.values() if stack_data.process]
         if stack_data.process not in processes:
             self.all_stack_data[process] = stack_data
 

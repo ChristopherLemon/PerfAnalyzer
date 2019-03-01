@@ -1,8 +1,7 @@
 import os
 import re
 import sys
-import multiprocessing as mp
-import pickle
+from concurrent.futures import ProcessPoolExecutor
 from collections import OrderedDict, defaultdict
 from timeit import default_timer as timer
 
@@ -68,15 +67,13 @@ def make_label(job, processor, event, pid, tid):
 
 
 def multi_run_wrapper(args):
-        return worker(*args)
+    return worker(*args)
 
 
 def worker(task, start_time, stop_time):
     task.execute(start_time, stop_time)
     task.write_stacks()
-    pickle.dump(task, open(task.filename + ".p", "wb"))
-    task.clear
-    return
+    return task.X, task.Y
 
 
 class StackDataID:
@@ -302,11 +299,15 @@ class StackData:
 
     @classmethod
     def create_event_data(cls, results_files, path, cpu_definition, data_id="", debug=True, n_proc=1):
+        '''Create event view of data, containing stack counts for the event across all
+        jobs, processes and threads.'''
         event = event_to_raw_event(data_id, cpu_definition)
         return cls(results_files, path, cpu_definition, event=event, debug=debug, n_proc=n_proc)
     
     @classmethod
     def create_process_data(cls, results_files, path, cpu_definition, data_id="", debug=True, n_proc=1):
+        '''Create process view of data, containing stack counts across all events and threads
+        within a process.'''
         process = data_id
         return cls(results_files, path, cpu_definition, process=process, debug=debug, n_proc=n_proc)
 
@@ -339,28 +340,17 @@ class StackData:
                         else:  # Hz
                             counter = 1
                         task_id = process + "_" + event
-                        if self.process:
-                            if process == self.process:
-                                self.tasks[task_id] = ReadStacksTask(task_id,
-                                                                     full_path,
-                                                                     job,
-                                                                     process_name,
-                                                                     event,
-                                                                     raw_event,
-                                                                     event_type,
-                                                                     counter,
-                                                                     self.time_interval)
-                        if self.event:
-                            if raw_event == self.event:
-                                self.tasks[task_id] = ReadStacksTask(task_id,
-                                                                     full_path,
-                                                                     job,
-                                                                     process_name,
-                                                                     event,
-                                                                     raw_event,
-                                                                     event_type,
-                                                                     counter,
-                                                                     self.time_interval)
+                        if self.process and self.process == process or \
+                            self.event and self.event == raw_event:
+                            self.tasks[task_id] = ReadStacksTask(task_id,
+                                                                 full_path,
+                                                                 job,
+                                                                 process_name,
+                                                                 event,
+                                                                 raw_event,
+                                                                 event_type,
+                                                                 counter,
+                                                                 self.time_interval)
 
     def data_update_required(self, start, stop):
         if self.start >= 0.0:
@@ -373,6 +363,9 @@ class StackData:
 
     def read_data(self, start=0.0, stop=sys.float_info.max,
                   text_filter="", selected_ids=None, base_case="", initialise=False):
+        '''Read in all stack data for the event or process, applying filters for the
+        selected time range, call stack text match, and selected events, processes 
+        and threads.'''
         selected_ids = [] if selected_ids is None else selected_ids
         self.reset_cached_data()
         self.selected_ids = selected_ids
@@ -390,27 +383,28 @@ class StackData:
         start_time = start
         stop_time = stop
         self.create_tasks()
+        
         run_parallel = self.n_proc > 1 and len(self.tasks) > 1
         if run_parallel:
-            pool = mp.Pool(min(self.n_proc, len(self.tasks)))
+            pool = ProcessPoolExecutor(min(self.n_proc, len(self.tasks)))
             arg_list = []
             for task in self.tasks:
                 new_task = self.tasks[task]
                 arg_list.append((new_task, start_time, stop_time))
-            pool.map(multi_run_wrapper, arg_list)
+            finished_tasks = list(pool.map(multi_run_wrapper, arg_list))
         else:
+            finished_tasks = []
             for task in self.tasks:
                 new_task = self.tasks[task]
-                worker(new_task, start_time, stop_time)
+                finished_tasks.append(worker(new_task, start_time, stop_time))
 
+        task_num = 0
         for task in self.tasks:
             new_task = self.tasks[task]
             task_id = new_task.task_id
-            filename = new_task.filename
-            finished_task = pickle.load(open(filename + ".p", "rb"))
-            self.X[task_id] = finished_task.X
-            self.Y[task_id] = finished_task.Y
-            os.remove(filename + ".p")
+            finished_task = finished_tasks[task_num]
+            self.X[task_id], self.Y[task_id] = finished_task
+            task_num += 1
 
         self.compute_totals()
 
