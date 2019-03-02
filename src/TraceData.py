@@ -37,10 +37,6 @@ def get_tid(task_or_label):
     return tid
 
 
-def multi_run_wrapper(args):
-    return worker(args)
-
-
 def worker(task):
     task.execute()
     return {"totals": task.totals,
@@ -274,7 +270,7 @@ class TraceData:
                 for task in self.tasks:
                     new_task = self.tasks[task]
                     arg_list.append((new_task))
-                finished_tasks = list(pool.map(multi_run_wrapper, arg_list))
+                finished_tasks = list(pool.map(worker, arg_list))
             else:
                 finished_tasks = []
                 for task in self.tasks:

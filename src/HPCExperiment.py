@@ -129,7 +129,7 @@ class HPCExperiment:
             if node_level < len(current_stack):
                 n = len(current_stack) - node_level
                 del current_stack[-n:]
-            if elt.tag == 'PF':
+            if elt.tag == 'PF' or elt.tag == 'Pr':
                 name = elt.attrib['n']
                 p_name = self.procedure_map[name]
                 if node_level == len(current_stack):
@@ -138,7 +138,7 @@ class HPCExperiment:
                     current_stack.append(p_name)
                 frame = current_stack[-1]
                 frame = re.sub(" ", "", frame)
-                if frame not in self.frames[frame]:
+                if frame not in self.frames:
                     self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
             elif self.include_loops and elt.tag == 'L':
                 line = elt.attrib['l']
@@ -151,7 +151,7 @@ class HPCExperiment:
                     current_stack.append(unique_id)
                 frame = current_stack[-1]
                 frame = re.sub(" ", "", frame)
-                if frame not in self.frames[frame]:
+                if frame not in self.frames:
                     self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
             elif self.include_statements and elt.tag == 'S':
                 line = elt.attrib['l']
@@ -164,7 +164,7 @@ class HPCExperiment:
                     current_stack.append(unique_id)
                 frame = current_stack[-1]
                 frame = re.sub(" ", "", frame)
-                if frame not in self.frames[frame]:
+                if frame not in self.frames:
                     self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
             elif elt.tag == 'M':
                 n = elt.attrib['n']
