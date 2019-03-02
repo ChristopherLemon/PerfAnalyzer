@@ -10,7 +10,7 @@ from src.TraceData import TraceData
 import src.GlobalData as GlobalData
 from src.FlameGraphUtils import FlameGraph
 from src.TimeLines import TimeLines
-from src.TraceData import write_flamegraph_stacks, write_timelines
+from src.TraceData import write_flamegraph_stacks, get_timeline_data
 from TraceView.TraceModel import TraceModel
 
 all_stack_data = {}
@@ -228,16 +228,15 @@ def get_flamegraph(flamegraph_type, job, start, stop):
 
 def get_timelines(job, start, stop):
     all_stack_data[job].generate_timelines(start, stop)
-    write_timelines(all_stack_data[job])
+    timelines_data = get_timeline_data(all_stack_data[job])
     intervals = all_stack_data[job].get_num_timeline_intervals()
     event_map = GlobalData.loaded_cpu_definition.get_available_event_map(event_to_raw_event=False)
-    timelines_trace_filename = all_stack_data[job].get_timelines_filename()
     timelines_filename = timestamp("timelines.svg")
     hotspots = all_stack_data[job].get_hotspots(augmented=True)
     colors = get_top_ten_colours()
     color_map = {h: colors[hotspots[h]] for h in hotspots}
     TimeLines(GlobalData.local_data,
-              timelines_trace_filename,
+              timelines_data,
               timelines_filename,
               intervals,
               event_map,

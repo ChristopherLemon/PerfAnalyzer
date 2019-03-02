@@ -507,9 +507,6 @@ class TraceData:
     def get_collapsed_stacks_filename(self):
         return self.collapsed_stacks_filename
 
-    def get_timelines_filename(self):
-        return self.timelines_filename
-
     def get_num_timeline_intervals(self):
         return self.timeline_intervals
 
@@ -702,11 +699,10 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
         f.close()
 
 
-def write_timelines(stack_data):
+def get_timeline_data(stack_data):
     dt = stack_data.timeline_dt
     t1 = stack_data.timeline_start
-    output_file = os.path.join(stack_data.path, stack_data.timelines_filename)
-    f = open(output_file, 'wb')
+    data = []
     ids = stack_data.get_selected_process_ids()
     for task_id in stack_data.tasks:
         pids = [(proc_id.pid, proc_id.tid) for proc_id in ids if proc_id.task_id == task_id]
@@ -720,23 +716,23 @@ def write_timelines(stack_data):
                 else:
                     end = start + count * dt
                     out = "{}/{};{} {} {} {}\n".format(str(pid), str(tid), prev_stack, str(start), str(end), str(count))
-                    f.write(out.encode())
+                    data.append(out)
                     count = 1
                     prev_stack = stack
                     start = end
             end = start + count * dt
             out = "{}/{};{} {} {} {}\n".format(str(pid), str(tid), prev_stack, str(start), str(end), str(count))
-            f.write(out.encode())
+            data.append(out)
             for i, rate in enumerate(stack_data.sample_rates[task_id][pid][tid]):
                 time = t1 + (i + 0.5) * dt
                 rate = stack_data.sample_rates[task_id][pid][tid][i]
                 out = "sample-rate;{}/{} {} {}\n".format(str(pid), str(tid), str(time), str(rate))
-                f.write(out.encode())
+                data.append(out)
             if task_id in stack_data.secondary_events:
                 if pid in stack_data.secondary_events[task_id]:
                     if tid in stack_data.secondary_events[task_id][pid]:
                         for event in stack_data.secondary_events[task_id][pid][tid]:
                             for time in stack_data.secondary_events[task_id][pid][tid][event]:
                                 out = "secondary-event;{}/{} {} {}\n".format(str(pid), str(tid), event, str(time))
-                                f.write(out.encode())
-    f.close()
+                                data.append(out)
+    return data

@@ -277,7 +277,7 @@ def precision(t, value_range):
 
 class TimeLines:
 
-    def __init__(self, working_dir, in_file, out_file, intervals, event_map,
+    def __init__(self, working_dir, timelines_data, out_file, intervals, event_map,
                  color_map=None,
                  has_color_map=False,
                  imagewidth=1200,
@@ -291,11 +291,10 @@ class TimeLines:
                  pal_file='palette.map',
                  colors='aqua'):
         self.working_dir = working_dir
-        self.in_file = self.working_dir + os.sep + in_file
         self.out_file = self.working_dir + os.sep + out_file
         self.event_map = event_map
         self.has_color_map = has_color_map
-        self.data = []
+        self.data = timelines_data
         self.nlevels = 0
         self.timelines = OrderedDict()
         self.sample_rates = OrderedDict()
@@ -307,7 +306,6 @@ class TimeLines:
         self.max_time = -sys.maxsize
         if color_map:
             self.color_handler.palette_map = color_map
-        self.read_data()
         self.im = SVGPackage()
         self.image_settings = self.set_image_setings(fontsize, imagewidth, frameheight, fontwidth, fonttype, minwidth,
                                                      nametype, searchcolor, pal_file, colors)
@@ -345,12 +343,6 @@ class TimeLines:
         fontwidth = self.image_settings.fontwidth
         searchcolor = self.image_settings.searchcolor
         return get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, searchcolor)
-
-    def read_data(self):
-        fin = open(self.in_file, 'r')
-        for line in fin:
-            self.data.append(line)
-        fin.close()
 
     def process_stacks(self):
         process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
