@@ -2,6 +2,7 @@ import re
 import os
 import sys
 from collections import OrderedDict
+from concurrent.futures import ProcessPoolExecutor
 from timeit import default_timer as timer
 import operator
 
@@ -34,6 +35,19 @@ def get_tid(task_or_label):
     label = task_id + "-pid:" + pid + "-tid:" + tid"""
     tid = task_or_label.rpartition("-tid:")[2]
     return tid
+
+
+def multi_run_wrapper(args):
+    return worker(args)
+
+
+def worker(task):
+    task.execute()
+    return {"totals": task.totals,
+        "start_time": task.start_time, 
+        "trace_data": task.trace_data, 
+        "secondary_event_samples": task.secondary_event_samples, 
+        "time_norm": task.time_norm}
 
 
 class TraceDataID:
@@ -80,15 +94,6 @@ class ReadTraceTask:
         self.previous_stacks = {}
         self.previous_context = {}
         self.call_counts = {}
-
-    def get_start_time(self):
-        if self.start_time > 0.0:
-            return self.start_time
-        file = self.filename
-        with open(file) as infile:
-            first_line = infile.readline()
-        self.start_time = float(first_line.strip().rpartition(';')[2])
-        return self.start_time
 
     def execute(self):
         file = self.filename
@@ -165,13 +170,10 @@ class ReadTraceTask:
                     self.call_counts[this_context][frame] += 1
             test_stack += ";"
 
-    def get_time_norm(self):
-        return self.time_norm
-
 
 class TraceData:
 
-    def __init__(self, results_files, path, cpu_definition, data_id="", debug=True):
+    def __init__(self, results_files, path, cpu_definition, data_id="", debug=True, n_proc=1):
         self.selected_ids = []
         self.all_jobs = []
         self.all_tasks = []
@@ -191,6 +193,7 @@ class TraceData:
         self.timeline_intervals = 200
         self.time_scale = 1000000.0
         self.cpu = ""
+        self.n_proc = n_proc
         self.tasks = OrderedDict()
         self.trace_event_type = "counter"
         self.sample_weight = 1.0
@@ -264,18 +267,28 @@ class TraceData:
         if initialise:
             self.time_norm = 0.0
             self.create_tasks()
-            min_time = sys.maxsize
+            run_parallel = self.n_proc > 1 and len(self.tasks) > 1
+            if run_parallel:
+                pool = ProcessPoolExecutor(min(self.n_proc, len(self.tasks)))
+                arg_list = []
+                for task in self.tasks:
+                    new_task = self.tasks[task]
+                    arg_list.append((new_task))
+                finished_tasks = list(pool.map(multi_run_wrapper, arg_list))
+            else:
+                finished_tasks = []
+                for task in self.tasks:
+                    new_task = self.tasks[task]
+                    finished_tasks.append(worker(new_task))
+            task_num = 0
             for task_id in self.tasks:
-                time = self.tasks[task_id].get_start_time()
-                min_time = min(min_time, time)
-            for task_id in self.tasks:
-                time = self.tasks[task_id].get_start_time()
-                self.tasks[task_id].execute()
-                self.totals[task_id] = self.tasks[task_id].totals
-                self.start_times[task_id] = self.tasks[task_id].start_time
-                self.trace_data[task_id] = self.tasks[task_id].trace_data
-                self.secondary_event_samples[task_id] = self.tasks[task_id].secondary_event_samples
-                self.time_norm = max(self.time_norm, self.tasks[task_id].get_time_norm())
+                finished_task = finished_tasks[task_num]
+                self.totals[task_id] = finished_task["totals"]
+                self.start_times[task_id] = finished_task["start_time"]
+                self.trace_data[task_id] = finished_task["trace_data"]
+                self.secondary_event_samples[task_id] = finished_task["secondary_event_samples"]
+                self.time_norm = max(self.time_norm, finished_task["time_norm"])
+                task_num += 1
             self.initial_count = self.totals
             self.set_process_ids()
             self.calculate_thread_percentages()

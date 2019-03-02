@@ -52,7 +52,8 @@ def trace_view():
                                         GlobalData.local_data,
                                         GlobalData.loaded_cpu_definition,
                                         data_id=job,
-                                        debug=GlobalData.debug)
+                                        debug=GlobalData.debug,
+                                        n_proc=GlobalData.n_proc)
         update_trace_model(job)
     trace_model.process_names = all_stack_data[job].get_all_process_names()
     trace_model.jobs = all_stack_data[job].get_all_jobs()
