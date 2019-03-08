@@ -10,9 +10,12 @@ def get_lines(frame, hpc_results):
         file = os.path.join(hpc_results.results_dir, info[0])
         line_num = int(info[1])
         text = {"lines": [], "focus": line_num}
-        with open(file) as f:
-            for line in f.readlines():
-                text["lines"].append(line)
+        if os.path.isfile(file):
+            with open(file) as f:
+                for line in f.readlines():
+                    text["lines"].append(line)
+        else:
+            text = {"lines": ["No Data"], "focus": 0}
     else:
         text = {"lines": ["No Data"], "focus": 0}
     return text
@@ -134,7 +137,14 @@ def generate_source_code_table(stacks_data, process_id, frame, hpc_results):
 
 def generate_source_code_info(frame, hpc_results):
     source_lines = get_lines(frame, hpc_results)
-    table_html = ["<table>"]
+    frames = hpc_results.get_frames()
+    if frame in frames:
+        info = frames[frame]
+        file = os.path.join(hpc_results.results_dir, info[0])
+    table_html = ["<table>", "<thead>", "<tr>"]
+    table_html += ["<th>File</th>", "<th>" + file + "</th>"]
+    table_html.append("</tr>")
+    table_html.append("</thead>")
     max_len = 1
     for line in source_lines["lines"]:
         max_len = max(max_len, len(line))
@@ -143,7 +153,7 @@ def generate_source_code_info(frame, hpc_results):
         line_num += 1
         if line_num == source_lines["focus"]:
             table_html.append("<tr bgcolor=\"grey\">")
-        elif abs(line_num - source_lines["focus"]) <= 2:
+        elif -1 <= line_num - source_lines["focus"] <= 25:
             table_html.append("<tr bgcolor=\"white\">")
         else:
             continue

@@ -38,6 +38,8 @@ table {
     empty-cells: show;
 }
 table td, th {
+    overflow:hidden; 
+    white-space:nowrap;
     border-left: 1px solid #cbcbcb;
     border-width: 0 0 0 1px;
     margin: 0;
@@ -83,6 +85,14 @@ table {
     margin:auto;
 }
 
+#classModal {}
+
+.modal-body {
+    height: 30em;
+    overflow-x:scroll;
+    overflow-y:scroll;
+}
+
 .source-table-container {
     margin:12px auto;
     margin-left:12px;
@@ -96,7 +106,6 @@ table {
     margin:12px auto;
     margin-left:12px;
     margin-right:12px;
-    overflow-x:scroll;
 }
 
 .source-table-container pre, .source-info-container pre {

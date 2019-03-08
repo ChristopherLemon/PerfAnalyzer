@@ -196,8 +196,10 @@ def update_source_code():
     data = request.get_json()
     source_symbol = data["source_symbol"]
     label = data["id"]
+    get_source_table = data["get_source_table"]
     process_model.layout.source_code_table, process_model.layout.source_code_info, \
-        process_model.layout.source_code_line = get_source_code(source_symbol, label)
+        process_model.layout.source_code_line = \
+        get_source_code(source_symbol, label, get_source_table)
     return jsonify(process_model.layout.to_dict())
 
 
@@ -235,17 +237,17 @@ def get_flamegraph(process, flamegraph_event_type="original"):
     return svgfile
 
 
-def get_source_code(symbol, label):
+def get_source_code(symbol, label, get_source_table=True):
     job_id = get_job(label)
+    source_code_table, source_code_info, source_code_line = generate_empty_table()
     for i in range(len(GlobalData.hpc_results)):
         if job_id == GlobalData.hpc_results[i].get_job_id():
             process_id = all_stack_data[process_model.process].get_process_id_from_label(label)
-            source_code_table, source_code_line = \
-                generate_source_code_table(all_stack_data[process_model.process], process_id,
-                                           symbol, GlobalData.hpc_results[i])
+            if get_source_table:
+                source_code_table, source_code_line = \
+                    generate_source_code_table(all_stack_data[process_model.process], process_id,
+                                            symbol, GlobalData.hpc_results[i])
             source_code_info = generate_source_code_info(symbol, GlobalData.hpc_results[i])
-            return source_code_table, source_code_info, source_code_line
-    source_code_table, source_code_info, source_code_line = generate_empty_table()
     return source_code_table, source_code_info, source_code_line
 
 

@@ -510,8 +510,10 @@ def update_source_code():
     data = request.get_json()
     label = data["id"]
     source_symbol = data["source_symbol"]
+    get_source_table = data["get_source_table"]
     analysis_model.layout.source_code_table, analysis_model.layout.source_code_info, \
-        analysis_model.layout.source_code_line = get_source_code(source_symbol, label)
+        analysis_model.layout.source_code_line = \
+        get_source_code(source_symbol, label, get_source_table)
     return jsonify(analysis_model.layout.to_dict())
 
 
@@ -537,19 +539,19 @@ def update_flamegraph_mode():
     return jsonify(analysis_model.layout.to_dict())
 
 
-def get_source_code(symbol, label):
+def get_source_code(symbol, label, get_source_table=True):
+    job_id = get_job(label)
+    source_code_table, source_code_info, source_code_line = generate_empty_table()
     if re.match(".*\[\[cluster", symbol):
         symbol = symbol.rpartition("[[cluster")[0]
-    job_id = get_job(label)
     for i in range(len(GlobalData.hpc_results)):
         if job_id == GlobalData.hpc_results[i].get_job_id():
             process_id = all_stack_data[analysis_model.reference_process].get_process_id_from_label(label)
             source_code_info = generate_source_code_info(symbol, GlobalData.hpc_results[i])
-            source_code_table, source_code_line = \
-                generate_source_code_table(all_stack_data[analysis_model.reference_process], process_id,
-                                           symbol, GlobalData.hpc_results[i])
-            return source_code_table, source_code_info, source_code_line
-    source_code_table, source_code_info, source_code_line = generate_empty_table()
+            if get_source_table:
+                source_code_table, source_code_line = \
+                    generate_source_code_table(all_stack_data[analysis_model.reference_process], process_id,
+                                            symbol, GlobalData.hpc_results[i])
     return source_code_table, source_code_info, source_code_line
 
 def get_barchart(process_list, hotspots, svg_chart):

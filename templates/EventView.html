@@ -17,6 +17,28 @@
 
 <div class="panel-group" id="accordion">
     <div class="container">
+        <div id="classModal" class="modal fade bs-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="classInfo" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                            ×
+                        </button>
+                        <h4 class="modal-title" id="classModalLabel">
+                            Source Code
+                        </h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="source-info-container" id="source_code_info" {{show_source}}>{{event_model.layout.source_code_info|safe}}</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-dismiss="modal">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="row">
             <div class="flex-column" style="border-style:none;width:100%;height:100%">
                 <div class="panel panel-default">
@@ -35,7 +57,6 @@
                             </div>
                             <div class="flex-column" style="width:20%;height:100%"></div>
                         </div>
-                        <div class="source-info-container" id="source_code_info" {{show_source}}>{{event_model.layout.source_code_info|safe}}</div>
                         <div hidden class="row" style="margin-left:0">
                             <div class="flex-column" style="width:100%;height:100%">
                                 <object class="embedded_svg" type="image/svg+xml" data={{event_model.layout.flamegraph}} id="flamegraph" onload="add_flamegraph_events()"></object>
@@ -482,6 +503,24 @@
     var selection_mode = "add-remove-process";
     var descending_sort = false;
 
+    // Get the modal
+    var modal = document.getElementById('myModal');
+
+    // Get the <span> element that closes the modal
+    var span = document.getElementsByClassName("close")[0];
+
+    // When the user clicks on <span> (x), close the modal
+    span.onclick = function() {
+    modal.style.display = "none";
+    }
+
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+    }
+
     function find_text(inputbox) {
         let filter = $(inputbox).prop("value");
         let flamegraph = document.getElementById('flamegraph');
@@ -905,7 +944,7 @@
         let subdoc = getSubDocument(svg)
         if (subdoc) {
             plot = $(subdoc).find('svg')
-            addEvent(plot[0], "click", function(e) {
+            addEvent(plot[0], "dblclick", function(e) {
                 if ( e.target && e.target.parentNode.nodeName == "g"){
                     wrap_flamegraph_onclick(e.target.parentNode);
                 }
@@ -928,13 +967,13 @@
         if( filter == "all" ) {
             filter = ""; // match anything
         }
-        let vals = {"source_symbol":filter, "id":id};
+        get_source_table = $("#source_file_collapse").attr("aria-expanded") == "true";
+        let vals = {"source_symbol":filter, "id":id, "get_source_table": get_source_table};
         let x = JSON.stringify(vals);
-        get_source_code(x);
-
+        get_source_code(x, get_source_table);
     }
 
-    function get_source_code(x) {
+    function get_source_code(x, get_source_table) {
         goto_url = "{{url_for('EventView.update_source_code')}}"
         $.ajax({
             url:goto_url,
@@ -943,18 +982,23 @@
             type: 'POST',
             success: function(response) {
                 console.log(response);
-                document.getElementById("source_code_table").innerHTML = response.source_code_table;
-                document.getElementById("source_code_info").innerHTML = response.source_code_info;
-                line_num = response.source_code_line;
-                let source = $('#source_code')
-                $(source).focus();
-                let w = $(window);
-                let row = $('#source_code_table').find('tr').eq( line_num );
-                let src_line = "";
-                if (row.length){
-                    $('html,body').animate({scrollTop: row.offset().top - (w.height()/2)}, 1000 );
-                    src_line = $(row).innerHTML;
-                    return src_line;
+                if (get_source_table) {
+                    document.getElementById("source_code_table").innerHTML = response.source_code_table;
+                    line_num = response.source_code_line;
+                    let source = $('#source_code')
+                    $(source).focus();
+                    let w = $(window);
+                    let row = $('#source_code_table').find('tr').eq( line_num );
+                    let src_line = "";
+                    if (row.length){
+                        $('html,body').animate({scrollTop: row.offset().top - (w.height()/2)}, 1000 );
+                        src_line = $(row).innerHTML;
+                        return src_line;
+                    }
+                } else {
+                    document.getElementById("source_code_info").innerHTML = response.source_code_info;
+                    $('#classModal').modal('show');
+                    return "";
                 }
             },
             error: function(error) {
