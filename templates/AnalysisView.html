@@ -576,6 +576,8 @@
 
     var selection_mode = "add-remove-process";
     var descending_sort = false;
+    var click_signal = false;
+    var timeout;
 
     function find_text(inputbox) {
         let filter = $(inputbox).prop("value");
@@ -1067,16 +1069,42 @@
     function add_flamegraph_events() {
         svg = document.getElementById("flamegraph");
         let subdoc = getSubDocument(svg)
-        if ( subdoc ) {
+        if (subdoc) {
             plot = $(subdoc).find('svg')
-            addEvent(plot[0], "dblclick", function(e) {
+            addEvent(plot[0], "click", function(e) {
                 if ( e.target && e.target.parentNode.nodeName == "g"){
-                    wrap_flamegraph_onclick(e.target.parentNode);
+                    click_handler(e);
                 }
             });
         }
     }
+    function click_handler(e) {
+        if (!click_signal) {
+            click_signal = true;
+            timeout = setTimeout(function() {
+                wrap_flamegraph_onclick(e.target.parentNode);
+                click_signal = false;
+                }, 300);
+            return;
+        } else {
+            clearTimeout(timeout);
+            wrap_flamegraph_ondblclick(e.target.parentNode);
+            click_signal = false;
+        }
+    }
     function wrap_flamegraph_onclick(e) {
+        info_box = document.getElementById("flamegraph_info");
+        let info;
+        let id = $(e).find("rect").attr("group");
+        let children = e.childNodes;
+        for (let i=0; i<children.length;i++) {
+            if (children[i].tagName == "title") {
+                info = children[i].firstChild.nodeValue;
+            }
+        }
+        info_box.innerHTML = info;
+    }
+    function wrap_flamegraph_ondblclick(e) {
         info_box = document.getElementById("flamegraph_info");
         let info;
         let id = $(e).find("rect").attr("group");
