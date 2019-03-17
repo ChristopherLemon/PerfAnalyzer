@@ -379,21 +379,15 @@ class Attributes:
 
 class Node:
 
-    def __init__(self, start_time):
+    def __init__(self, start_time, start_time_2):
         self.start_time = start_time
+        self.start_time_2 = start_time_2
         self.exclusive_time = 0
-        self.has_delta = False
-        self.delta = 0
+        self.exclusive_time_2 = 0
 
-    def increment_exclusive_time(self, exclusive_time):
+    def increment_exclusive_time(self, exclusive_time, exclusive_time_2):
         self.exclusive_time += exclusive_time
-
-    def increment_delta(self, d):
-        if self.has_delta:
-            self.delta += d
-        else:
-            self.delta = d
-        self.has_delta = True
+        self.exclusive_time_2 += exclusive_time_2
 
 
 class SVGPackage:
@@ -558,6 +552,7 @@ class FlameGraph:
                  description="",
                  custom_event_ratio=False,
                  diff=False,
+                 exclusive=True,
                  color_map=None,
                  has_color_map=False,
                  imagewidth=1200,
@@ -580,6 +575,7 @@ class FlameGraph:
         self.description = description
         self.custom_event_ratio = custom_event_ratio
         self.diff = diff
+        self.exclusive = exclusive
         self.has_color_map = has_color_map
         self.color_handler = ColorHandler()
         if color_map:
@@ -600,6 +596,8 @@ class FlameGraph:
         self.mean_samples2 = 0.0
         self.inclusive_time = 0
         self.exclusive_time = 0
+        self.inclusive_time_2 = 0
+        self.exclusive_time_2 = 0
         self.depthmax = 0
         self.timemax = 0
         self.tmp = {}
@@ -683,8 +681,8 @@ class FlameGraph:
                 samples = match.group(2)
             self.mean_samples1 += float(samples)
             if samples2:
-                if samples2 == "0":
-                    continue
+              #  if samples2 == "0":
+              #      continue
                 if self.diff:
                     delta = float(samples2) - float(samples)
                 elif self.custom_event_ratio:
@@ -700,26 +698,27 @@ class FlameGraph:
                     self.upper_delta = delta
                 self.mean_samples2 += float(samples2)
             stack = stack.strip("<>/")
+            self.exclusive_time = int(samples)
             if samples2:
-                self.exclusive_time = int(samples2)
-            else:
-                self.exclusive_time = int(samples)
+                self.exclusive_time_2 = int(samples2)
 
-            self.last = self.flow(self.last, [""] + stack.split(";"), self.inclusive_time, self.exclusive_time, delta)
+            self.last = self.flow(self.last, [""] + stack.split(";"), \
+                self.inclusive_time, self.exclusive_time, self.inclusive_time_2, self.exclusive_time_2)
 
+            self.inclusive_time += int(samples)
             if samples2:
-                self.inclusive_time += int(samples2)
-            else:
-                self.inclusive_time += int(samples)
+                self.inclusive_time_2 += int(samples2)
             self.processed += 1
         if self.processed > 0:
             self.mean_samples1 /= float(self.processed)
             if self.mean_samples2 > 0.0:
                 self.mean_samples2 /= float(self.processed)
                 self.mean_delta = self.mean_samples1 / self.mean_samples2
-            self.flow(self.last, [], self.inclusive_time, self.exclusive_time, delta)
+            self.flow(self.last, [], \
+                self.inclusive_time, self.exclusive_time, self.inclusive_time_2, self.exclusive_time_2)
             self.timemax = self.inclusive_time
-            self.other = Node(self.timemax)
+            self.timemax_2 = self.inclusive_time_2
+            self.other = Node(self.timemax, self.timemax_2)
             if self.timemax > 0:
                 self.make_svg()
             else:
@@ -727,7 +726,7 @@ class FlameGraph:
         else:
             self.make_error_svg()
 
-    def flow(self, last, this, inc, exc, d=None):
+    def flow(self, last, this, inc, exc, inc2, exc2):
         len_a = len(last) - 1
         len_b = len(this) - 1
         group = this[1] if len_b > 0 else ""
@@ -742,22 +741,18 @@ class FlameGraph:
             len_same = i + 1
         for i in range(len_a, len_same-1, -1):
             k = last[i] + ";" + str(i)
-            self.nodes[k + ";" + str(inc)] = Node(self.tmp[k].start_time)
-            self.nodes[k + ";" + str(inc)].increment_exclusive_time(self.tmp[k].exclusive_time)
-            self.nodes[k + ";" + str(inc)].group = group
-            if self.tmp[k].has_delta:
-                self.nodes[k + ";" + str(inc)].increment_delta(self.tmp[k].delta)
+            node_id = k + ";" + str(inc) + ";" + str(inc2)
+            self.nodes[node_id] = \
+                Node(self.tmp[k].start_time, self.tmp[k].start_time_2)
+            self.nodes[node_id].increment_exclusive_time( \
+                self.tmp[k].exclusive_time, self.tmp[k].exclusive_time_2)
+            self.nodes[node_id].group = group
             del self.tmp[k]
         for i in range(len_same, len_b + 1):
             k = this[i] + ";" + str(i)
-            self.tmp[k] = Node(inc)
+            self.tmp[k] = Node(inc, inc2)
             if i == len_b:
-                self.tmp[k].increment_exclusive_time(exc)
-            if d is not None:
-                if i == len_b:
-                    self.tmp[k].increment_delta(d)
-                else:
-                    self.tmp[k].increment_delta(0)
+                self.tmp[k].increment_exclusive_time(exc, exc2)
         return this
 
     def make_error_svg(self):
@@ -806,58 +801,83 @@ class FlameGraph:
         imagewidth = self.image_settings.imagewidth
         xpad = self.image_settings.xpad
         widthpertime = float(imagewidth - 2 * xpad) / float(self.timemax)
+        if self.custom_event_ratio:
+            widthpertime_2 = float(imagewidth - 2 * xpad) / float(self.timemax_2)
         for node_id in self.nodes:  # Draw frames
-            [func, depth, end_time] = node_id.split(";")
+            [func, depth, end_time, end_time_2] = node_id.split(";")
             node = self.nodes[node_id]
-            if node.has_delta:
-                delta = node.delta
             start_time = node.start_time
+            start_time_2 = node.start_time_2
             if func == "" and int(depth) == 0:
                 end_time = self.timemax
-            x1 = xpad + float(start_time) * widthpertime
-            x2 = xpad + float(end_time) * widthpertime
-            y1 = imageheight - ypad2 - (int(depth) + 1) * frameheight + framepad
-            y2 = imageheight - ypad2 - int(depth) * frameheight
+                end_time_2 = self.timemax_2
             inclusive_time = int(end_time) - int(start_time)
             inclusive_time_txt = "{:,}".format(inclusive_time)
             exclusive_time = node.exclusive_time
             exclusive_time_txt = "{:,}".format(exclusive_time)
+            inclusive_time_2 = int(end_time_2) - int(start_time_2)
+            inclusive_time_2_txt = "{:,}".format(inclusive_time_2)
+            exclusive_time_2 = node.exclusive_time_2
+            exclusive_time_2_txt = "{:,}".format(exclusive_time_2)
             if func == "" and int(depth) == 0:
-                info = "all ({} samples, 100%)".format(inclusive_time_txt)
+                if self.custom_event_ratio:
+                    info = "all ({} samples, 100%)".format(inclusive_time_txt)
+                else:
+                    info = "all ({} samples, 100%)".format(inclusive_time_2_txt)
             else:
-                inc_pct = '{:.4f}'.format(100.0 * inclusive_time / float(self.timemax))
-                exc_pct = '{:.4f}'.format(100.0 * exclusive_time / float(self.timemax))
                 escaped_func = re.sub("&", "&amp;", func)
                 escaped_func = re.sub("<", "&lt;", escaped_func)
                 escaped_func = re.sub(">", "&gt;", escaped_func)
                 escaped_func = re.sub("\"", "&quot;", escaped_func)
                 escaped_func = re.sub(" ", "", escaped_func)
-                if node.has_delta:
-                    if self.diff:
-                        deltapct = "{:.4f}".format(100.0 * delta / float(self.timemax))
-                        info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%; Difference: {}%)" \
-                            .format(escaped_func, inclusive_time_txt, self.unit, inc_pct, exclusive_time_txt,
-                                    self.unit, exc_pct, deltapct)
-                    else:  # self.custom (ratio)
-                        info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%; Ratio: {})" \
-                            .format(escaped_func, inclusive_time_txt, self.unit, inc_pct, exclusive_time_txt,
-                                    self.unit, exc_pct, format_number(delta))
+                if self.diff:
+                    inc_pct = '{:.4f}'.format(100.0 * inclusive_time_2 / float(self.timemax))
+                    exc_pct = '{:.4f}'.format(100.0 * exclusive_time_2 / float(self.timemax))
+                    if self.exclusive:
+                        delta = float(exclusive_time_2) - float(exclusive_time)
+                    else:
+                        delta = float(inclusive_time_2) - float(inclusive_time)
+                    deltapct = "{:.4f}".format(100.0 * delta / float(self.timemax))
+                    info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%; Difference: {}%)" \
+                        .format(escaped_func, inclusive_time_2_txt, self.unit, inc_pct, exclusive_time_2_txt,
+                                self.unit, exc_pct, deltapct)
+                elif self.custom_event_ratio:
+                    inc_pct = '{:.4f}'.format(100.0 * inclusive_time_2 / float(self.timemax_2))
+                    exc_pct = '{:.4f}'.format(100.0 * exclusive_time_2 / float(self.timemax_2))
+                    delta = 0.0
+                    if self.exclusive:
+                        if float(exclusive_time_2) > 0.0:
+                            delta = float(exclusive_time) / float(exclusive_time_2)
+                    elif float(inclusive_time_2) > 0.0:
+                        delta = float(inclusive_time) / float(inclusive_time_2)
+                    info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%; Ratio: {})" \
+                        .format(escaped_func, inclusive_time_2_txt, self.unit, inc_pct, exclusive_time_2_txt,
+                                self.unit, exc_pct, format_number(delta))
                 else:
+                    inc_pct = '{:.4f}'.format(100.0 * inclusive_time / float(self.timemax))
+                    exc_pct = '{:.4f}'.format(100.0 * exclusive_time / float(self.timemax))
                     info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%)"\
                         .format(escaped_func, inclusive_time_txt, self.unit, inc_pct, exclusive_time_txt,
                                 self.unit, exc_pct)
             nameattr = Attributes(info)
             self.im.group_start(nameattr)
+            if self.custom_event_ratio:
+                x1 = xpad + float(start_time_2) * widthpertime_2
+                x2 = xpad + float(end_time_2) * widthpertime_2
+            else:
+                x1 = xpad + float(start_time) * widthpertime
+                x2 = xpad + float(end_time) * widthpertime
+            y1 = imageheight - ypad2 - (int(depth) + 1) * frameheight + framepad
+            y2 = imageheight - ypad2 - int(depth) * frameheight
             if func == "-":
                 color = vdgrey
-            elif node.has_delta:
-                if self.diff:
-                    color = self.color_handler.color_scale(delta, self.max_delta)
-                else:  # self.custom (ratio)
-                    color = self.color_handler.color_log_scale(delta, self.mean_delta, self.upper_delta)
+            if self.diff:
+                color = self.color_handler.color_scale(delta, self.max_delta)
+            elif self.custom_event_ratio:
+                color = self.color_handler.color_log_scale(delta, self.mean_delta, self.upper_delta)
             else:
                 color = self.color_handler.color_map(self.image_settings.colors, func)
-            self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"2\" ry=\"2\" group=\"" + node.group + "\"")
+            self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"0\" ry=\"0\" group=\"" + node.group + "\"")
             chars = int((float(x2)-float(x1)) / float(fontsize * fontwidth))
             text = ""
             if chars >= 3:
@@ -886,9 +906,8 @@ class FlameGraph:
             if int(depth) > self.depthmax:
                 self.depthmax = int(depth)
         for node_id in delete_nodes:
-            self.other.increment_exclusive_time(self.nodes[node_id].exclusive_time)
-            if self.nodes[node_id].has_delta:
-                self.other.increment_delta(self.nodes[node_id].delta)
+            self.other.increment_exclusive_time(self.nodes[node_id].exclusive_time, \
+                self.nodes[node_id].exclusive_time)
             del self.nodes[node_id]
 
     def write_flamegraph(self):
@@ -900,11 +919,11 @@ class FlameGraph:
         self.store_data_order()
 
         def sort_stacks_by_time(a, b):  # Order each level in call stacks in the order of first appearance
-            s_a, par, secondary = a.rpartition(' ')
-            s_b, par, primary = b.rpartition(' ')
+            s_a, _, secondary = a.rpartition(' ')
+            s_b, _, primary = b.rpartition(' ')
             if self.custom_event_ratio or self.diff:
-                s_a, par, secondary = s_a.rpartition(' ')
-                s_b, par, primary = s_b.rpartition(' ')
+                s_a, _, secondary = s_a.rpartition(' ')
+                s_b, _, primary = s_b.rpartition(' ')
             stacks_a = s_a.split(";")
             stacks_b = s_b.split(";")
             len_a = len(stacks_a)
@@ -923,9 +942,9 @@ class FlameGraph:
 
     def store_data_order(self):
         for line in self.data:
-            r, par, secondary = line.rpartition(' ')
+            r, _, secondary = line.rpartition(' ')
             if self.custom_event_ratio or self.diff:
-                r, par, secondary = r.rpartition(' ')
+                r, _, secondary = r.rpartition(' ')
             parts = r.split(";")
             n = 0
             for s in parts:

@@ -4,6 +4,7 @@ import pathlib
 import os
 from pathlib import Path
 from lxml import etree
+from collections import defaultdict
 
 from src.ColourMaps import get_top_ten_colours
 
@@ -54,6 +55,85 @@ class HPCExperimentHandler:
         return self.experiment_file
 
 
+class Node:
+
+    def __init__(self, frame, node_id, parent=None):
+        self.exclusive = 0
+        self.inclusive = 0
+        self.parent = parent
+        self.frame = frame
+        self.node_id = node_id
+        self.children = []
+
+    @staticmethod
+    def get_node_id(frame, level, start):
+        return str(frame) + "-" + str(level) + "-" + str(start)
+
+
+class SourceTree:
+
+    def __init__(self, process_id):
+        self.process_id = process_id
+        self.nodes = {}
+        self.file_map = defaultdict(set)
+        root_name = "root"
+        root_id = node_id = Node.get_node_id(root_name, 0, 0)
+        self.root = Node("root", root_id, 0)
+
+    def build_tree(self, data, results_frames, results_dir):
+        start = 0
+        for stack in sorted(data):
+            value = data[stack]
+            frames = stack.split(";")
+            parent = self.root
+            for level, frame in enumerate(frames):
+                if frame in results_frames:
+                    info = results_frames[frame]
+                    file = os.path.join(results_dir, info[0])
+                    self.file_map[file].add(frame)
+                node_id = Node.get_node_id(frame, level + 1, start)
+                if node_id not in self.nodes:
+                    new_node = Node(frame, node_id, parent)
+                    self.nodes[node_id] = new_node
+                    if level == len(frames) - 1:
+                        new_node.exclusive = value
+                    new_node.inclusive = value
+                    parent.children.append(new_node)
+                    parent = new_node
+                else:
+                    old_node = self.nodes[node_id]
+                    if level == len(frames) - 1:
+                        old_node.exclusive += value
+                    old_node.inclusive += value
+                    parent = old_node
+        for child in self.root.children:
+            self.root.inclusive += child.inclusive
+        
+        
+
+    def get_exclusive_value(self, frame, node=None):
+        node = node if node is not None else self.root
+        exclusive_value = 0
+        if node.frame == frame:
+            exclusive_value += node.exclusive
+        for child in node.children:
+            exclusive_value += self.get_exclusive_value(frame, child)
+        return exclusive_value
+
+    def get_inclusive_value(self, frame, node=None):
+        node = node if node is not None else self.root
+        inclusive_value = 0
+        if node.frame == frame:
+            inclusive_value += node.inclusive
+            return inclusive_value
+        for child in node.children:
+            inclusive_value += self.get_inclusive_value(frame, child)
+        return inclusive_value
+
+    def get_total_value(self):
+        return self.root.inclusive
+
+
 class HPCResultsHandler:
 
     def __init__(self, results_dir, results_file):
@@ -62,6 +142,7 @@ class HPCResultsHandler:
         self.frames_file = os.path.join(self.results_dir, self.job_id) + ".frames"
         self.results_file = results_file
         self.frames = self.load_frames()
+        self.source_trees = {}
 
     def load_frames(self):
         frames = {}
@@ -75,11 +156,56 @@ class HPCResultsHandler:
                     frames[frame] = (file, line)
         return frames
 
+    def generate_source_tree(self, stack_data, process_id):
+        if process_id.label not in self.source_trees:
+            if process_id.event_type == "original":
+                    x_data = stack_data.get_original_event_stack_data(process_id)
+                    self.source_trees[process_id.label] = SourceTree(process_id.label)
+                    self.source_trees[process_id.label].build_tree(x_data, self.frames, self.results_dir)
+            else:
+                x_data, y_data = stack_data.get_custom_event_ratio_stack_data(process_id)
+                self.source_trees[process_id.label] = SourceTree(process_id)
+                self.source_trees[process_id.label].build_tree(x_data, self.frames, self.results_dir)
+                self.source_trees[process_id.label + "_2"] = SourceTree(process_id.label + "_2")
+                self.source_trees[process_id.label + "_2"].build_tree(y_data, self.frames, self.results_dir)
+
+    def get_exclusive_value(self, stack_data, process_id, frame):
+        self.generate_source_tree(stack_data, process_id)
+        if process_id.event_type == "original":
+            return self.source_trees[process_id.label].get_exclusive_value(frame)
+        else:
+            val = 0.0
+            r1 = float(self.source_trees[process_id.label].get_exclusive_value(frame))
+            r2 = float(self.source_trees[process_id.label + "_2"].get_exclusive_value(frame))
+            if r2 > 0.0:
+                val = r1 / r2
+            return str(val)
+        
+    def get_inclusive_value(self, stack_data, process_id, frame):
+        self.generate_source_tree(stack_data, process_id)
+        if process_id.event_type == "original":
+            return self.source_trees[process_id.label].get_inclusive_value(frame)
+        else:
+            val = 0.0
+            r1 = float(self.source_trees[process_id.label].get_inclusive_value(frame))
+            r2 = float(self.source_trees[process_id.label + "_2"].get_inclusive_value(frame))
+            if r2 > 0.0:
+                val = r1 / r2
+            return str(val)
+
+    def get_total_value(self, stack_data, process_id):
+        self.generate_source_tree(stack_data, process_id)
+        return self.source_trees[process_id.label].get_total_value()
+    
     def get_frames(self):
         return self.frames
 
     def get_job_id(self):
         return self.job_id
+
+    def get_file_map(self, stack_data, process_id):
+        self.generate_source_tree(stack_data, process_id)
+        return self.source_trees[process_id.label].file_map
 
 
 class HPCExperiment:

@@ -80,7 +80,8 @@ def event_view():
             get_barchart_totals(event, event_model.diff, svgchart)
         event_model.layout.scatter_plot = None
     event_model.layout.flamegraph = \
-        get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
+        get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, \
+            event_model.diff, event_model.exclusive)
     event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = \
         get_min_max_chart(event, event_model.hotspots, svgchart)
     event_model.layout.timechart = get_timechart(event, custom_event_ratio, svgchart)
@@ -161,7 +162,8 @@ def update_all_charts():
     event_model.layout.event_min_max_chart, event_model.layout.event_min_max_table = \
         get_min_max_chart(event, event_model.hotspots, svgchart)
     event_model.layout.flamegraph = \
-        get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
+        get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, \
+            event_model.diff, event_model.exclusive)
     event_model.layout.timechart = get_timechart(event, custom_event_ratio, svgchart)
     reference_id = all_stack_data[event].get_base_case_id()
     if reference_id.event_type == "custom_event_ratio":
@@ -200,7 +202,8 @@ def update_flamegraph_ids():
                     ids.append(process_id)
     all_stack_data[event].set_flamegraph_process_ids(ids)
     event_model.layout.flamegraph = \
-        get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
+        get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, \
+            event_model.diff, event_model.exclusive)
     if event_model.custom_event_ratio:
         event_model.layout.scatter_plot = get_2d_plot(event, svgchart)
     return jsonify(event_model.layout.to_dict())
@@ -227,19 +230,31 @@ def update_flamegraph_mode():
     event_model.flamegraph_mode = data['flamegraph_mode']
     if event_model.flamegraph_mode == "hotspots":
         event_model.diff = False
+        event_model.exclusive = True
         event_model.flamegraph_type = "plot_for_event"
-    elif event_model.flamegraph_mode == "diff_function_names":
+    elif event_model.flamegraph_mode == "exclusive_diff":
         event_model.diff = True
-        event_model.flamegraph_type = "diff_symbols"
-    elif event_model.flamegraph_mode == "diff_call_stacks":
+        event_model.exclusive = True
+        event_model.flamegraph_type = "exclusive_diff"
+    elif event_model.flamegraph_mode == "inclusive_diff":
         event_model.diff = True
-        event_model.flamegraph_type = "diff_stack_traces"
+        event_model.exclusive = False
+        event_model.flamegraph_type = "inclusive_diff"
+    elif event_model.flamegraph_mode == "exclusive_ratio":
+        event_model.diff = False
+        event_model.exclusive = True
+        event_model.flamegraph_type = "plot_for_event"
+    elif event_model.flamegraph_mode == "inclusive_ratio":
+        event_model.diff = False
+        event_model.exclusive = False
+        event_model.flamegraph_type = "plot_for_event"
     event_model.layout.event_totals_chart, event_model.layout.event_totals_table = \
         get_barchart(event, event_model.hotspots, event_model.diff, svgchart)
     event_model.layout.event_totals_chart2, event_model.layout.event_totals_table2 = \
         get_barchart_totals(event, event_model.diff, svgchart)
     event_model.layout.flamegraph = \
-        get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, event_model.diff)
+        get_flamegraph(event_model.flamegraph_type, event, custom_event_ratio, \
+            event_model.diff, event_model.exclusive)
     return jsonify(event_model.layout.to_dict())
 
 
@@ -253,7 +268,7 @@ def update_event_model(event):
     event_model.stop = all_stack_data[event].get_max_x()
 
 
-def get_flamegraph(flamegraph_type, event, custom_event_ratio, diff):
+def get_flamegraph(flamegraph_type, event, custom_event_ratio, diff, exclusive):
     # Setup flamegraph
     write_flamegraph_stacks(all_stack_data[event], flamegraph_type)
     flamegraph_filename = timestamp("flamegraph.svg")
@@ -264,12 +279,14 @@ def get_flamegraph(flamegraph_type, event, custom_event_ratio, diff):
                    collapsed_stacks_filename,
                    flamegraph_filename,
                    diff=diff,
+                   exclusive=exclusive,
                    custom_event_ratio=custom_event_ratio)
     else:
         FlameGraph(GlobalData.local_data,
                    collapsed_stacks_filename,
                    flamegraph_filename,
                    custom_event_ratio=custom_event_ratio,
+                   exclusive=exclusive,
                    color_map=color_map)
     svgfile = GlobalData.local_data + os.sep + flamegraph_filename
     svgfile = os.path.relpath(svgfile, EventView.template_folder)

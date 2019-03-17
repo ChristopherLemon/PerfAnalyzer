@@ -822,35 +822,13 @@ class StackData:
 def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_event_type="original"):
     keyword = re.compile(stack_data.text_filter)
     process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
-    if flamegraph_type == "diff_symbols":
+    if flamegraph_type == "exclusive_diff":
         data = OrderedDict()
         base_symbols = {}
         symbols = {}
         base_case_id = stack_data.get_base_case_id()
-        base_task_id = base_case_id.task_id
-        base_pid = base_case_id.pid
-        base_tid = base_case_id.tid
+        base_label = base_case_id.label
         ids = stack_data.get_flamegraph_process_ids()
-        for task in stack_data.tasks:
-            task_id = stack_data.tasks[task].task_id
-            if task_id == base_task_id:
-                input_file = stack_data.tasks[task].filename + "_compressed"
-                fin = open(input_file, 'r')
-                for line in fin:
-                    k = keyword.search(line)
-                    if k:
-                        match = re.search(process_id_regex, line)
-                        if match:
-                            p = match.group(2)
-                            t = match.group(3)
-                            if p == base_pid and t == base_tid:
-                                stack, _, count = line.strip().rpartition(" ")
-                                symbol = stack.rpartition(";")[2]
-                                c = int(count)
-                                if symbol in base_symbols:
-                                    c += int(base_symbols[symbol])
-                                base_symbols[symbol] = str(c)
-                fin.close()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
             pids = {(proc_id.pid, proc_id.tid): proc_id.label for proc_id in ids if proc_id.task_id == task_id}
@@ -883,46 +861,27 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
         else:
             f = open(output_file, 'wb')
         for label in data:
-            for stack in data[label]:
-                symbol = stack.rpartition(";")[2]
-                count = int(data[label][stack])
-                base_count = 0
-                if symbol in base_symbols:
-                    r = float(base_symbols[symbol]) / float(symbols[label][symbol])
-                    base_count = int(r * float(count))
-                ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
-                f.write(ll.encode())
+            if label != base_label:
+                for stack in data[label]:
+                    symbol = stack.rpartition(";")[2]
+                    count = int(data[label][stack])
+                    base_count = 0
+                    if symbol in symbols[base_label]:
+                        r = float(symbols[base_label][symbol]) / float(symbols[label][symbol])
+                        base_count = int(r * float(count))
+                    ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                    f.write(ll.encode())
         f.close()
-    elif flamegraph_type == "diff_stack_traces":
-        base_data = OrderedDict()
+    elif flamegraph_type == "inclusive_diff":
+        raw_stacks = defaultdict(dict)
         data = OrderedDict()
         base_case_id = stack_data.get_base_case_id()
-        base_task_id = base_case_id.task_id
-        base_pid = base_case_id.pid
-        base_tid = base_case_id.tid
+        base_label = base_case_id.label
         ids = stack_data.get_flamegraph_process_ids()
-        for task in stack_data.tasks:
-            task_id = stack_data.tasks[task].task_id
-            if task_id == base_task_id:
-                input_file = stack_data.tasks[task].filename + "_compressed"
-                fin = open(input_file, 'r')
-                for line in fin:
-                    k = keyword.search(line)
-                    if k:
-                        match = re.search(process_id_regex, line)
-                        if match:
-                            p = match.group(2)
-                            t = match.group(3)
-                            if p == base_pid and t == base_tid:
-                                stack, par, count = line.strip().rpartition(" ")
-                                s = re.sub("((\-all|[\-0-9]+)/(all|[0-9]+))", "", stack)
-                                base_data[s] = count
-                fin.close()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
             pids = {(proc_id.pid, proc_id.tid): proc_id.label for proc_id in ids if proc_id.task_id == task_id}
             if len(pids) > 0:
-                data[task_id] = OrderedDict()
                 input_file = stack_data.tasks[task].filename + "_compressed"
                 fin = open(input_file, 'r')
                 for line in fin:
@@ -934,10 +893,12 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                             t = match.group(3)
                             if (p, t) in pids:
                                 label = pids[(p, t)]
-                                if (p, t) not in data:
+                                if label not in data:
                                     data[label] = OrderedDict()
                                 stack, par, count = line.strip().rpartition(" ")
                                 data[label][stack] = count
+                                s = re.sub("((\-all|[\-0-9]+)/(all|[0-9]+))", "", stack)
+                                raw_stacks[label][s] = count
                 fin.close()
         output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)
         if append:
@@ -945,14 +906,22 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
         else:
             f = open(output_file, 'wb')
         for label in data:
-            for stack in data[label]:
-                s = re.sub("((\-all|[\-0-9]+)/(all|[0-9]+))", "", stack)
-                base_count = 0
-                count = data[label][stack]
-                if s in base_data:
-                    base_count = base_data[s]
-                ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
-                f.write(ll.encode())
+            if label != base_label:
+                for stack in data[label]:
+                    s = re.sub("((\-all|[\-0-9]+)/(all|[0-9]+))", "", stack)
+                    base_count = 0
+                    count = data[label][stack]
+                    if s in raw_stacks[base_label]:
+                        base_count = raw_stacks[base_label][s]
+                    ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                    f.write(ll.encode())
+                for stack in data[base_label]:
+                    s = re.sub("((\-all|[\-0-9]+)/(all|[0-9]+))", "", stack)
+                    count = 0
+                    base_count = data[base_label][stack]
+                    if s not in raw_stacks[label]:
+                        ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                        f.write(ll.encode())
         f.close()
     elif flamegraph_type == "plot_for_process":
         output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)

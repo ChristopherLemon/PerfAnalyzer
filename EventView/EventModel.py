@@ -14,6 +14,7 @@ class EventModel:
         self.custom_event_ratio = False
         self.text_filter = ""
         self.diff = False
+        self.exclusive = True
         self.flamegraph_mode = "hotspots"
         self.flamegraph_type = "plot_for_event"
         self.process_names = []
