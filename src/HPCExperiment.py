@@ -392,7 +392,7 @@ class HPCExperiment:
                         period = elt.attrib["v"]
             n = f.attrib['n']
             i = f.attrib['i']
-            match = re.match("(.*)\.\[([0-9]+),([0-9]+)\]", n)
+            match = re.match("[0-9\.]*(.*)\.\[([0-9]+),([0-9]+)\]", n)
             if match:
                 metric = match.group(1)
                 process = match.group(2)
