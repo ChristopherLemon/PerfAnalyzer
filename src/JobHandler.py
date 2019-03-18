@@ -307,13 +307,7 @@ class JobHandler:
             else:
                 return True
         else:
-            try:
-                os.path.exists(path)
-            except IOError as error:
-                if error[0] == 2:
-                    return False
-            else:
-                return True
+            return os.path.exists(path)
 
     def check_perf_event_paranoid(self, job_settings):
         if job_settings.use_ssh:
