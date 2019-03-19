@@ -547,7 +547,8 @@ def get_source_code(symbol, label, get_source_table=True):
     for i in range(len(GlobalData.hpc_results)):
         if job_id == GlobalData.hpc_results[i].get_job_id():
             process_id = all_stack_data[analysis_model.reference_process].get_process_id_from_label(label)
-            source_code_info = generate_source_code_info(symbol, GlobalData.hpc_results[i])
+            source_code_info = generate_source_code_info(all_stack_data[analysis_model.reference_process], process_id, 
+                symbol, GlobalData.hpc_results[i])
             if get_source_table:
                 source_code_table, source_code_line = \
                     generate_source_code_table(all_stack_data[analysis_model.reference_process], process_id,

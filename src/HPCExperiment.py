@@ -258,10 +258,20 @@ class HPCExperiment:
             if elt.tag == 'PF' or elt.tag == 'Pr':
                 name = elt.attrib['n']
                 p_name = self.procedure_map[name]
+                if p_name == "":
+                    continue
                 if node_level == len(current_stack):
                     current_stack[-1] = p_name
                 else:
                     current_stack.append(p_name)
+                frame = current_stack[-1]
+                frame = re.sub(" ", "", frame)
+                if frame not in self.frames:
+                    self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
+            elif self.include_statements and elt.tag == 'C':
+                line = elt.attrib['l']
+                unique_id = "Call@" + str(line) + "@" + current_stack[-1]
+                current_stack.append(unique_id)
                 frame = current_stack[-1]
                 frame = re.sub(" ", "", frame)
                 if frame not in self.frames:
@@ -441,9 +451,16 @@ class HPCExperiment:
         line = None
         file = None
         while nd is not None:
-            if nd.tag == "PF":
+            if nd.tag == "PF" or nd.tag == "Pr":
+                name = nd.attrib['n']
+                p_name = self.procedure_map[name]
+                if p_name == "":
+                    continue
                 f = nd.attrib['f']
                 file = file_map[f]
+                if not line:
+                    line = nd.attrib['l']
+            elif self.include_statements and nd.tag == "C":
                 if not line:
                     line = nd.attrib['l']
             elif self.include_loops and nd.tag == "L":
@@ -461,7 +478,11 @@ class HPCExperiment:
         d = 1
         nd = node
         while nd is not None:
-            if nd.tag == "PF":
+            if nd.tag == "PF" or nd.tag == "Pr":
+                name = nd.attrib['n']
+                if nd.attrib['n'] != "":
+                    d += 1
+            elif nd.tag == "C":
                 d += 1
             elif self.include_loops and nd.tag == "L":
                 d += 1

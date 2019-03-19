@@ -46,9 +46,9 @@ def get_file_analysis(stacks_data, process_id, frame, hpc_results):
     return inclusive_counts, exclusive_counts
 
 
-def get_percentage(counts, linenum, total):
+def get_percentage(count, total):
     if total > 0:
-        return 100.0 * float(counts[linenum]) / float(total)
+        return 100.0 * float(count) / float(total)
     else:
         return 0.0
 
@@ -97,8 +97,8 @@ def generate_source_code_table(stacks_data, process_id, frame, hpc_results):
             inc = str(inclusive_counts[line_num])
             exc = str(exclusive_counts[line_num])
             if process_id.event_type == "original":
-                pc_inc = str(round_sig(get_percentage(inclusive_counts, line_num, total), 4))
-                pc_exc = str(round_sig(get_percentage(exclusive_counts, line_num, total), 4))
+                pc_inc = str(round_sig(get_percentage(inclusive_counts[line_num], total), 4))
+                pc_exc = str(round_sig(get_percentage(exclusive_counts[line_num], total), 4))
             else:
                 pc_inc = "-"
                 pc_exc = "-"
@@ -122,15 +122,16 @@ def generate_source_code_table(stacks_data, process_id, frame, hpc_results):
     return table, source_lines["focus"]
 
 
-def generate_source_code_info(frame, hpc_results):
+def generate_source_code_info(stacks_data, process_id, frame, hpc_results):
     source_lines = get_lines(frame, hpc_results)
     frames = hpc_results.get_frames()
+    total = hpc_results.get_total_value(stacks_data, process_id)
     file = ""
     if frame in frames:
         info = frames[frame]
         file = os.path.join(hpc_results.results_dir, info[0])
     table_html = ["<table>", "<thead>", "<tr>"]
-    table_html += ["<th>File</th>", "<th>" + file + "</th>"]
+    table_html += ["<th>Inclusive</th>", "<th>Exclusive</th>", "<th>Line</th>", "<th>" + file + "</th>"]
     table_html.append("</tr>")
     table_html.append("</thead>")
     max_len = 1
@@ -140,11 +141,27 @@ def generate_source_code_info(frame, hpc_results):
     for line in source_lines["lines"]:
         line_num += 1
         if line_num == source_lines["focus"]:
+            inc_val = hpc_results.get_inclusive_value(stacks_data, process_id, frame)
+            exc_val = hpc_results.get_exclusive_value(stacks_data, process_id, frame)
+            inc = str(inc_val)
+            exc = str(exc_val)
+            if process_id.event_type == "original":
+                pc_inc = str(round_sig(get_percentage(inc_val, total), 4))
+                pc_exc = str(round_sig(get_percentage(exc_val, total), 4))
+            else:
+                pc_inc = "-"
+                pc_exc = "-"
+            inc_str = "{} ({}%)".format(inc, pc_inc)
+            exc_str = "{} ({}%)".format(exc, pc_exc)
             table_html.append("<tr bgcolor=\"grey\">")
-        elif -5 <= line_num - source_lines["focus"] <= 1000:
+        elif -5 <= line_num - source_lines["focus"] <= 250:
             table_html.append("<tr bgcolor=\"white\">")
+            inc_str = "-"
+            exc_str = "-"
         else:
             continue
+        table_html.append("<td>" + inc_str.ljust(20)  + "</td>")
+        table_html.append("<td>" + exc_str.ljust(20)  + "</td>")
         table_html.append("<td>" + str(line_num).ljust(5) + ": " + "</td>")
         src = line.rstrip().replace("&", "&amp;").replace("<", "&lt").replace(">", "&gt")
         table_html.append("<td><pre>" + src.ljust(max_len) + "</pre></td>")

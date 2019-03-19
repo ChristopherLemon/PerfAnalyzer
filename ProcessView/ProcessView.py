@@ -247,7 +247,8 @@ def get_source_code(symbol, label, get_source_table=True):
                 source_code_table, source_code_line = \
                     generate_source_code_table(all_stack_data[process_model.process], process_id,
                                             symbol, GlobalData.hpc_results[i])
-            source_code_info = generate_source_code_info(symbol, GlobalData.hpc_results[i])
+            source_code_info = generate_source_code_info(all_stack_data[process_model.process], process_id, 
+                symbol, GlobalData.hpc_results[i])
     return source_code_table, source_code_info, source_code_line
 
 
