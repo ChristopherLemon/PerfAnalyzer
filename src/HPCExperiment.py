@@ -177,8 +177,8 @@ class HPCResultsHandler:
             val = 0.0
             r1 = float(self.source_trees[process_id.label].get_exclusive_value(frame))
             r2 = float(self.source_trees[process_id.label + "_2"].get_exclusive_value(frame))
-            if r2 > 0.0:
-                val = r1 / r2
+            if r1 > 0.0:
+                val = r2 / r1
             return str(val)
         
     def get_inclusive_value(self, stack_data, process_id, frame):
@@ -189,8 +189,8 @@ class HPCResultsHandler:
             val = 0.0
             r1 = float(self.source_trees[process_id.label].get_inclusive_value(frame))
             r2 = float(self.source_trees[process_id.label + "_2"].get_inclusive_value(frame))
-            if r2 > 0.0:
-                val = r1 / r2
+            if r1 > 0.0:
+                val = r2 / r1
             return str(val)
 
     def get_total_value(self, stack_data, process_id):
