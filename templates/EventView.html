@@ -45,7 +45,7 @@
                     <a data-toggle="collapse" data-parent="#accordion" href="#flamegraph_collapse">
                         <div class="panel-heading">
                             <h4 class="panel-title">
-                                <strong>FlameGraph (Time Ordered Event Samples)</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
+                                <strong>FlameGraph (Time Ordered)</strong><i class="indicator glyphicon glyphicon-chevron-left  pull-right"></i>
                             </h4>
                         </div>
                     </a>
@@ -69,7 +69,7 @@
                                         <input type="radio" autocomplete="off" checked> Reference Process
                                     </label>
                                     <label style="margin:1px;" class="btn btn-primary" onclick="toggle_flamegraph('selected')">
-                                        <input type="radio" autocomplete="off"> All Selected Processes
+                                        <input type="radio" autocomplete="off"> All Processes
                                     </label>
                                 </div>
                             </div>
@@ -103,7 +103,7 @@
                         <div class="aligned-row">
                             <div class="flex-row" style="border-style:none;">
                                 <div class="flex-column" style="width:70%"><input style="margin:1px" class="form-control" id="text_filter" name="text_filter" placeholder="Text Filter: Enter regular expression" value="{{event_model.text_filter}}" oninput="find_text(this)"></div>
-                                <div class="flex-column" style="width:30%"><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="text_btn" name="text_btn" onclick="apply_text_filter('text_filter')">Apply Text Filter</button></div>
+                                <div class="flex-column" style="width:30%"><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="text_btn" name="text_btn" onclick="apply_text_filter('text_filter')">Text Filter</button></div>
                             </div>
                         </div>
                     </div>
@@ -269,7 +269,7 @@
                                 <div class="aligned-row">
                                     <div class="flex-row">
                                         <div class="flex-column" style="width:70%"><input style="margin:1px" class="form-control" id="point_filter" name="point_filter" placeholder="Text Filter: Enter regular expression" value="{{event_model.text_filter}}" oninput="find_points(this)"></div>
-                                        <div class="flex-column" style="width:30%"><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="point_btn" name="point_btn" onclick="apply_text_filter('point_filter')">Apply Text Filter</button></div>
+                                        <div class="flex-column" style="width:30%"><button style="margin:1px;" type="button" class="btn btn-basic btn-info" id="point_btn" name="point_btn" onclick="apply_text_filter('point_filter')">Text Filter</button></div>
                                     </div>
                                 </div>
                             </div>

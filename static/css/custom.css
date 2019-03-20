@@ -15,7 +15,7 @@
     right: 2%;
     padding: 10px;
     border: 2px solid #286090;
-    border-radius:4px;
+    border-radius:0px;
     z-index: 10;
     background-color: lightyellow;
     font-size: x-large;
@@ -236,11 +236,11 @@ table {
 }
 
 .panel-group .panel {
-    border-radius:4px;
+    border-radius:0px;
 }
 
 .panel-default {
-    border-radius:4px;
+    border-radius:0px;
     color: #333;
     background-color: #f5f5f5;
     border-color: #ddd;
@@ -253,7 +253,7 @@ p {
 }
 
 input[type=submit], .submit_style_button {
-    border-radius: 4px;
+    border-radius: 0px;
     margin: 2px;
     font-weight: bold;
     color: #337ab7;
@@ -267,6 +267,7 @@ input[type=submit]:hover, input[type=submit]:active, input[type=submit]:focus,
 
 .form-control {
     height: 100%;
+    border-radius: 0px;
 }
 
 .btn-info {
@@ -300,7 +301,7 @@ input[type=submit]:hover, input[type=submit]:active, input[type=submit]:focus,
 }
 
 .gradient_bar {
-    border-radius:4px;
+    border-radius:0px;
 }
 
 .collapsible_btn {
@@ -308,7 +309,11 @@ input[type=submit]:hover, input[type=submit]:active, input[type=submit]:focus,
     margin:2px;
     margin-left:12px;
     padding-left:6px;
-    border-radius:4px
+    border-radius:0px
+}
+
+.btn {
+    border-radius: 0px;
 }
 
 a.btn.btn-info.collapsed .fa.chevron:after {
