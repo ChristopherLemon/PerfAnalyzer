@@ -694,15 +694,18 @@
                 if ( e.target && e.target.parentNode.nodeName == "g"){
                     click_handler(e);
                 }
-            });
+            }, true);
         }
     }
     function click_handler(e) {
+        e.stopPropagation();
         if (!click_signal) {
             click_signal = true;
             timeout = setTimeout(function() {
                 wrap_flamegraph_onclick(e.target.parentNode);
                 click_signal = false;
+                let flamegraph = document.getElementById('flamegraph');
+                $(e.target).closest("g").trigger("click");
                 }, 300);
             return;
         } else {
@@ -1026,9 +1029,9 @@
             return subdoc;
         }
     }
-    function addEvent(obj, evType, fn) {
+    function addEvent(obj, evType, fn, capture = false) {
         if (obj.addEventListener) {
-            obj.addEventListener(evType, fn, false);
+            obj.addEventListener(evType, fn, capture);
             return true;
         } else if (obj.attachEvent) {
             let r = obj.attachEvent("on" + evType, fn);
