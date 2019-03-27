@@ -47,7 +47,7 @@ There are some dependencies on cryptograph and lxml, which are required to run w
 
 **Create Python 3 Virtual Environment**
 
-    virtualenv -p python3 perf_analyzer
+    python3 -m venv perf_analyzer
     source ./perf_analyzer/bin/activate
     pip install -r requirements_linux_py36.txt
     
@@ -70,7 +70,7 @@ The version of Glibc on the build machine should not exceed that on the machines
 
 **Create Python 3 Virtual Environment**
 
-    virtualenv -p python3 perf_analyzer
+    python3 -m venv perf_analyzer
     perf_analyzer\Scripts\activate.bat
     pip install -r requirements_py36.txt
     
