@@ -41,6 +41,7 @@ def get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, inv
     var details, searchbtn, matchedtxt, svg, globalscale;
     document.search = search;
     document.reset_search = reset_search;
+    document.zoom = zoom;
     function init() {
         details = document.getElementById("details").firstChild;
         searchbtn = document.getElementById("search");
@@ -483,10 +484,10 @@ class ColorHandler:
             logmean = math.log(mean)
             logvalue = math.log(value)
             if value > mean:
-                g = int(210 * ((logmax - logmean - (logvalue - logmean)) / (logmax - logmean)))
+                g = int(255 * ((logmax - logmean - (logvalue - logmean)) / (logmax - logmean)))
                 b = g
             elif value < mean:
-                r = int(210 * ((logmax - logmean + (logvalue - logmean)) / (logmax - logmean)))
+                r = int(255 * ((logmax - logmean + (logvalue - logmean)) / (logmax - logmean)))
                 b = r
         return "rgb({},{},{})".format(str(r), str(g), str(b))
 
