@@ -467,10 +467,10 @@ class ColorHandler:
         g = 255
         b = 255
         if value > 0:
-            g = int(210 * (max_value - value) / max_value)
+            g = int(220 * (max_value - value) / max_value)
             b = g
         elif value < 0:
-            r = int(210 * (max_value + value) / max_value)
+            r = int(220 * (max_value + value) / max_value)
             g = r
         return "rgb({},{},{})".format(str(r), str(g), str(b))
 

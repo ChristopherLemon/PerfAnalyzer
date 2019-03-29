@@ -433,7 +433,7 @@ class TimeLines:
                     self.im.group_start(nameattr)
                     color = self.color_handler.color_map(self.image_settings.colors, func)
                     x2 = x1 + count * widthpertime
-                    self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"2\" ry=\"2\"")
+                    self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"0\" ry=\"0\" fill-opacity=\"0.9\"")
                     self.im.group_end()
                     x1 = x2
                 y1 += frameheight + 2 * framepad
