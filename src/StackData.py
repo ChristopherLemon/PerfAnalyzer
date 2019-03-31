@@ -864,12 +864,13 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
             if label != base_label:
                 for stack in data[label]:
                     symbol = stack.rpartition(";")[2]
+                    s = re.sub("((\-all|[\-0-9]+)/(all|[0-9]+))", "", stack)
                     count = int(data[label][stack])
                     base_count = 0
                     if symbol in symbols[base_label]:
                         r = float(symbols[base_label][symbol]) / float(symbols[label][symbol])
                         base_count = int(r * float(count))
-                    ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                    ll = label + ";" + s + " " + str(base_count) + " " + str(count) + "\n"
                     f.write(ll.encode())
         f.close()
     elif flamegraph_type == "inclusive_diff":
@@ -913,14 +914,14 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                     count = data[label][stack]
                     if s in raw_stacks[base_label]:
                         base_count = raw_stacks[base_label][s]
-                    ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                    ll = label + ";" + s + " " + str(base_count) + " " + str(count) + "\n"
                     f.write(ll.encode())
                 for stack in data[base_label]:
                     s = re.sub("((\-all|[\-0-9]+)/(all|[0-9]+))", "", stack)
                     count = 0
                     base_count = data[base_label][stack]
                     if s not in raw_stacks[label]:
-                        ll = label + ";" + stack + " " + str(base_count) + " " + str(count) + "\n"
+                        ll = label + ";" + s + " " + str(base_count) + " " + str(count) + "\n"
                         f.write(ll.encode())
         f.close()
     elif flamegraph_type == "plot_for_process":

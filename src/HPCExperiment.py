@@ -438,7 +438,7 @@ class HPCExperiment:
     def get_procedure_name(node, procedure_map):
         nd = node
         while nd is not None:
-            if nd.tag == "PF":
+            if nd.tag == "PF" or nd.tag == 'Pr':
                 name = nd.attrib['n']
                 return procedure_map[name]
             nd = nd.getparent()
@@ -482,7 +482,7 @@ class HPCExperiment:
                 name = nd.attrib['n']
                 if nd.attrib['n'] != "":
                     d += 1
-            elif nd.tag == "C":
+            elif self.include_statements and nd.tag == "C":
                 d += 1
             elif self.include_loops and nd.tag == "L":
                 d += 1
