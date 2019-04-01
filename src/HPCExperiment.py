@@ -395,6 +395,7 @@ class HPCExperiment:
         metric_info = {}
         for f in pt.findall('Metric'):
             it = f.getiterator()
+            period = "1"
             for elt in it:
                 if "n" in elt.attrib:
                     n = elt.attrib["n"]
@@ -407,6 +408,13 @@ class HPCExperiment:
                 metric = match.group(1)
                 process = match.group(2)
                 thread = match.group(3)
+                metric_info[i] = (metric, process, thread, period)
+                filename = self.get_results_file_name(metric, process)
+                self.metric_to_results_map[i] = filename
+            else:
+                metric = n
+                process = "0"
+                thread = "0"
                 metric_info[i] = (metric, process, thread, period)
                 filename = self.get_results_file_name(metric, process)
                 self.metric_to_results_map[i] = filename
