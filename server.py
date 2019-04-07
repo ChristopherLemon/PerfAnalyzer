@@ -7,6 +7,7 @@ import argparse
 import pathlib
 from multiprocessing import freeze_support
 from io import StringIO
+from werkzeug.contrib.profiler import ProfilerMiddleware
 
 from flask import Flask, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
@@ -542,18 +543,26 @@ if __name__ == "__main__":
                         help="Output debug info")
     parser.add_argument('-browser', '--browser', default="default", dest="browser",
                         help="Path to web browser (default: system default web browser)")
+    parser.add_argument('-profile', '--profile', action="store_true", default=False, dest="profile",
+                        help="Output profile info")
     args = parser.parse_args()
     host = args.host
     port = args.port
     GlobalData.debug = args.debug
     GlobalData.n_proc = args.n_proc
     browser = args.browser
+    profile = args.profile
     url = "http://{}:{}/index".format(host, port)
+    debug_app = False
     if browser == "default":
         webbrowser.open_new(url)
     else:
         browser_path = os.path.normpath(browser)
         webbrowser.register('custom_browser', None, webbrowser.BackgroundBrowser(browser_path), 1)
         webbrowser.get('custom_browser').open_new_tab(url)
-    app.run(debug=False, use_reloader=False, host=host, port=int(port))
+    if profile:
+        app.config['PROFILE'] = True
+        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
+        debug_app = True
+    app.run(debug=debug_app, use_reloader=False, host=host, port=int(port))
 
