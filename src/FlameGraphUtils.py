@@ -802,7 +802,7 @@ class FlameGraph:
         imagewidth = self.image_settings.imagewidth
         xpad = self.image_settings.xpad
         widthpertime = float(imagewidth - 2 * xpad) / float(self.timemax)
-        if self.custom_event_ratio:
+        if self.custom_event_ratio or self.diff:
             widthpertime_2 = float(imagewidth - 2 * xpad) / float(self.timemax_2)
         for node_id in self.nodes:  # Draw frames
             [func, depth, end_time, end_time_2] = node_id.split(";")
@@ -821,7 +821,7 @@ class FlameGraph:
             exclusive_time_2 = node.exclusive_time_2
             exclusive_time_2_txt = "{:,}".format(exclusive_time_2)
             if func == "" and int(depth) == 0:
-                if self.custom_event_ratio:
+                if self.custom_event_ratio or self.diff:
                     info = "all ({} samples, 100%)".format(inclusive_time_txt)
                 else:
                     info = "all ({} samples, 100%)".format(inclusive_time_2_txt)
@@ -862,7 +862,7 @@ class FlameGraph:
                                 self.unit, exc_pct)
             nameattr = Attributes(info)
             self.im.group_start(nameattr)
-            if self.custom_event_ratio:
+            if self.custom_event_ratio or self.diff:
                 x1 = xpad + float(start_time_2) * widthpertime_2
                 x2 = xpad + float(end_time_2) * widthpertime_2
             else:
