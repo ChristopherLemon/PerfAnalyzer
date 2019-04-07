@@ -462,7 +462,7 @@ class ColorHandler:
                 return "rgb({},{},{})".format(str(r), str(g), str(b))
 
     @staticmethod
-    def color_scale(value, max_value):
+    def blue_to_red_color_scale(value, max_value):
         r = 255
         g = 255
         b = 255
@@ -475,7 +475,17 @@ class ColorHandler:
         return "rgb({},{},{})".format(str(r), str(g), str(b))
 
     @staticmethod
-    def color_log_scale(value, mean, max_value):
+    def green_color_scale(value, max_value):
+        r = 255
+        g = 255
+        b = 255
+        if abs(value) > 0:
+            r = int(220 * (max_value - value) / max_value)
+            b = r
+        return "rgb({},{},{})".format(str(r), str(g), str(b))
+
+    @staticmethod
+    def green_to_red_color_log_scale(value, mean, max_value):
         r = 255
         g = 255
         b = 255
@@ -490,6 +500,17 @@ class ColorHandler:
                 r = int(255 * ((logmax - logmean + (logvalue - logmean)) / (logmax - logmean)))
                 b = r
         return "rgb({},{},{})".format(str(r), str(g), str(b))
+
+    @staticmethod
+    def convert_to_grey_scale(rgb_string):
+        match = re.search("rgb\((.*),(.*),(.*)\)", rgb_string)
+        if match:
+            r = match.group(1)
+            g = match.group(2)
+            b = match.group(3)
+            rgb = (0.3 * int(r)) + (0.59 * int(g)) + (0.11 * int(b))
+            return "rgb({},{},{})".format(str(rgb), str(rgb), str(rgb))
+        return rgb_string
 
     def read_palette(self, palette_file):
         if os.path.isfile(palette_file):
@@ -682,8 +703,6 @@ class FlameGraph:
                 samples = match.group(2)
             self.mean_samples1 += float(samples)
             if samples2:
-              #  if samples2 == "0":
-              #      continue
                 if self.diff:
                     delta = float(samples2) - float(samples)
                 elif self.custom_event_ratio:
@@ -873,9 +892,11 @@ class FlameGraph:
             if func == "-":
                 color = vdgrey
             if self.diff:
-                color = self.color_handler.color_scale(delta, self.max_delta)
+                color = self.color_handler.blue_to_red_color_scale(delta, self.max_delta)
+                if not self.exclusive and float(inclusive_time) == 0.0:
+                    color = self.color_handler.green_color_scale(delta, self.max_delta)
             elif self.custom_event_ratio:
-                color = self.color_handler.color_log_scale(delta, self.mean_delta, self.upper_delta)
+                color = self.color_handler.green_to_red_color_log_scale(delta, self.mean_delta, self.upper_delta)
             else:
                 color = self.color_handler.color_map(self.image_settings.colors, func)
             self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"0\" ry=\"0\" group=\"" + node.group + "\"")
@@ -899,8 +920,15 @@ class FlameGraph:
         minwidth_time = float(self.image_settings.minwidth) / float(widthpertime)
         delete_nodes = []
         for node_id in self.nodes:
-            [depth, end_time] = node_id.split(";")[1:3]
+            vals = node_id.split(";")
+            depth = vals[1]
+            end_time = vals[2]
             start_time = self.nodes[node_id].start_time
+            if self.diff:
+                end_time_2 = vals[3]
+                start_time_2 = self.nodes[node_id].start_time_2
+                start_time = 0.5 * (start_time + start_time_2)
+                end_time = 0.5 * (int(end_time) + int(end_time_2))
             if int(end_time) - int(start_time) < minwidth_time:
                 delete_nodes.append(node_id)
                 continue
