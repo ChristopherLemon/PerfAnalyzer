@@ -822,6 +822,13 @@ class StackData:
 def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_event_type="original"):
     keyword = re.compile(stack_data.text_filter)
     process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
+
+    output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)
+    if append:
+        f = open(output_file, 'ab')
+    else:
+        f = open(output_file, 'wb')
+
     if flamegraph_type == "exclusive_diff":
         data = OrderedDict()
         base_symbols = {}
@@ -855,11 +862,6 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                                 symbols[label][symbol] = str(c)
                                 data[label][stack] = count
                 fin.close()
-        output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)
-        if append:
-            f = open(output_file, 'ab')
-        else:
-            f = open(output_file, 'wb')
         for label in data:
             for stack in data[label]:
                 symbol = stack.rpartition(";")[2]
@@ -871,7 +873,6 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                     base_count = int(r * float(count))
                 ll = label + ";" + s + " " + str(base_count) + " " + str(count) + "\n"
                 f.write(ll.encode())
-        f.close()
     elif flamegraph_type == "inclusive_diff":
         raw_stacks = defaultdict(dict)
         data = OrderedDict()
@@ -900,11 +901,6 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                                 s = re.sub("((\-all|[\-0-9]+)/(all|[0-9]+))", "", stack)
                                 raw_stacks[label][s] = count
                 fin.close()
-        output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)
-        if append:
-            f = open(output_file, 'ab')
-        else:
-            f = open(output_file, 'wb')
         for label in data:
             for stack in data[label]:
                 s = re.sub("((\-all|[\-0-9]+)/(all|[0-9]+))", "", stack)
@@ -921,13 +917,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                 if s not in raw_stacks[label]:
                     ll = label + ";" + s + " " + str(base_count) + " " + str(count) + "\n"
                     f.write(ll.encode())
-        f.close()
     elif flamegraph_type == "plot_for_process":
-        output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)
-        if append:
-            f = open(output_file, 'ab')
-        else:
-            f = open(output_file, 'wb')
         ids = stack_data.get_flamegraph_process_ids()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
@@ -959,13 +949,7 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                                             ll = pids[(p, t)] + ";" + line
                                             f.write(ll.encode())
                     fin.close()
-        f.close()
     elif flamegraph_type == "plot_for_event":
-        output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)
-        if append:
-            f = open(output_file, 'ab')
-        else:
-            f = open(output_file, 'wb')
         ids = stack_data.get_flamegraph_process_ids()
         for task in stack_data.tasks:
             task_id = stack_data.tasks[task].task_id
@@ -984,4 +968,4 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, append=False, output_ev
                                 ll = pids[(p, t)] + ";" + line
                                 f.write(ll.encode())
                 fin.close()
-        f.close()
+    f.close()
