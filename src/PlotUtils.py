@@ -971,13 +971,15 @@ class ChartWriter:
             if total > max_total:
                 max_total = total
             deltas = OrderedDict()
-            for s in x:
-                deltas[s] = x[s]
             for s in base_case_x:
-                if s in deltas:
-                    deltas[s] -= base_case_x[s]
-                else:
-                    deltas[s] = -base_case_x[s]
+                if s in x:
+                    deltas[s] = x[s]
+            for s in base_case_x:
+                if s in x:
+                    if s in deltas:
+                        deltas[s] -= base_case_x[s]
+                    else:
+                        deltas[s] = -base_case_x[s]
             sorted_deltas = sorted(deltas.items(), key=operator.itemgetter(1), reverse=True)
             for v in sorted_deltas[0:number_to_rank]:
                 s = v[0]

@@ -680,7 +680,6 @@ class FlameGraph:
         fin.close()
 
     def process_stacks(self):
-        stack_regex = re.compile(r"^(.*)\s+?(\d+(?:\.\d*)?)$")
         if self.image_settings.sort_by_time:
             self.sorted_data = sorted(self.data, key=cmp_to_key(self.sort))
         elif self.image_settings.sort_by_name:
@@ -688,19 +687,22 @@ class FlameGraph:
         else:
             self.sorted_data = self.data
         for line in self.sorted_data:
-            match = re.search(stack_regex, line)
-            stack = match.group(1)
-            samples = match.group(2)
+            stack = ""
+            samples = ""
+            samples2 = None
+            vals = line.split(" ")
+            if len(vals) > 1:
+                if self.diff or self.custom_event_ratio:
+                    samples = vals[-2]
+                    samples2 = vals[-1]
+                    stack = " ".join(vals[:-2])
+                else:
+                    samples = vals[-1]
+                    stack = " ".join(vals[:-1])
             if stack == "" or samples == "":
                 self.ignored += 1
                 continue
-            samples2 = None
             delta = None
-            match = re.search(stack_regex, stack)
-            if match:
-                samples2 = samples
-                stack = match.group(1)
-                samples = match.group(2)
             self.mean_samples1 += float(samples)
             if samples2:
                 if self.diff:
