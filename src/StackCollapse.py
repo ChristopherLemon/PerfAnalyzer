@@ -201,20 +201,9 @@ def collapse_stacks(input_file):
                 match = re.match("^\s*(\w+)\s*(.+) \((\S*)\)", line)
                 if match:
                     raw_func = match.group(2)
-                    mod = match.group(3)
                     if re.match("^\(", raw_func):
                         next
-                    inline = []
-                    parts = re.split("[\\->]",raw_func)
-                    for func in parts:
-                        if func == "[unknown]" and mod != "[unknown]":
-                            func = mod
-                            func = re.sub(".*\/", "", func)
-                            func = "[" + func + "]"
-                        func = func.replace(";", ":")
-                        func = re.sub("[<>\"\']", "", func).replace("\\", "")
-                        inline.append(func)
-                    stack = inline + stack
+                    stack = [raw_func] + stack
                 else:
                     print("unrecognised line: " + line)
     dump_stacks()
