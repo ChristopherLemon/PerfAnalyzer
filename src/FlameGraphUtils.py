@@ -676,7 +676,19 @@ class FlameGraph:
     def read_data(self):
         fin = open(self.in_file, 'r')
         for line in fin:
-            self.data.append(line)
+            stack = line.strip("<>/")
+            frames = stack.split(";")
+            if self.custom_event_ratio or self.diff:
+                r, _, count2 = frames[-1].rpartition(" ")
+                r, _, count1 = r.rpartition(" ")
+                frames[-1] = r
+                frames.append(count1)
+                frames.append(count2)
+            else:
+                r, _, count1 = frames[-1].rpartition(" ")
+                frames[-1] = r
+                frames.append(count1)
+            self.data.append(frames)
         fin.close()
 
     def process_stacks(self):
@@ -686,20 +698,19 @@ class FlameGraph:
             self.sorted_data = sorted(self.data, reverse=False)
         else:
             self.sorted_data = self.data
-        for line in self.sorted_data:
-            stack = ""
+        for frames in self.sorted_data:
+            stack = [""]
             samples = ""
             samples2 = None
-            vals = line.split(" ")
-            if len(vals) > 1:
+            if len(frames) > 1:
                 if self.diff or self.custom_event_ratio:
-                    samples = vals[-2]
-                    samples2 = vals[-1]
-                    stack = " ".join(vals[:-2])
+                    samples = frames[-2]
+                    samples2 = frames[-1]
+                    stack.extend(frames[0:-2])
                 else:
-                    samples = vals[-1]
-                    stack = " ".join(vals[:-1])
-            if stack == "" or samples == "":
+                    samples = frames[-1]
+                    stack.extend(frames[0:-1])
+            if samples == "":
                 self.ignored += 1
                 continue
             delta = None
@@ -719,12 +730,11 @@ class FlameGraph:
                 if delta > self.upper_delta:
                     self.upper_delta = delta
                 self.mean_samples2 += float(samples2)
-            stack = stack.strip("<>/")
             self.exclusive_time = int(samples)
             if samples2:
                 self.exclusive_time_2 = int(samples2)
 
-            self.last = self.flow(self.last, [""] + stack.split(";"), \
+            self.last = self.flow(self.last, stack, \
                 self.inclusive_time, self.exclusive_time, self.inclusive_time_2, self.exclusive_time_2)
 
             self.inclusive_time += int(samples)
@@ -950,20 +960,17 @@ class FlameGraph:
         self.store_data_order()
 
         def sort_stacks_by_time(a, b):  # Order each level in call stacks in the order of first appearance
-            s_a, _, secondary = a.rpartition(' ')
-            s_b, _, primary = b.rpartition(' ')
             if self.custom_event_ratio or self.diff:
-                s_a, _, secondary = s_a.rpartition(' ')
-                s_b, _, primary = s_b.rpartition(' ')
-            stacks_a = s_a.split(";")
-            stacks_b = s_b.split(";")
-            len_a = len(stacks_a)
-            len_b = len(stacks_b)
+                len_a = len(a) - 2
+                len_b = len(b) - 2
+            else:
+                len_a = len(a) - 1
+                len_b = len(b) - 1
             for n in range(0, len_a):
                 if n == len_b:
                     return 1
-                ca = self.data_order[n][stacks_a[n]]
-                cb = self.data_order[n][stacks_b[n]]
+                ca = self.data_order[n][a[n]]
+                cb = self.data_order[n][b[n]]
                 if ca > cb:
                     return 1
                 if ca < cb:
@@ -972,13 +979,13 @@ class FlameGraph:
         return sort_stacks_by_time
 
     def store_data_order(self):
-        for line in self.data:
-            r, _, secondary = line.rpartition(' ')
+        for frames in self.data:
             if self.custom_event_ratio or self.diff:
-                r, _, secondary = r.rpartition(' ')
-            parts = r.split(";")
+                end = len(frames) - 2
+            else:
+                end = len(frames) - 1
             n = 0
-            for s in parts:
+            for i, s in enumerate(frames[0:end]):
                 if n >= len(self.data_order):
                     self.data_order.append({})
                 len_data_order = len(self.data_order[n])

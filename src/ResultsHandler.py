@@ -7,6 +7,19 @@ from os import remove, close
 
 from src.Utilities import natural_sort
 
+
+def is_setting(line):
+    is_setting = re.match("event_counter", line) or \
+                 re.match("time_interval", line) or \
+                 re.match("cpu_id", line) or \
+                 re.match("system_wide", line)
+    return is_setting
+
+
+def is_results_file(line):
+    return not is_setting(line)
+
+
 def modify_process_ids(orig_pid, orig_file):
     # Replace process and thread ids with sets of sequential ids, starting from zero
     threads = {}
@@ -117,10 +130,7 @@ def replace_results_file(local_data, results_file, job_id):
     with open(abs_path, 'wb') as new_results_file:
         with open(results_file, 'r') as result:
             for line in result:
-                if (re.match("event_counter", line) or
-                        re.match("time_interval", line) or
-                        re.match("cpu_id", line) or
-                        re.match("system_wide", line)):  # copy run settings at start of results file
+                if is_setting(line):  # copy run settings at start of results file
                     new_results_file.write(line.encode())
                 else:  # ignore original results files
                     break
@@ -139,10 +149,7 @@ def get_events(path, results_files):  # Read events from results files
         full_filename = os.path.join(path, result_file)
         with open(full_filename) as infile:
             for line in infile:
-                if not (re.match("event_counter", line) or
-                        re.match("time_interval", line) or
-                        re.match("cpu_id", line) or
-                        re.match("system_wide", line)):
+                if is_results_file(line):
                     match = re.match("(.*proc(all|[0-9]+))_(.*)", line.strip())
                     event = match.group(3)
                     if event not in events:
@@ -157,10 +164,7 @@ def get_processes(path, results_files):  # Read processes from results files
         full_filename = os.path.join(path, result_file)
         with open(full_filename) as infile:
             for line in infile:
-                if not (re.match("event_counter", line) or
-                        re.match("time_interval", line) or
-                        re.match("cpu_id", line) or
-                        re.match("system_wide", line)):
+                if is_results_file(line):
                     match = re.match("(.*proc(all|[0-9]+))_(.*)", line.strip())
                     name = match.group(1)
                     if name not in processes:
@@ -175,10 +179,7 @@ def get_process_to_event_map(path, results_file):
     full_filename = os.path.join(path, results_file)
     with open(full_filename) as infile:
         for line in infile:
-            if not (re.match("event_counter", line) or
-                    re.match("time_interval", line) or
-                    re.match("cpu_id", line) or
-                    re.match("system_wide", line)):
+            if is_results_file(line):
                 match = re.match("(.*proc(all|[0-9]+))_(.*)", line.strip())
                 name = match.group(1)
                 event = match.group(3)
@@ -209,10 +210,7 @@ def get_trace_jobs(path, results_files):
         job_name = result_file.partition(".results")[0]
         with open(full_filename) as infile:
             for line in infile:
-                if not (re.match("event_counter", line) or
-                        re.match("time_interval", line) or
-                        re.match("cpu_id", line) or
-                        re.match("system_wide", line)):
+                if is_results_file(line):
                     match = re.match("(.*proc(all|[0-9]+))_(.*)", line.strip())
                     event = match.group(3)
                     if re.search("trace", event):
@@ -310,10 +308,7 @@ def get_results_info(path, results_files):
         processes[job] = []
         with open(full_filename) as infile:
             for line in infile:
-                if not (re.match("event_counter", line) or
-                        re.match("time_interval", line) or
-                        re.match("cpu_id", line) or
-                        re.match("system_wide", line)):
+                if is_results_file(line):
                     match = re.match("(.*proc(all|[0-9]+))_(.*)", line.strip())
                     job_process = match.group(1)
                     event = match.group(3)
