@@ -292,9 +292,6 @@ class GeneralAnalysis:
                         self.cluster_analysis.blob.append(x)
                         n += 1
 
-    def write_flamegraph_colour_map(self, working_dir, colours):
-        self.cluster_flamegraph.write_flamegraph_colour_map(working_dir, colours)
-
     def make_stack_map(self, clusters, append_cluster_labels, event1=None, event2=None, xlower=None,
                        xupper=None, ylower=None, yupper=None):
         self.cluster_flamegraph.make_stack_map(self.all_stack_data, clusters, append_cluster_labels, event1=event1,
