@@ -749,12 +749,14 @@ class JobHandler:
         f.write(command.encode())
 
         trace_event = None
-        if "cycles" in event_runs:
-            trace_event = "cycles"
-        elif "cpu-clock" in event_runs:
-            trace_event = "cpu-clock"
-        elif "task-clock" in event_runs:
-            trace_event = "task-clock"
+        for event in event_runs.keys():
+            trace_event = event
+            if re.search("cycles", event):
+                break
+            elif re.search("cpu-clock", event):
+                break
+            elif re.search("task-clock", event):
+                break
 
         dt = 10.0
         cpu = "General"

@@ -189,18 +189,20 @@ class CpuDefinition:
                 raw_event = available_event_map[event]
                 trace_events.append(raw_event)
         if len(trace_events) > 0:
-            if "trace-cpu-clock" in trace_events:
-                trace_event = "trace-cpu-clock"
-                trace_flag = "-F"
-                event_counter = frequency
-            elif "trace-task-clock" in active_event_counters:
-                trace_event = "trace-task-clock"
-                trace_flag = "-F"
-                event_counter = frequency
-            else:
-                trace_event = "trace-cycles"
-                trace_flag = "-c"
-                event_counter = count
+            for event in trace_events:
+                trace_event = event
+                if re.search("trace-cpu-clock", event):
+                    trace_flag = "-F"
+                    event_counter = frequency
+                    break
+                elif re.search("trace-task-clock", event):
+                    trace_flag = "-F"
+                    event_counter = frequency
+                    break
+                elif re.search("trace-cycles", event):
+                    trace_flag = "-c"
+                    event_counter = count
+                    break
             ordered_trace_events = [trace_event] + [event for event in trace_events if event != trace_event]
             group = \
                 {"flag": trace_flag, "events": ordered_trace_events, "event_counter": event_counter, "event_type": "Trace"}

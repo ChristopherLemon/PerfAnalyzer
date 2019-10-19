@@ -92,6 +92,8 @@ class ReadTraceTask:
         self.call_counts = {}
 
     def execute(self):
+        last_sample = 0.0
+        previous_exit_times = {}
         file = self.filename
         process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
         with open(file) as infile:
@@ -141,10 +143,12 @@ class ReadTraceTask:
                     if pid not in self.trace_data:
                         self.trace_data[pid] = {}
                         self.totals[pid] = {}
+                        previous_exit_times[pid] = {}
                     if tid not in self.trace_data[pid]:
                         self.trace_data[pid][tid] = []
                         self.trace_data[pid][tid].append([])
                         self.totals[pid][tid] = 0.0
+                        previous_exit_times[pid][tid] = last_sample
                     time_index = int(entry_time)
                     last_time = len(self.trace_data[pid][tid]) - 1
                     if time_index > last_time:
@@ -152,7 +156,9 @@ class ReadTraceTask:
                             self.trace_data[pid][tid].append([])
                     trace = {"stack": stack, "samples": samples}
                     self.trace_data[pid][tid][time_index].append(trace)
-                    self.totals[pid][tid] += self.time_scale * (exit_time - entry_time + self.sample_weight)
+                    self.totals[pid][tid] += self.time_scale * (exit_time - previous_exit_times[pid][tid])
+                    last_sample = exit_time
+                    previous_exit_times[pid][tid] = exit_time
                     self.time_norm = max(self.time_norm, exit_time)
 
     def unwind_stacks(self, this_context, frames, previous_stack):
@@ -245,7 +251,7 @@ class TraceData:
                             event = raw_event_to_event(raw_event, self.cpu_definition)
                             counter = self.event_counters[job][raw_event]
                             event_type = "trace"
-                            if re.match("clock", raw_event):
+                            if re.match(".*clock.*", raw_event):
                                 self.trace_event_type = "clock"
                                 self.sample_weight = 1.0 / float(counter)  # Convert from Hz to seconds
                             else:
@@ -469,6 +475,7 @@ class TraceData:
 
     def compute_hotspots(self):
         nodes = OrderedDict()
+        last_sample = 0
         for task_id in self.tasks:
             sample_weight = self.tasks[task_id].sample_weight
             for pid in self.trace_data[task_id]:
@@ -482,7 +489,8 @@ class TraceData:
                             node = re.sub("_\[\[call_[0-9]+\]\]", "", augmented_node)
                             if node not in nodes:
                                 nodes[node] = 0.0
-                            nodes[node] += self.time_scale * (end - start + sample_weight)
+                            nodes[node] += self.time_scale * (end - max(last_sample, start))
+                            last_sample = end
         self.ordered_nodes = sorted(nodes.items(), key=operator.itemgetter(1), reverse=True)
 
     def get_flamegraph_process_ids(self):
@@ -598,13 +606,15 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
     output_file = os.path.join(stack_data.path, stack_data.collapsed_stacks_filename)
     time_scale = stack_data.time_scale
     ids = stack_data.get_flamegraph_process_ids()
+    last_sample = 0.0
+    n_samples = 0
+    av_delta = sys.maxsize
     if flamegraph_type == "cumulative":
         collapsed_stacks = {}
         for task_id in stack_data.tasks:
             sample_weight = stack_data.tasks[task_id].sample_weight
             pids = [(proc_id.pid, proc_id.tid) for proc_id in ids if proc_id.task_id == task_id]
             for pid, tid in pids:
-                previous_x2 = t1
                 if pid not in collapsed_stacks:
                     collapsed_stacks[pid] = {}
                 if tid not in collapsed_stacks[pid]:
@@ -619,20 +629,24 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
                             if end > t1 and start <= t2:
                                 x1 = max(start, t1)
                                 x2 = min(end, t2)
-                                if x1 - previous_x2 > 1.25 * sample_weight:  # Ignore random noise
-                                    elapsed_delta = time_scale * (x1 - previous_x2 - sample_weight)
+                                if x1 - last_sample > 1.25 * av_delta:  # Ignore random noise
+                                    elapsed_delta = time_scale * (x1 - last_sample)
                                     no_samples = "no_samples"
                                     if no_samples not in collapsed_stacks[pid][tid]:
                                         collapsed_stacks[pid][tid][no_samples] = 0
                                     collapsed_stacks[pid][tid][no_samples] += elapsed_delta
                                 if new_trace not in collapsed_stacks[pid][tid]:
                                     collapsed_stacks[pid][tid][new_trace] = 0
-                                collapsed_stacks[pid][tid][new_trace] += time_scale * (x2 - x1 + sample_weight)
-                                previous_x2 = x2
+                                collapsed_stacks[pid][tid][new_trace] += time_scale * (x2 - max(last_sample, t1))
+                                last_sample = x2
+                                if n_samples > 0:
+                                    av_delta = last_sample / float(n_samples)
+                                n_samples += 1
+                                
                 # Fill in space for final interval between samples
                 if t2 < sys.maxsize:
-                    if t2 - previous_x2 > 1.25 * sample_weight:  # Ignore random noise
-                        elapsed_delta = time_scale * (t2 - previous_x2 - sample_weight)
+                    if t2 - last_sample > 1.25 * av_delta:  # Ignore random noise
+                        elapsed_delta = time_scale * (t2 - last_sample)
                         no_samples = "no_samples"
                         if no_samples not in collapsed_stacks[pid][tid]:
                             collapsed_stacks[pid][tid][no_samples] = 0
@@ -655,7 +669,6 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
             sample_weight = stack_data.tasks[task_id].sample_weight
             pids = [(proc_id.pid, proc_id.tid) for proc_id in ids if proc_id.task_id == task_id]
             for pid, tid in pids:
-                previous_x2 = t1
                 for time_index, time_slice in enumerate(stack_data.trace_data[task_id][pid][tid]):
                     if int(t1) <= time_index <= int(t2) and len(time_slice) > 0:
                         for time_slice_interval in time_slice:
@@ -666,14 +679,14 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
                                 x1 = max(start, t1)
                                 x2 = min(end, t2)
                                 # Fill in space for interval between samples
-                                if x1 - previous_x2 > 1.25 * sample_weight:  # Ignore random noise
-                                    elapsed_delta = time_scale * (x1 - previous_x2 - sample_weight)
+                                if x1 - last_sample > 1.25 * av_delta:  # Ignore random noise
+                                    elapsed_delta = time_scale * (x1 - max(last_sample, t1))
                                     n = int(elapsed_delta)
                                     if n > 0:
                                         out = "no_samples " + str(n) + "\n"
                                         f.write(out.encode())
                                         line_num += 1
-                                delta = time_scale * (x2 - x1 + sample_weight)  # milliseconds
+                                delta = time_scale * (x2 - max(last_sample, t1))
                                 n = int(delta)
                                 if n > 0:
                                     out = trace + " " + str(n) + "\n"
@@ -682,11 +695,14 @@ def write_flamegraph_stacks(stack_data, flamegraph_type, t1=-0.0000001, t2=sys.m
                                     if line_num > max_lines:
                                         f.close()
                                         return
-                                previous_x2 = x2
+                                last_sample = x2
+                                if n_samples > 0:
+                                    av_delta = last_sample / float(n_samples)
+                                n_samples += 1
                 # Fill in space for final interval between samples
                 if t2 < sys.maxsize:
-                    if t2 - previous_x2 > 1.25 * sample_weight:  # Ignore random noise
-                        elapsed_delta = time_scale * (t2 - previous_x2 - sample_weight)
+                    if t2 - last_sample > 1.25 * av_delta:  # Ignore random noise
+                        elapsed_delta = time_scale * (t2 - last_sample)
                         n = int(elapsed_delta)
                         if n > 0:
                             out = "no_samples " + str(n) + "\n"

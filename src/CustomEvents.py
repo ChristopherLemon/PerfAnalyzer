@@ -365,7 +365,10 @@ def add_custom_events_to_active_events(cpu_definition, raw_events):
         elif is_composite_event(raw_event):
             composite_events.append(raw_event)
         else:  # Unmatched event - just add it
-            event_group = "General"
+            if re.search("trace", raw_event):
+                event_group = "Trace"
+            else:
+                event_group = "General"
             unit = "Samples"
             cpu_definition.add_active_event(raw_event, raw_event, event_group, unit)
     # Deal with sums
