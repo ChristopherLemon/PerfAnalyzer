@@ -120,7 +120,7 @@ def get_perf_script_command(in_file, out_file, system_wide, frequency_sampling, 
         flags = flags + ",cpu"  # Add cpu field for system wide profiling
     if frequency_sampling:
         flags = flags + ",period"  # Add event period for frequency sampling
-    command = "{}perf script -F {} --show-kernel-path -i {} > {}".format(sudo, flags, in_file, out_file)
+    command = "{}perf script -f -F {} --show-kernel-path -i {} > {}".format(sudo, flags, in_file, out_file)
     if use_lsf:
         command = 'bsub -K -env {} -e bjobs.err -o bjobs.out -q {} -n 1 \"{}\"' \
             .format(env, queue, command)
@@ -697,7 +697,7 @@ class JobHandler:
         return script_name
 
     def convert_perf_data(self, perf_data_files, local_data, working_dir):
-        command = "cd {}; perf script --header-only -i {} | grep \"cmdline\"".format(working_dir, perf_data_files[0])
+        command = "cd {}; perf script -f --header-only -i {} | grep \"cmdline\"".format(working_dir, perf_data_files[0])
         output = subprocess.check_output(command, shell=True)
         command_line = output.decode("utf-8")
         if re.match(" -a ", command_line):
@@ -708,7 +708,7 @@ class JobHandler:
         run = 0
         for file in perf_data_files:
             run += 1
-            command = "cd {}; perf evlist -F -i {}".format(working_dir, file)
+            command = "cd {}; perf evlist -f -F -i {}".format(working_dir, file)
             output = subprocess.check_output(command, shell=True)
             events = output.decode("utf-8")
             event_counters = {}
