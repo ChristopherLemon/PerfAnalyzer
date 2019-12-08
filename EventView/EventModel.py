@@ -1,7 +1,4 @@
-
-
 class EventModel:
-
     def __init__(self):
         self.start = 0.0
         self.stop = 0.0
@@ -54,7 +51,3 @@ class EventModel:
 
         def to_dict(self):
             return vars(self)
-
-
-
-

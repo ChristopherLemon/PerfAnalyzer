@@ -1,8 +1,13 @@
-from src.JobHandler import get_global_mpirun_params, get_local_mpirun_params, get_perf_params, \
-    get_lsf_params, get_mpirun_appfile
+from src.JobHandler import (
+    get_global_mpirun_params,
+    get_local_mpirun_params,
+    get_perf_params,
+    get_lsf_params,
+    get_mpirun_appfile,
+)
+
 
 class SettingsModel:
-
     def __init__(self, set_defaults=True, cpu="General", cpu_definition=None):
 
         self.build()
@@ -84,4 +89,4 @@ class SettingsModel:
         self.preload = ""
 
     def to_dict(self):
-            return vars(self)
+        return vars(self)

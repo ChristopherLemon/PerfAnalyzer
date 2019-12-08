@@ -8,11 +8,21 @@ from src.Utilities import natural_sort
 from src.ColourMaps import cluster_plot_colours
 
 
-def get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, searchcolor):
-    values = {'xpad': xpad, 'bgcolor1': bgcolor1, 'bgcolor2': bgcolor2, 'nametype': nametype,
-              'fontsize': fontsize, 'fontwidth': fontwidth, 'searchcolor': searchcolor}
+def get_svg_scripts(
+    xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, searchcolor
+):
+    values = {
+        "xpad": xpad,
+        "bgcolor1": bgcolor1,
+        "bgcolor2": bgcolor2,
+        "nametype": nametype,
+        "fontsize": fontsize,
+        "fontwidth": fontwidth,
+        "searchcolor": searchcolor,
+    }
 
-    svg_scripts = string.Template("""<defs >
+    svg_scripts = string.Template(
+        """<defs >
     <linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
         <stop stop-color="$bgcolor1" stop-opacity="0.0" offset="5%" />
         <stop stop-color="$bgcolor1" stop-opacity="1.0" offset="15%" />
@@ -114,30 +124,33 @@ def get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, sea
             return;
     }
 ]]>
-</script>""")
+</script>"""
+    )
     return svg_scripts.substitute(values)
 
 
 class Attributes:
-
     def __init__(self, info):
-        self.attributes = {'class': "\"func_g\"",
-                           'onmouseover': "\"s(this)\"",
-                           'onmouseout': "\"c()\"",
-                           'title': info}
+        self.attributes = {
+            "class": '"func_g"',
+            "onmouseover": '"s(this)"',
+            "onmouseout": '"c()"',
+            "title": info,
+        }
 
 
 class SVGPackage:
-
     def __init__(self):
         self.svg = []
 
     def header(self, width, height):
-        values = {'width': width, 'height': height}
-        svg_header = string.Template("""<?xml version="1.0" standalone="no"?>
+        values = {"width": width, "height": height}
+        svg_header = string.Template(
+            """<?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg version="1.1" width="100%" height="100%" onload="init(evt)" viewBox="0 0 $width $height" 
-xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">""")
+xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">"""
+        )
         self.svg.append(svg_header.substitute(values) + "\n")
 
     def include(self, content):
@@ -148,9 +161,11 @@ xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">""
         return "rgb({},{},{})".format(r, g, b)
 
     def group_start(self, attr):
-        g_attributes = "<g class={} onmouseover={} onmouseout={}>\n".format(attr.attributes["class"],
-                                                                            attr.attributes["onmouseover"],
-                                                                            attr.attributes["onmouseout"])
+        g_attributes = "<g class={} onmouseover={} onmouseout={}>\n".format(
+            attr.attributes["class"],
+            attr.attributes["onmouseover"],
+            attr.attributes["onmouseout"],
+        )
         self.svg.append(g_attributes)
         self.svg.append("<title>{}</title>".format(attr.attributes["title"]))
 
@@ -158,41 +173,55 @@ xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">""
         self.svg.append("</g>\n")
 
     def filled_rectangle(self, x1, y1, x2, y2, fill, extra=""):
-        x1 = '{:.1f}'.format(x1)
-        x2 = '{:.1f}'.format(x2)
-        w = '{:.1f}'.format(float(x2) - float(x1))
-        h = '{:.1f}'.format(float(y2) - float(y1))
-        values = {'x1': x1, 'y1': y1, 'w': w, 'h': h, 'fill': fill, 'extra': extra}
-        rectangle = string.Template("""<rect x="$x1" y="$y1" width="$w" height="$h" fill="$fill" $extra/>\n""")
+        x1 = "{:.1f}".format(x1)
+        x2 = "{:.1f}".format(x2)
+        w = "{:.1f}".format(float(x2) - float(x1))
+        h = "{:.1f}".format(float(y2) - float(y1))
+        values = {"x1": x1, "y1": y1, "w": w, "h": h, "fill": fill, "extra": extra}
+        rectangle = string.Template(
+            """<rect x="$x1" y="$y1" width="$w" height="$h" fill="$fill" $extra/>\n"""
+        )
         self.svg.append(rectangle.substitute(values))
 
     def string_ttf(self, color, font, size, x, y, str_val, loc="left", extra=""):
-        x = '{:.2f}'.format(x)
-        values = {'loc': loc, 'x': x, 'y': y, 'size': size, 'font': font, 'color': color,
-                  'str': str_val, 'extra': extra}
+        x = "{:.2f}".format(x)
+        values = {
+            "loc": loc,
+            "x": x,
+            "y": y,
+            "size": size,
+            "font": font,
+            "color": color,
+            "str": str_val,
+            "extra": extra,
+        }
         string_ttf = string.Template(
             """<text text-anchor="$loc" x="$x" y="$y" font-size="$size" 
-            font-family="$font" fill="$color" $extra >$str</text>\n""")
+            font-family="$font" fill="$color" $extra >$str</text>\n"""
+        )
         self.svg.append(string_ttf.substitute(values))
 
     def polyline(self, path_coords, extra=""):
-        self.svg.append("<polyline points=\"")
+        self.svg.append('<polyline points="')
         for x, y in path_coords:
-            xi = '{:.1f}'.format(x)
-            yi = '{:.1f}'.format(y)
+            xi = "{:.1f}".format(x)
+            yi = "{:.1f}".format(y)
             self.svg.append(xi + "," + yi + " ")
-        self.svg.append("\" fill=\"transparent\" stroke-opacity=\"0.8\" stroke=\"grey\" "
-                        "stroke-width=\"2\" " + extra + "/>\n")
+        self.svg.append(
+            '" fill="transparent" stroke-opacity="0.8" stroke="grey" '
+            'stroke-width="2" ' + extra + "/>\n"
+        )
 
     def line(self, x1, y1, x2, y2, extra=""):
-        x1 = '{:.1f}'.format(x1)
-        x2 = '{:.1f}'.format(x2)
-        y1 = '{:.1f}'.format(y1)
-        y2 = '{:.1f}'.format(y2)
-        values = {'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'extra': extra}
+        x1 = "{:.1f}".format(x1)
+        x2 = "{:.1f}".format(x2)
+        y1 = "{:.1f}".format(y1)
+        y2 = "{:.1f}".format(y2)
+        values = {"x1": x1, "y1": y1, "x2": x2, "y2": y2, "extra": extra}
         rectangle = string.Template(
             """<line x1="$x1" y1="$y1" x2="$x2" y2="$y2" $extra stroke-opacity=\"0.8\" 
-            stroke=\"grey\" stroke-width=\"2\"/>\n""")
+            stroke=\"grey\" stroke-width=\"2\"/>\n"""
+        )
         self.svg.append(rectangle.substitute(values))
 
     def get_svg(self):
@@ -201,7 +230,6 @@ xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">""
 
 
 class ColorHandler:
-
     def __init__(self):
         self.palette_map = {}
 
@@ -216,7 +244,7 @@ class ColorHandler:
 
     def read_palette(self, palette_file):
         if os.path.isfile(palette_file):
-            fin = open(palette_file, 'r')
+            fin = open(palette_file, "r")
             for line in fin:
                 color_map = line.strip().split("->")
                 self.palette_map[color_map[0]] = color_map[1]
@@ -235,7 +263,7 @@ class ColorHandler:
         weight = 1
         max_value = 1
         mod = 10
-        name = re.sub(r'.(.*?)`/', '', name)
+        name = re.sub(r".(.*?)`/", "", name)
         for c in list(name):
             i = (ord(c)) % mod
             vector += (i / (mod - 1)) * weight
@@ -247,49 +275,59 @@ class ColorHandler:
         return 1 - (vector / max_value)
 
 
-ImageSettings = namedtuple('defaults',
-                           ['imagewidth',
-                            'frameheight',
-                            'fontsize',
-                            'fontwidth',
-                            'fonttype',
-                            'minwidth',
-                            'xpad',
-                            'ypad1',
-                            'ypad2',
-                            'framepad',
-                            'bgcolor1',
-                            'bgcolor2',
-                            'nametype',
-                            'searchcolor',
-                            'pal_file',
-                            'colors'])
+ImageSettings = namedtuple(
+    "defaults",
+    [
+        "imagewidth",
+        "frameheight",
+        "fontsize",
+        "fontwidth",
+        "fonttype",
+        "minwidth",
+        "xpad",
+        "ypad1",
+        "ypad2",
+        "framepad",
+        "bgcolor1",
+        "bgcolor2",
+        "nametype",
+        "searchcolor",
+        "pal_file",
+        "colors",
+    ],
+)
 
 
 def precision(t, value_range):
     if value_range < 1.0:
-        return '{:.4f}'.format(t)
+        return "{:.4f}".format(t)
     elif value_range < 100.0:
-        return '{:.2f}'.format(t)
+        return "{:.2f}".format(t)
     else:
-        return '{:.0f}'.format(t)
+        return "{:.0f}".format(t)
 
 
 class TimeLines:
-
-    def __init__(self, working_dir, timelines_data, out_file, intervals, event_map,
-                 color_map=None,
-                 has_color_map=False,
-                 imagewidth=1200,
-                 frameheight=16,
-                 fontsize=12,
-                 fontwidth=0.59,
-                 fonttype='Verdana',
-                 minwidth=0.1,
-                 nametype='Function',
-                 searchcolor='rgb(230,0,230)',
-                 pal_file='palette.map',
-                 colors='aqua'):
+    def __init__(
+        self,
+        working_dir,
+        timelines_data,
+        out_file,
+        intervals,
+        event_map,
+        color_map=None,
+        has_color_map=False,
+        imagewidth=1200,
+        frameheight=16,
+        fontsize=12,
+        fontwidth=0.59,
+        fonttype="Verdana",
+        minwidth=0.1,
+        nametype="Function",
+        searchcolor="rgb(230,0,230)",
+        pal_file="palette.map",
+        colors="aqua",
+    ):
         self.working_dir = working_dir
         self.out_file = self.working_dir + os.sep + out_file
         self.event_map = event_map
@@ -307,32 +345,54 @@ class TimeLines:
         if color_map:
             self.color_handler.palette_map = color_map
         self.im = SVGPackage()
-        self.image_settings = self.set_image_setings(fontsize, imagewidth, frameheight, fontwidth, fonttype, minwidth,
-                                                     nametype, searchcolor, pal_file, colors)
+        self.image_settings = self.set_image_setings(
+            fontsize,
+            imagewidth,
+            frameheight,
+            fontwidth,
+            fonttype,
+            minwidth,
+            nametype,
+            searchcolor,
+            pal_file,
+            colors,
+        )
         self.svg_scripts = self.set_svg_scripts()
         self.process_stacks()
 
     @staticmethod
-    def set_image_setings(fontsize, imagewidth, frameheight, fontwidth, fonttype, minwidth,
-                          nametype, searchcolor, pal_file, colors):
-        bgcolor1 = '#f8f8f8'
-        bgcolor2 = '#e8e8e8'
-        return ImageSettings(imagewidth=imagewidth,
-                             frameheight=frameheight,
-                             fontsize=fontsize,
-                             fontwidth=fontwidth,
-                             fonttype=fonttype,
-                             minwidth=minwidth,
-                             xpad=10,
-                             ypad1=fontsize * 4,
-                             ypad2=fontsize * 2 + 10,
-                             framepad=1,
-                             bgcolor1=bgcolor1,
-                             bgcolor2=bgcolor2,
-                             nametype=nametype,
-                             searchcolor=searchcolor,
-                             pal_file=pal_file,
-                             colors=colors)
+    def set_image_setings(
+        fontsize,
+        imagewidth,
+        frameheight,
+        fontwidth,
+        fonttype,
+        minwidth,
+        nametype,
+        searchcolor,
+        pal_file,
+        colors,
+    ):
+        bgcolor1 = "#f8f8f8"
+        bgcolor2 = "#e8e8e8"
+        return ImageSettings(
+            imagewidth=imagewidth,
+            frameheight=frameheight,
+            fontsize=fontsize,
+            fontwidth=fontwidth,
+            fonttype=fonttype,
+            minwidth=minwidth,
+            xpad=10,
+            ypad1=fontsize * 4,
+            ypad2=fontsize * 2 + 10,
+            framepad=1,
+            bgcolor1=bgcolor1,
+            bgcolor2=bgcolor2,
+            nametype=nametype,
+            searchcolor=searchcolor,
+            pal_file=pal_file,
+            colors=colors,
+        )
 
     def set_svg_scripts(self):
         xpad = self.image_settings.xpad
@@ -342,7 +402,9 @@ class TimeLines:
         fontsize = self.image_settings.fontsize
         fontwidth = self.image_settings.fontwidth
         searchcolor = self.image_settings.searchcolor
-        return get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, searchcolor)
+        return get_svg_scripts(
+            xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, searchcolor
+        )
 
     def process_stacks(self):
         process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
@@ -355,8 +417,8 @@ class TimeLines:
                     tid = match.group(3)
                     match2 = re.match("secondary-event;(.*)\s+(.*)\s+(.*)", line)
                     if match2:
-                        line, _, time = line.rpartition(' ')
-                        event = line.rpartition(' ')[2]
+                        line, _, time = line.rpartition(" ")
+                        event = line.rpartition(" ")[2]
                         if pid not in self.secondary_events:
                             self.secondary_events[pid] = OrderedDict()
                         if tid not in self.secondary_events[pid]:
@@ -371,8 +433,8 @@ class TimeLines:
                         self.sample_rates[pid] = OrderedDict()
                     if tid not in self.sample_rates[pid]:
                         self.sample_rates[pid][tid] = []
-                    line, _, rate = line.rpartition(' ')
-                    time = line.rpartition(' ')[2]
+                    line, _, rate = line.rpartition(" ")
+                    time = line.rpartition(" ")[2]
                     self.sample_rates[pid][tid].append((float(time), float(rate)))
                     self.max_sample_rate = max(self.max_sample_rate, float(rate))
             else:
@@ -385,9 +447,9 @@ class TimeLines:
                     if tid not in self.timelines[pid]:
                         self.timelines[pid][tid] = []
                         self.nlevels += 1
-                    line, _, count = line.rpartition(' ')
-                    line, _, end = line.rpartition(' ')
-                    line, _, start = line.rpartition(' ')
+                    line, _, count = line.rpartition(" ")
+                    line, _, end = line.rpartition(" ")
+                    line, _, start = line.rpartition(" ")
                     func = line.rpartition(";")[2]
                     if func:
                         self.timelines[pid][tid].append((func, start, end, int(count)))
@@ -409,10 +471,20 @@ class TimeLines:
         scale_time = float(imagewidth - 2 * xpad)
         self.im.header(imagewidth, imageheight)
         self.im.include(self.svg_scripts)
-        self.im.filled_rectangle(0, 0, imagewidth, imageheight, 'transparent', extra="id=\"background_rect\"")
+        self.im.filled_rectangle(
+            0, 0, imagewidth, imageheight, "transparent", extra='id="background_rect"'
+        )
         black = self.im.allocate_color(0, 0, 0)
-        self.im.string_ttf(black, fonttype, fontsize, xpad, imageheight - (ypad2 / 2), " ", "",
-                           "id=\"details\"")
+        self.im.string_ttf(
+            black,
+            fonttype,
+            fontsize,
+            xpad,
+            imageheight - (ypad2 / 2),
+            " ",
+            "",
+            'id="details"',
+        )
         y1 = ypad1
         for pid in natural_sort(self.timelines.keys()):
             for tid in natural_sort(self.timelines[pid].keys()):
@@ -424,20 +496,25 @@ class TimeLines:
                     escaped_func = re.sub("&", "&amp;", func)
                     escaped_func = re.sub("<", "&lt;", escaped_func)
                     escaped_func = re.sub(">", "&gt;", escaped_func)
-                    escaped_func = re.sub("\"", "&quot;", escaped_func)
-                    start = '{:.6f}'.format(float(start))
-                    end = '{:.6f}'.format(float(end))
-                    info = "pid:{}-tid:{} Max: {} (Start: {}, End: {})".format(str(pid), str(tid),
-                                                                               escaped_func, start, end)
+                    escaped_func = re.sub('"', "&quot;", escaped_func)
+                    start = "{:.6f}".format(float(start))
+                    end = "{:.6f}".format(float(end))
+                    info = "pid:{}-tid:{} Max: {} (Start: {}, End: {})".format(
+                        str(pid), str(tid), escaped_func, start, end
+                    )
                     nameattr = Attributes(info)
                     self.im.group_start(nameattr)
-                    color = self.color_handler.color_map(self.image_settings.colors, func)
+                    color = self.color_handler.color_map(
+                        self.image_settings.colors, func
+                    )
                     x2 = x1 + count * widthpertime
-                    self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"0\" ry=\"0\" fill-opacity=\"0.9\"")
+                    self.im.filled_rectangle(
+                        x1, y1, x2, y2, color, 'rx="0" ry="0" fill-opacity="0.9"'
+                    )
                     self.im.group_end()
                     x1 = x2
                 y1 += frameheight + 2 * framepad
-        scale_time /= (self.max_time - self.min_time)
+        scale_time /= self.max_time - self.min_time
 
         x1 = xpad
         y1 = float(ypad1) / 2.0
@@ -445,33 +522,59 @@ class TimeLines:
         n_ticks = self.intervals / 10
         for pid in sorted(self.timelines.keys()):
             for tid in sorted(self.timelines[pid].keys()):
-                dt = self.sample_rates[pid][tid][1][0] - self.sample_rates[pid][tid][0][0]
+                dt = (
+                    self.sample_rates[pid][tid][1][0]
+                    - self.sample_rates[pid][tid][0][0]
+                )
                 t = self.sample_rates[pid][tid][0][0] - 0.5 * dt
-                value_range = self.sample_rates[pid][tid][-1][0] - self.sample_rates[pid][tid][0][0]
+                value_range = (
+                    self.sample_rates[pid][tid][-1][0]
+                    - self.sample_rates[pid][tid][0][0]
+                )
                 for time, rate in self.sample_rates[pid][tid]:
-                    t1 = precision(t,  value_range)
+                    t1 = precision(t, value_range)
                     if count % n_ticks == 0:
                         y2 = y1 - (float(ypad1) / 8.0)
-                        self.im.line(x1, y1, x1, y2, extra="class=\"time_interval\" title=\"" + t1 + "\"")
+                        self.im.line(
+                            x1,
+                            y1,
+                            x1,
+                            y2,
+                            extra='class="time_interval" title="' + t1 + '"',
+                        )
                         if count == 0:
                             loc = "start"
                         else:
                             loc = "middle"
-                        self.im.string_ttf(black, fonttype, fontsize - 2, x1, y2 + 1, t1, loc=loc,
-                                           extra="font-style=\"italic\"")
+                        self.im.string_ttf(
+                            black,
+                            fonttype,
+                            fontsize - 2,
+                            x1,
+                            y2 + 1,
+                            t1,
+                            loc=loc,
+                            extra='font-style="italic"',
+                        )
                     else:
                         y2 = y1 - (float(ypad1) / 16.0)
-                        self.im.line(x1, y1, x1, y2, extra="class=\"time_interval\" title=\"" + t1 + "\"")
+                        self.im.line(
+                            x1,
+                            y1,
+                            x1,
+                            y2,
+                            extra='class="time_interval" title="' + t1 + '"',
+                        )
                     x1 += widthpertime
                     t += dt
                     count += 1
                 break
             break
-        t1 = precision(t,  value_range)
+        t1 = precision(t, value_range)
         y2 = y1 - (float(ypad1) / 8.0)
         loc = "end"
         self.im.string_ttf(black, fonttype, fontsize - 2, x1, y2 + 1, t1, loc=loc)
-        self.im.line(x1, y1, x1, y2, extra="class=\"time_interval\" title=\"" + t1 + "\"")
+        self.im.line(x1, y1, x1, y2, extra='class="time_interval" title="' + t1 + '"')
         self.im.line(xpad, y1, x1, y1)
 
         y1 = ypad1
@@ -518,10 +621,12 @@ class TimeLines:
                                 nc = len(colors)
                                 colors[event] = cluster_plot_colours[nc]
                             color = colors[event]
-                            t = '{:.6f}'.format(float(time))
+                            t = "{:.6f}".format(float(time))
                             nameattr = Attributes(event + " " + t)
                             self.im.group_start(nameattr)
-                            self.im.filled_rectangle(xi, yi, xj, yj, color, "rx=\"0\" ry=\"0\"")
+                            self.im.filled_rectangle(
+                                xi, yi, xj, yj, color, 'rx="0" ry="0"'
+                            )
                             self.im.group_end()
                     y1 += frameheight + 2 * framepad
             else:
@@ -530,6 +635,6 @@ class TimeLines:
         self.write_timelines()
 
     def write_timelines(self):
-        f = open(self.out_file, 'w')
+        f = open(self.out_file, "w")
         f.write(self.im.get_svg())
         f.close()

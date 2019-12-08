@@ -7,14 +7,16 @@ import re
 import operator
 
 from src.Utilities import natural_sort
-from src.CustomEvents import add_custom_events_to_active_events, raw_event_to_event, get_event_type
+from src.CustomEvents import (
+    add_custom_events_to_active_events,
+    raw_event_to_event,
+    get_event_type,
+)
 import src.GlobalData as GlobalData
 
-EventDefinition = namedtuple('EventDefinition',
-                             ['event',
-                              'raw_event',
-                              'event_group',
-                              'unit'])
+EventDefinition = namedtuple(
+    "EventDefinition", ["event", "raw_event", "event_group", "unit"]
+)
 
 event_definitions = OrderedDict()
 
@@ -31,7 +33,7 @@ def initialise_cpu_definitions():
         full_filename = os.path.join(perf_events_location, f)
         event_definitions[cpu] = []
         try:
-            with open(full_filename, 'r') as result:
+            with open(full_filename, "r") as result:
                 for line in result:
                     if re.findall("EventDefinition", line):
                         ll = line.partition(":")[2]
@@ -40,14 +42,20 @@ def initialise_cpu_definitions():
                         raw_event = data[1].strip()
                         event_group = data[2].strip()
                         event_unit = data[3].strip()
-                        event_definition = EventDefinition(event_name, raw_event, event_group, event_unit)
+                        event_definition = EventDefinition(
+                            event_name, raw_event, event_group, event_unit
+                        )
                         event_definitions[cpu].append(event_definition)
                         if event_group == "Software" or event_name == "Cycles":
-                            event_definition = \
-                                EventDefinition("Trace-" + event_name, "trace-" + raw_event, "Trace", event_unit)
+                            event_definition = EventDefinition(
+                                "Trace-" + event_name,
+                                "trace-" + raw_event,
+                                "Trace",
+                                event_unit,
+                            )
                             event_definitions[cpu].append(event_definition)
         except Exception as e:
-            raise Exception("Error reading line: \"" + line.strip() + "\"")
+            raise Exception('Error reading line: "' + line.strip() + '"')
 
 
 def modify_event_definitions(cpu, definitions):
@@ -55,8 +63,8 @@ def modify_event_definitions(cpu, definitions):
     orig_file = os.path.join(perf_events_location, cpu + ".events")
     fh, abs_path = mkstemp()
     start_edit = True
-    with open(abs_path, 'w') as new_file:
-        with open(orig_file, 'r') as result:
+    with open(abs_path, "w") as new_file:
+        with open(orig_file, "r") as result:
             for line in result:
                 match = re.search("EventDefinition", line)
                 if match:
@@ -68,8 +76,17 @@ def modify_event_definitions(cpu, definitions):
                             event_group = definition.event_group
                             event_unit = definition.unit
                             if not re.match("Trace", event_name):
-                                ll = ", ".join(["EventDefinition: " + event_name, raw_event,
-                                                event_group, event_unit]) + "\n"
+                                ll = (
+                                    ", ".join(
+                                        [
+                                            "EventDefinition: " + event_name,
+                                            raw_event,
+                                            event_group,
+                                            event_unit,
+                                        ]
+                                    )
+                                    + "\n"
+                                )
                                 new_file.write(ll)
                 else:
                     new_file.write(line)
@@ -79,7 +96,6 @@ def modify_event_definitions(cpu, definitions):
 
 
 class CpuDefinition:
-
     def __init__(self, cpu_name, available_events):
         self.base_event = "Cycles"
         self.cpu_name = cpu_name
@@ -94,7 +110,9 @@ class CpuDefinition:
     def add_active_event(self, event, raw_event, event_group, unit):
         active_events = self.get_active_events()
         if event not in active_events:
-            self.active_events.append(EventDefinition(event, raw_event, event_group, unit))
+            self.active_events.append(
+                EventDefinition(event, raw_event, event_group, unit)
+            )
 
     def get_event_definitions(self):
         return self.available_events
@@ -123,55 +141,94 @@ class CpuDefinition:
         return ["cpu-clock"]
 
     def get_available_event_group_map(self):
-        return {event_definition.event: event_definition.event_group for event_definition in self.available_events}
+        return {
+            event_definition.event: event_definition.event_group
+            for event_definition in self.available_events
+        }
 
     def get_available_raw_events(self):
-        return [event_definition.raw_event for event_definition in self.available_events]
+        return [
+            event_definition.raw_event for event_definition in self.available_events
+        ]
 
     def get_available_events(self):
-        return natural_sort([event_definition.event for event_definition in self.available_events])
+        return natural_sort(
+            [event_definition.event for event_definition in self.available_events]
+        )
 
     def get_available_event_units(self):
-        return {event_definition.event: event_definition.unit for event_definition in self.available_events}
+        return {
+            event_definition.event: event_definition.unit
+            for event_definition in self.available_events
+        }
 
     def get_available_event_map(self, event_to_raw_event=True):
         if event_to_raw_event:
-            event_map = \
-                {event_definition.event: event_definition.raw_event for event_definition in self.available_events}
+            event_map = {
+                event_definition.event: event_definition.raw_event
+                for event_definition in self.available_events
+            }
         else:
-            event_map = \
-                {event_definition.raw_event: event_definition.event for event_definition in self.available_events}
+            event_map = {
+                event_definition.raw_event: event_definition.event
+                for event_definition in self.available_events
+            }
         return OrderedDict(sorted(event_map.items()))
 
     def get_active_event_group_map(self):
-        return {event_definition.event: event_definition.event_group for event_definition in self.active_events}
+        return {
+            event_definition.event: event_definition.event_group
+            for event_definition in self.active_events
+        }
 
     def get_active_raw_events(self):
         return [event_definition.raw_event for event_definition in self.active_events]
 
     def get_active_events(self):
-        return natural_sort([event_definition.event for event_definition in self.active_events])
+        return natural_sort(
+            [event_definition.event for event_definition in self.active_events]
+        )
 
     def get_active_event_units(self):
-        return {event_definition.event: event_definition.unit for event_definition in self.active_events}
+        return {
+            event_definition.event: event_definition.unit
+            for event_definition in self.active_events
+        }
 
     def get_active_event_map(self, event_to_raw_event=True):
         if event_to_raw_event:
-            event_map = {event_definition.event: event_definition.raw_event for event_definition in self.active_events}
+            event_map = {
+                event_definition.event: event_definition.raw_event
+                for event_definition in self.active_events
+            }
         else:
-            event_map = {event_definition.raw_event: event_definition.event for event_definition in self.active_events}
+            event_map = {
+                event_definition.raw_event: event_definition.event
+                for event_definition in self.active_events
+            }
         return OrderedDict(sorted(event_map.items()))
 
     @staticmethod
     def get_custom_events(cpu_definition):
-        return [event_definition.event for event_definition in cpu_definition if
-                event_definition.event_group == "Custom"]
+        return [
+            event_definition.event
+            for event_definition in cpu_definition
+            if event_definition.event_group == "Custom"
+        ]
 
     def get_num_custom_event_ratios(self):
-        return len([event for event in self.get_active_events() if get_event_type(event) == "custom_event_ratio"])
+        return len(
+            [
+                event
+                for event in self.get_active_events()
+                if get_event_type(event) == "custom_event_ratio"
+            ]
+        )
 
     def get_event_groups(self):
-        group_set = {event_definition.event_group for event_definition in self.available_events}
+        group_set = {
+            event_definition.event_group for event_definition in self.available_events
+        }
         group_set.add("Custom")
         return sorted(list(group_set))
 
@@ -181,10 +238,14 @@ class CpuDefinition:
         available_event_map = self.get_available_event_map()
         event_group_map = self.get_available_event_group_map()
         event_units = self.get_available_event_units()
-        active_event_counters = {event: frequency for event in available_events if event in active_events}
+        active_event_counters = {
+            event: frequency for event in available_events if event in active_events
+        }
         perf_event_groups = []
         trace_events = []
-        for event, counter in sorted(active_event_counters.items(), key=operator.itemgetter(1)):
+        for event, counter in sorted(
+            active_event_counters.items(), key=operator.itemgetter(1)
+        ):
             if event_group_map[event] == "Trace":
                 raw_event = available_event_map[event]
                 trace_events.append(raw_event)
@@ -203,13 +264,26 @@ class CpuDefinition:
                     trace_flag = "-c"
                     event_counter = count
                     break
-            ordered_trace_events = [trace_event] + [event for event in trace_events if event != trace_event]
-            group = \
-                {"flag": trace_flag, "events": ordered_trace_events, "event_counter": event_counter, "event_type": "Trace"}
+            ordered_trace_events = [trace_event] + [
+                event for event in trace_events if event != trace_event
+            ]
+            group = {
+                "flag": trace_flag,
+                "events": ordered_trace_events,
+                "event_counter": event_counter,
+                "event_type": "Trace",
+            }
             perf_event_groups.append(copy.deepcopy(group))
-        group = {"flag": "-F", "events": [], "event_counter": 0, "event_type": "Standard"}
+        group = {
+            "flag": "-F",
+            "events": [],
+            "event_counter": 0,
+            "event_type": "Standard",
+        }
         n = 0
-        for event, counter in sorted(active_event_counters.items(), key=operator.itemgetter(1)):
+        for event, counter in sorted(
+            active_event_counters.items(), key=operator.itemgetter(1)
+        ):
             raw_event = available_event_map[event]
             event_unit = event_units[event]
             if event_unit == "Hz":
@@ -222,13 +296,25 @@ class CpuDefinition:
                 else:
                     if n > 0:
                         perf_event_groups.append(copy.deepcopy(group))
-                    group = {"flag": "-F", "events": [raw_event], "event_counter": frequency, "event_type": "Standard"}
+                    group = {
+                        "flag": "-F",
+                        "events": [raw_event],
+                        "event_counter": frequency,
+                        "event_type": "Standard",
+                    }
                     n = 1
         if n > 0:
             perf_event_groups.append(copy.deepcopy(group))
-        group = {"flag": "-c", "events": [], "event_counter": count, "event_type": "Standard"}
+        group = {
+            "flag": "-c",
+            "events": [],
+            "event_counter": count,
+            "event_type": "Standard",
+        }
         n = 0
-        for event, counter in sorted(active_event_counters.items(), key=operator.itemgetter(1)):
+        for event, counter in sorted(
+            active_event_counters.items(), key=operator.itemgetter(1)
+        ):
             raw_event = available_event_map[event]
             event_unit = event_units[event]
             if event_unit == "Samples":
@@ -241,7 +327,12 @@ class CpuDefinition:
                 else:
                     if n > 0:
                         perf_event_groups.append(copy.deepcopy(group))
-                    group = {"flag": "-c", "events": [raw_event], "event_counter": count, "event_type": "Standard"}
+                    group = {
+                        "flag": "-c",
+                        "events": [raw_event],
+                        "event_counter": count,
+                        "event_type": "Standard",
+                    }
                     n = 1
         if n > 0:
             perf_event_groups.append(copy.deepcopy(group))
@@ -266,8 +357,14 @@ class CpuDefinition:
                 trace_enabled = True
             else:
                 events_enabled = True
-        general_analysis_enabled = len(self.get_active_raw_events()) > 1 and self.base_event in active_events
-        return {"general_analysis": general_analysis_enabled, "trace": trace_enabled, "events": events_enabled}
+        general_analysis_enabled = (
+            len(self.get_active_raw_events()) > 1 and self.base_event in active_events
+        )
+        return {
+            "general_analysis": general_analysis_enabled,
+            "trace": trace_enabled,
+            "events": events_enabled,
+        }
 
 
 def reset_enabled_modes():

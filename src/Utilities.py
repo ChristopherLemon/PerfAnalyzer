@@ -17,7 +17,7 @@ def get_datetime_diff(datetime1, datetime2):
     days = delta.days
     hours, remainder = divmod(delta.seconds, 3600)
     minutes, seconds = divmod(remainder, 60)
-    return '%d:%02d:%02d:%02d' % (days, hours, minutes, seconds)
+    return "%d:%02d:%02d:%02d" % (days, hours, minutes, seconds)
 
 
 def get_datetime_end(date_time, time_delta):
@@ -43,9 +43,13 @@ def purge(directory, *args):
 
 def natural_sort(l, key=lambda x: x):
     """natural sort algorithm for alphanumeric strings"""
-    def convert(text): return int(text) if text.isdigit() else text
 
-    def alphanum_key(element): return [convert(c) for c in re.split('([0-9]+)', key(element))]
+    def convert(text):
+        return int(text) if text.isdigit() else text
+
+    def alphanum_key(element):
+        return [convert(c) for c in re.split("([0-9]+)", key(element))]
+
     lns = sorted(l, key=alphanum_key)
     return lns
 
@@ -81,7 +85,7 @@ def format_number(x):
     """Jinja2 context processor to display large numbers using scientific notation"""
     y = float(x)
     if abs(y) >= 1000.0:
-        y = '{0:.2E}'.format(Decimal(x))
+        y = "{0:.2E}".format(Decimal(x))
     else:
         y = str(x)
     return y

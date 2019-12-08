@@ -15,7 +15,6 @@ def is_hpc_result(results_file):
 
 
 class HPCExperimentHandler:
-
     def __init__(self, results_dir, experiment):
         self.results_dir = results_dir
         self.experiment_file = experiment
@@ -30,17 +29,31 @@ class HPCExperimentHandler:
             self.detail = "loops"
         else:
             self.detail = "functions"
-        self.results_file = os.path.join(self.results_dir, self.job_id) + "_" + self.detail + ".results"
+        self.results_file = (
+            os.path.join(self.results_dir, self.job_id) + "_" + self.detail + ".results"
+        )
         f = open(self.results_file, "wb")
         f.write("cpu_id:General\n".encode())
         f.write("time_interval:1.00\n".encode())
-        hpc_experiment = HPCExperiment(self.results_dir, self.job_id + "_" + self.detail)
-        hpc_experiment.read_experiment(self.experiment_file, include_loops, include_statements)
+        hpc_experiment = HPCExperiment(
+            self.results_dir, self.job_id + "_" + self.detail
+        )
+        hpc_experiment.read_experiment(
+            self.experiment_file, include_loops, include_statements
+        )
         hpc_experiment.process_experiment()
         metrics = hpc_experiment.get_metrics()
         results = hpc_experiment.get_results()
         for metric in metrics:
-            info = "event_counter-" + metric.lower() + ":run-" + str(1) + ":" + str(1) + "\n"
+            info = (
+                "event_counter-"
+                + metric.lower()
+                + ":run-"
+                + str(1)
+                + ":"
+                + str(1)
+                + "\n"
+            )
             f.write(info.encode())
         for result in results:
             out = result + "\n"
@@ -56,7 +69,6 @@ class HPCExperimentHandler:
 
 
 class Node:
-
     def __init__(self, frame, node_id, parent=None):
         self.exclusive = 0
         self.inclusive = 0
@@ -71,7 +83,6 @@ class Node:
 
 
 class SourceTree:
-
     def __init__(self, process_id):
         self.process_id = process_id
         self.nodes = {}
@@ -108,8 +119,6 @@ class SourceTree:
                     parent = old_node
         for child in self.root.children:
             self.root.inclusive += child.inclusive
-        
-        
 
     def get_exclusive_value(self, frame, node=None):
         node = node if node is not None else self.root
@@ -135,7 +144,6 @@ class SourceTree:
 
 
 class HPCResultsHandler:
-
     def __init__(self, results_dir, results_file):
         self.results_dir = results_dir
         self.job_id = pathlib.Path(results_file).stem
@@ -159,15 +167,25 @@ class HPCResultsHandler:
     def generate_source_tree(self, stack_data, process_id):
         if process_id.label not in self.source_trees:
             if process_id.event_type == "original":
-                    x_data = stack_data.get_original_event_stack_data(process_id)
-                    self.source_trees[process_id.label] = SourceTree(process_id.label)
-                    self.source_trees[process_id.label].build_tree(x_data, self.frames, self.results_dir)
+                x_data = stack_data.get_original_event_stack_data(process_id)
+                self.source_trees[process_id.label] = SourceTree(process_id.label)
+                self.source_trees[process_id.label].build_tree(
+                    x_data, self.frames, self.results_dir
+                )
             else:
-                x_data, y_data = stack_data.get_custom_event_ratio_stack_data(process_id)
+                x_data, y_data = stack_data.get_custom_event_ratio_stack_data(
+                    process_id
+                )
                 self.source_trees[process_id.label] = SourceTree(process_id)
-                self.source_trees[process_id.label].build_tree(x_data, self.frames, self.results_dir)
-                self.source_trees[process_id.label + "_2"] = SourceTree(process_id.label + "_2")
-                self.source_trees[process_id.label + "_2"].build_tree(y_data, self.frames, self.results_dir)
+                self.source_trees[process_id.label].build_tree(
+                    x_data, self.frames, self.results_dir
+                )
+                self.source_trees[process_id.label + "_2"] = SourceTree(
+                    process_id.label + "_2"
+                )
+                self.source_trees[process_id.label + "_2"].build_tree(
+                    y_data, self.frames, self.results_dir
+                )
 
     def get_exclusive_value(self, stack_data, process_id, frame):
         self.generate_source_tree(stack_data, process_id)
@@ -176,11 +194,13 @@ class HPCResultsHandler:
         else:
             val = 0.0
             r1 = float(self.source_trees[process_id.label].get_exclusive_value(frame))
-            r2 = float(self.source_trees[process_id.label + "_2"].get_exclusive_value(frame))
+            r2 = float(
+                self.source_trees[process_id.label + "_2"].get_exclusive_value(frame)
+            )
             if r1 > 0.0:
                 val = r2 / r1
             return str(val)
-        
+
     def get_inclusive_value(self, stack_data, process_id, frame):
         self.generate_source_tree(stack_data, process_id)
         if process_id.event_type == "original":
@@ -188,7 +208,9 @@ class HPCResultsHandler:
         else:
             val = 0.0
             r1 = float(self.source_trees[process_id.label].get_inclusive_value(frame))
-            r2 = float(self.source_trees[process_id.label + "_2"].get_inclusive_value(frame))
+            r2 = float(
+                self.source_trees[process_id.label + "_2"].get_inclusive_value(frame)
+            )
             if r1 > 0.0:
                 val = r2 / r1
             return str(val)
@@ -196,7 +218,7 @@ class HPCResultsHandler:
     def get_total_value(self, stack_data, process_id):
         self.generate_source_tree(stack_data, process_id)
         return self.source_trees[process_id.label].get_total_value()
-    
+
     def get_frames(self):
         return self.frames
 
@@ -209,7 +231,6 @@ class HPCResultsHandler:
 
 
 class HPCExperiment:
-
     def __init__(self, results_dir, job_id):
         self.results_dir = results_dir
         self.job_id = job_id
@@ -227,9 +248,13 @@ class HPCExperiment:
         self.color_map = {}
         self.header = ""
         self.metric_info = None
-        self.parser = etree.XMLParser(huge_tree=True) # Nesting level can be excessively high!
+        self.parser = etree.XMLParser(
+            huge_tree=True
+        )  # Nesting level can be excessively high!
 
-    def read_experiment(self, experiment_file, include_loops=True, include_statements=False):
+    def read_experiment(
+        self, experiment_file, include_loops=True, include_statements=False
+    ):
         self.experiment_file = experiment_file
         self.include_loops = include_loops
         self.include_statements = include_statements
@@ -255,8 +280,8 @@ class HPCExperiment:
             if node_level < len(current_stack):
                 n = len(current_stack) - node_level
                 del current_stack[-n:]
-            if elt.tag == 'PF' or elt.tag == 'Pr':
-                name = elt.attrib['n']
+            if elt.tag == "PF" or elt.tag == "Pr":
+                name = elt.attrib["n"]
                 p_name = self.procedure_map[name]
                 if p_name == "":
                     continue
@@ -268,16 +293,16 @@ class HPCExperiment:
                 frame = re.sub(" ", "", frame)
                 if frame not in self.frames:
                     self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
-            elif self.include_statements and elt.tag == 'C':
-                line = elt.attrib['l']
+            elif self.include_statements and elt.tag == "C":
+                line = elt.attrib["l"]
                 unique_id = "Call@" + str(line) + "@" + current_stack[-1]
                 current_stack.append(unique_id)
                 frame = current_stack[-1]
                 frame = re.sub(" ", "", frame)
                 if frame not in self.frames:
                     self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
-            elif self.include_loops and elt.tag == 'L':
-                line = elt.attrib['l']
+            elif self.include_loops and elt.tag == "L":
+                line = elt.attrib["l"]
                 p_name = self.get_procedure_name(elt, self.procedure_map)
                 unique_id = "Loop@" + str(line) + "@" + p_name
                 self.color_map[unique_id] = colors[8]
@@ -289,8 +314,8 @@ class HPCExperiment:
                 frame = re.sub(" ", "", frame)
                 if frame not in self.frames:
                     self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
-            elif self.include_statements and elt.tag == 'S':
-                line = elt.attrib['l']
+            elif self.include_statements and elt.tag == "S":
+                line = elt.attrib["l"]
                 p_name = self.get_procedure_name(elt, self.procedure_map)
                 unique_id = "Line@" + str(line) + "@" + p_name
                 self.color_map[unique_id] = colors[0]
@@ -302,8 +327,8 @@ class HPCExperiment:
                 frame = re.sub(" ", "", frame)
                 if frame not in self.frames:
                     self.frames[frame] = self.unwind_frame_details(elt, self.file_map)
-            elif elt.tag == 'M':
-                n = elt.attrib['n']
+            elif elt.tag == "M":
+                n = elt.attrib["n"]
                 if n in self.metric_info:
                     stack_trace = ";".join(current_stack[1:])
                     stack_trace = re.sub(" ", "", stack_trace)
@@ -317,31 +342,43 @@ class HPCExperiment:
                         current_count[unique_id] = 0
                         previous_stack_trace[unique_id] = stack_trace
                     current_stack_trace[unique_id] = stack_trace
-                    if current_count[unique_id] > 0 and \
-                            current_stack_trace[unique_id] != previous_stack_trace[unique_id]:
+                    if (
+                        current_count[unique_id] > 0
+                        and current_stack_trace[unique_id]
+                        != previous_stack_trace[unique_id]
+                    ):
                         if metric not in self.metrics:
                             self.metrics[metric] = period
-                        out = "{}-{}/{};{} {}\n"\
-                            .format(self.header, process, thread, previous_stack_trace[unique_id],
-                                    str(current_count[unique_id]))
+                        out = "{}-{}/{};{} {}\n".format(
+                            self.header,
+                            process,
+                            thread,
+                            previous_stack_trace[unique_id],
+                            str(current_count[unique_id]),
+                        )
                         filename = self.get_results_file_name(metric, process)
                         if filename not in self.results_files:
-                            self.results_files[filename] = open(filename, 'wb')
+                            self.results_files[filename] = open(filename, "wb")
                             self.results_files[filename].write("t=0.00\n".encode())
                         self.results_files[filename].write(out.encode())
                         current_count[unique_id] = 0
                         previous_stack_trace[unique_id] = current_stack_trace[unique_id]
-                    total = int(round(float(elt.attrib['v'])))
+                    total = int(round(float(elt.attrib["v"])))
                     current_count[unique_id] += total
         for unique_id in current_stack_trace:
             metric = unique_id[0]
             process = unique_id[1]
             thread = unique_id[2]
-            out = "{}-{}/{};{} {}\n"\
-                .format(self.header, process, thread, current_stack_trace[unique_id], str(current_count[unique_id]))
+            out = "{}-{}/{};{} {}\n".format(
+                self.header,
+                process,
+                thread,
+                current_stack_trace[unique_id],
+                str(current_count[unique_id]),
+            )
             filename = self.get_results_file_name(metric, process)
             if filename not in self.results_files:
-                self.results_files[filename] = open(filename, 'wb')
+                self.results_files[filename] = open(filename, "wb")
                 self.results_files[filename].write(out.encode())
         for filename in self.results_files:
             self.results_files[filename].write("t=1.00\n".encode())
@@ -350,13 +387,15 @@ class HPCExperiment:
 
     def write_file_map(self):
         filename = os.path.join(self.results_dir, self.job_id) + ".frames"
-        f = open(filename, 'wb')
+        f = open(filename, "wb")
         for frame in self.frames:
             info = self.frames[frame]
             file = info[0]
             line = info[1]
             database_location = os.path.dirname(self.experiment_file)
-            path = os.path.relpath(os.path.join(database_location, Path(file)), self.results_dir)
+            path = os.path.relpath(
+                os.path.join(database_location, Path(file)), self.results_dir
+            )
             out = "{} {}@{}\n".format(frame, path, line)
             f.write(out.encode())
         f.close
@@ -366,7 +405,7 @@ class HPCExperiment:
 
     def find_header(self):
         root = self.experiment_tree.getroot()
-        return root.find('.//Header').attrib['n']
+        return root.find(".//Header").attrib["n"]
 
     def get_header(self):
         return self.header
@@ -391,9 +430,9 @@ class HPCExperiment:
 
     def find_metric_info(self):
         root = self.experiment_tree.getroot()
-        pt = root.find('.//MetricTable')
+        pt = root.find(".//MetricTable")
         metric_info = {}
-        for f in pt.findall('Metric'):
+        for f in pt.findall("Metric"):
             it = f.getiterator()
             period = "1"
             for elt in it:
@@ -401,8 +440,8 @@ class HPCExperiment:
                     n = elt.attrib["n"]
                     if n == "period":
                         period = elt.attrib["v"]
-            n = f.attrib['n']
-            i = f.attrib['i']
+            n = f.attrib["n"]
+            i = f.attrib["i"]
             n = re.sub(":", "-", n)  # avoid filename with colons
             match = re.match("[0-9\.]*(.*)\.\[([0-9]+),([0-9]+)\]", n)
             if match:
@@ -425,10 +464,10 @@ class HPCExperiment:
     def get_file_names(experiment_tree):
         file_map = {}
         root = experiment_tree.getroot()
-        pt = root.find('.//FileTable')
-        for f in pt.findall('File'):
-            i = f.attrib['i']
-            n = f.attrib['n']
+        pt = root.find(".//FileTable")
+        for f in pt.findall("File"):
+            i = f.attrib["i"]
+            n = f.attrib["n"]
             file_map[i] = n
         return file_map
 
@@ -436,10 +475,10 @@ class HPCExperiment:
     def get_procedure_names(experiment_tree):
         procedure_map = {}
         root = experiment_tree.getroot()
-        pt = root.find('.//ProcedureTable')
-        for f in pt.findall('Procedure'):
-            i = f.attrib['i']
-            n = f.attrib['n']
+        pt = root.find(".//ProcedureTable")
+        for f in pt.findall("Procedure"):
+            i = f.attrib["i"]
+            n = f.attrib["n"]
             procedure_map[i] = n
         return procedure_map
 
@@ -447,8 +486,8 @@ class HPCExperiment:
     def get_procedure_name(node, procedure_map):
         nd = node
         while nd is not None:
-            if nd.tag == "PF" or nd.tag == 'Pr':
-                name = nd.attrib['n']
+            if nd.tag == "PF" or nd.tag == "Pr":
+                name = nd.attrib["n"]
                 return procedure_map[name]
             nd = nd.getparent()
 
@@ -461,24 +500,24 @@ class HPCExperiment:
         file = None
         while nd is not None:
             if nd.tag == "PF" or nd.tag == "Pr":
-                name = nd.attrib['n']
+                name = nd.attrib["n"]
                 p_name = self.procedure_map[name]
                 if p_name == "":
                     continue
-                f = nd.attrib['f']
+                f = nd.attrib["f"]
                 file = file_map[f]
                 if not line:
-                    line = nd.attrib['l']
+                    line = nd.attrib["l"]
             elif self.include_statements and nd.tag == "C":
                 if not line:
-                    line = nd.attrib['l']
+                    line = nd.attrib["l"]
             elif self.include_loops and nd.tag == "L":
-                f = nd.attrib['f']
+                f = nd.attrib["f"]
                 file = file_map[f]
                 if not line:
-                    line = nd.attrib['l']
+                    line = nd.attrib["l"]
             elif self.include_statements and nd.tag == "S":
-                line = nd.attrib['l']
+                line = nd.attrib["l"]
             if line and file:
                 return file, line
             nd = nd.getparent()
@@ -488,8 +527,8 @@ class HPCExperiment:
         nd = node
         while nd is not None:
             if nd.tag == "PF" or nd.tag == "Pr":
-                name = nd.attrib['n']
-                if nd.attrib['n'] != "":
+                name = nd.attrib["n"]
+                if nd.attrib["n"] != "":
                     d += 1
             elif self.include_statements and nd.tag == "C":
                 d += 1

@@ -2,7 +2,6 @@ import sys
 
 
 class TraceModel:
-
     def __init__(self):
         self.start = 0.0000001
         self.stop = sys.maxsize

@@ -8,14 +8,16 @@ def setup_main_logger(log_stream, logfile, logger_name, debug=False):
     else:
         level = logging.INFO
     logger = logging.getLogger(logger_name)
-    formatter = logging.Formatter('%(processName)s %(threadName)s %(asctime)s : %(message)s')
-    filehandler = logging.FileHandler(logfile, mode='w')
+    formatter = logging.Formatter(
+        "%(processName)s %(threadName)s %(asctime)s : %(message)s"
+    )
+    filehandler = logging.FileHandler(logfile, mode="w")
     filehandler.setFormatter(formatter)
     filehandler.setLevel(level)
     streamhandler = logging.StreamHandler()
     streamhandler.setFormatter(formatter)
     streamhandler.setLevel(level)
-    htmlformatter = logging.Formatter('%(message)s')
+    htmlformatter = logging.Formatter("%(message)s")
     htmlstreamhandler = logging.StreamHandler(stream=log_stream)
     htmlstreamhandler.setFormatter(htmlformatter)
     htmlstreamhandler.setLevel(level=logging.INFO)
@@ -32,8 +34,10 @@ def setup_basic_logger(logger_name, log_file, debug=False):
     else:
         level = logging.INFO
     logger = logging.getLogger(logger_name)
-    formatter = logging.Formatter('%(processName)s %(threadName)s %(asctime)s : %(message)s')
-    filehandler = logging.FileHandler(log_file, mode='w')
+    formatter = logging.Formatter(
+        "%(processName)s %(threadName)s %(asctime)s : %(message)s"
+    )
+    filehandler = logging.FileHandler(log_file, mode="w")
     filehandler.setFormatter(formatter)
     streamhandler = logging.StreamHandler()
     streamhandler.setFormatter(formatter)

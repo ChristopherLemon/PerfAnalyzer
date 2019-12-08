@@ -2,7 +2,6 @@ import sys
 
 
 class AnalysisModel:
-
     def __init__(self, analysis_type=None):
         self.reference_id = ""
         self.selected_ids = {}

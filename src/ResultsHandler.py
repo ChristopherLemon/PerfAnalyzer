@@ -9,10 +9,12 @@ from src.Utilities import natural_sort
 
 
 def is_setting(line):
-    is_setting = re.match("event_counter", line) or \
-                 re.match("time_interval", line) or \
-                 re.match("cpu_id", line) or \
-                 re.match("system_wide", line)
+    is_setting = (
+        re.match("event_counter", line)
+        or re.match("time_interval", line)
+        or re.match("cpu_id", line)
+        or re.match("system_wide", line)
+    )
     return is_setting
 
 
@@ -24,7 +26,7 @@ def modify_process_ids(orig_pid, orig_file):
     # Replace process and thread ids with sets of sequential ids, starting from zero
     threads = {}
     process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
-    with open(orig_file, 'r') as result:
+    with open(orig_file, "r") as result:
         for line in result:
             match = re.search(process_id_regex, line)
             if match:
@@ -41,8 +43,8 @@ def modify_process_ids(orig_pid, orig_file):
             tids[t] = str(n)
             n += 1
     fh, abs_path = mkstemp()
-    with open(abs_path, 'wb') as new_file:  # Output file is binary
-        with open(orig_file, 'r') as result:  # Input file is text
+    with open(abs_path, "wb") as new_file:  # Output file is binary
+        with open(orig_file, "r") as result:  # Input file is text
             for line in result:
                 match = re.search(process_id_regex, line)
                 if match:
@@ -64,7 +66,7 @@ def modify_system_wide_process_ids(orig_file):
     threads = []
     host = re.findall("host(\d+)_", orig_file)[0][0]
     process_id_regex = re.compile("((all|[0-9]+)/(all|[0-9]+))")
-    with open(orig_file, 'r') as result:
+    with open(orig_file, "r") as result:
         for line in result:
             match = re.search(process_id_regex, line)
             if match:
@@ -83,16 +85,18 @@ def modify_system_wide_process_ids(orig_file):
     fs = {}
     last_time = ""
     start_time = ""
-    with open(orig_file, 'r') as result:
+    with open(orig_file, "r") as result:
         for line in result:
             match = re.search(process_id_regex, line)
             if match:
                 pid = match.group(2)
                 tid = match.group(3)
                 line = re.sub("/" + tid, "/" + tids[tid], line)
-                new_file = re.sub("host" + host, "host" + host + "_proc" + pid, orig_file)
+                new_file = re.sub(
+                    "host" + host, "host" + host + "_proc" + pid, orig_file
+                )
                 if new_file not in fs:
-                    fs[new_file] = open(new_file, 'wb')
+                    fs[new_file] = open(new_file, "wb")
                     fs[new_file].write(start_time.encode())
                     fs[new_file].write(last_time.encode())
                 fs[new_file].write(line.encode())
@@ -109,14 +113,14 @@ def modify_system_wide_process_ids(orig_file):
 
 def get_run_duration(stack_file):
     # read last line of stacks file to get the last time recorded. i.e. t=10.0
-    fs = open(stack_file, 'rb')
+    fs = open(stack_file, "rb")
     file_size = os.path.getsize(stack_file)
     if file_size < 1000:
-        last_line = fs.readlines()[-1].decode('ascii')
+        last_line = fs.readlines()[-1].decode("ascii")
     else:
         max_line_length = 30
         fs.seek(-max_line_length, os.SEEK_END)
-        last_line = fs.readlines()[-1].decode('ascii')
+        last_line = fs.readlines()[-1].decode("ascii")
     t = 0.0
     if last_line[0:2] == "t=":
         t = last_line.rstrip().partition("=")[2]
@@ -127,15 +131,17 @@ def get_run_duration(stack_file):
 def replace_results_file(local_data, results_file, job_id):
     # Create new results file for system wide monitoring, with one file per core (for each event)
     fh, abs_path = mkstemp()
-    with open(abs_path, 'wb') as new_results_file:
-        with open(results_file, 'r') as result:
+    with open(abs_path, "wb") as new_results_file:
+        with open(results_file, "r") as result:
             for line in result:
                 if is_setting(line):  # copy run settings at start of results file
                     new_results_file.write(line.encode())
                 else:  # ignore original results files
                     break
         for f in os.listdir(local_data):
-            if re.search(job_id + "_host(\d+)_proc", f):  # populate new file with separate results for each process
+            if re.search(
+                job_id + "_host(\d+)_proc", f
+            ):  # populate new file with separate results for each process
                 fname = f + "\n"
                 new_results_file.write(fname.encode())
     close(fh)
@@ -260,8 +266,8 @@ def get_run_summary(path, results_files):
                 if re.match("event_counter", line):
                     # event-counter-cycles:run-1:100
                     event_string, run_string, event_counter = line.split(":")
-                    raw_event = event_string.partition('-')[2]
-                    run_number = run_string.partition('-')[2]
+                    raw_event = event_string.partition("-")[2]
+                    run_number = run_string.partition("-")[2]
                     run_numbers[job][raw_event] = run_number
                     event_counters[job][raw_event] = int(event_counter)
                 elif re.match("time_interval", line):
@@ -280,7 +286,9 @@ def get_run_summary(path, results_files):
                         if run_number not in run_durations[job]:
                             run_durations[job][run_number] = t
                         else:
-                            run_durations[job][run_number] = max(run_durations[job][run_number], t)
+                            run_durations[job][run_number] = max(
+                                run_durations[job][run_number], t
+                            )
     return event_counters, run_numbers, run_durations, run_parameters
 
 

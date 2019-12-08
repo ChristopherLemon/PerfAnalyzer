@@ -17,7 +17,7 @@ def sort_by_time(data):
         times.append(float(t))
     times.sort()
     for time in times:
-        t = '{:.2f}'.format(time)
+        t = "{:.2f}".format(time)
         stacks = data[t]
         sorted_data[t] = stacks
     return sorted_data
@@ -30,16 +30,24 @@ def create_composite_event_stack(stack_data, results_files):
         filenames = ["", ""]
         full_filename = os.path.join(stack_data.path, results_file)
         job = get_job_name(results_file)
-        found = get_process_to_event_map(stack_data.path, results_file)  # get all events for each process
+        found = get_process_to_event_map(
+            stack_data.path, results_file
+        )  # get all events for each process
         all_events = []
         for name in found:
             all_events += found[name]
-        if raw_event not in all_events:  # exit if composite event already exists for this job
+        if (
+            raw_event not in all_events
+        ):  # exit if composite event already exists for this job
             event1, event2 = split_raw_event(raw_event, stack_data.cpu_definition)
-            if event1 not in all_events or event2 not in all_events:  # skip if job does not contain both events
+            if (
+                event1 not in all_events or event2 not in all_events
+            ):  # skip if job does not contain both events
                 continue
             for name in found:
-                counter1 = get_composite_event_counter(event1, stack_data.event_counters[job])
+                counter1 = get_composite_event_counter(
+                    event1, stack_data.event_counters[job]
+                )
                 if is_clock_event(event1) or is_clock_event(event2):
                     if is_clock_event(event1):  # unit of ratio is seconds per event
                         scale2 = counter1  # multiply event2 event period by event1 frequency (Hz)
@@ -60,7 +68,7 @@ def create_composite_event_stack(stack_data, results_files):
                 file0 = os.path.join(stack_data.path, filenames[0])
                 file1 = os.path.join(stack_data.path, filenames[1])
                 if os.path.isfile(file0) and os.path.isfile(file1):
-                    with open(file0, 'r') as infile:
+                    with open(file0, "r") as infile:
                         t = ""
                         for stack in infile:
                             s = stack.strip()
@@ -68,11 +76,11 @@ def create_composite_event_stack(stack_data, results_files):
                                 t = s.partition("=")[2]
                                 data[t] = OrderedDict()
                             else:
-                                s, _, count = s.rpartition(' ')
+                                s, _, count = s.rpartition(" ")
                                 if s:
                                     data[t][s] = [int(count), 0]
                     file1 = os.path.join(stack_data.path, filenames[1])
-                    with open(file1, 'r') as infile:
+                    with open(file1, "r") as infile:
                         for stack in infile:
                             s = stack.strip()
                             if re.match("t=", s):
@@ -80,7 +88,7 @@ def create_composite_event_stack(stack_data, results_files):
                                 if t not in data:
                                     data[t] = OrderedDict()
                             else:
-                                s, _, count = s.rpartition(' ')
+                                s, _, count = s.rpartition(" ")
                                 if s:
                                     if s in data[t]:
                                         data[t][s][1] = int(count)
@@ -93,30 +101,38 @@ def create_composite_event_stack(stack_data, results_files):
                     else:  # sum
                         out_file = filenames[0] + "-plus-" + event2
                     path_to_out_file = os.path.join(stack_data.path, out_file)
-                    f = open(path_to_out_file, 'wb')
+                    f = open(path_to_out_file, "wb")
                     for t in ordered_data:
                         time = "t=" + t + "\n"
                         f.write(time.encode())
                         for stack in ordered_data[t]:
                             if custom_event_ratio:
-                                combined_stack = '{} {} {}\n' \
-                                    .format(stack, scale1 * ordered_data[t][stack][0],
-                                            scale2 * ordered_data[t][stack][1])
+                                combined_stack = "{} {} {}\n".format(
+                                    stack,
+                                    scale1 * ordered_data[t][stack][0],
+                                    scale2 * ordered_data[t][stack][1],
+                                )
                                 f.write(combined_stack.encode())
                             else:  # sum
-                                combined_stack = '{} {}\n' \
-                                    .format(stack, scale1 * ordered_data[t][stack][0] +
-                                            scale2 * ordered_data[t][stack][1])
+                                combined_stack = "{} {}\n".format(
+                                    stack,
+                                    scale1 * ordered_data[t][stack][0]
+                                    + scale2 * ordered_data[t][stack][1],
+                                )
                                 f.write(combined_stack.encode())
                     f.close()
-                    f_results = open(full_filename, 'a')
-                    event_counter_description = "event_counter-" + raw_event + ":run-0:" + str(counter)
+                    f_results = open(full_filename, "a")
+                    event_counter_description = (
+                        "event_counter-" + raw_event + ":run-0:" + str(counter)
+                    )
                     f_results.write(event_counter_description + "\n")
                     f_results.write(out_file + "\n")
                     f_results.close()
 
 
-def create_cumulative_count_stack(local_data, results_files, output_job_totals=True, output_process_totals=True):
+def create_cumulative_count_stack(
+    local_data, results_files, output_job_totals=True, output_process_totals=True
+):
     """Create cumulative stack by summing stacks over threads or processes"""
     for results_file in results_files:
         found = get_process_to_event_map(local_data, results_file)
@@ -138,7 +154,7 @@ def create_cumulative_count_stack(local_data, results_files, output_job_totals=T
                         file = os.path.join(local_data, filename)
                         if os.path.isfile(file):
                             write_process_totals = True
-                            with open(file, 'r') as infile:
+                            with open(file, "r") as infile:
                                 for line in infile:
                                     stack = line.strip()
                                     if line[0:2] == "t=":
@@ -152,45 +168,91 @@ def create_cumulative_count_stack(local_data, results_files, output_job_totals=T
                                         if match:
                                             pid = match.group(2)
                                             tid = match.group(3)
-                                            if tid == "all":  # Skip event if cumulative data already exists
+                                            if (
+                                                tid == "all"
+                                            ):  # Skip event if cumulative data already exists
                                                 write_process_totals = False
                                             if pid not in thread_counts[t]:
                                                 thread_counts[t][pid] = OrderedDict()
                                             stack = line.strip()
                                             if event_type == "custom_event_ratio":
-                                                stack, _, secondary = stack.rpartition(' ')
-                                            stack, _, primary = stack.rpartition(' ')
+                                                stack, _, secondary = stack.rpartition(
+                                                    " "
+                                                )
+                                            stack, _, primary = stack.rpartition(" ")
                                             if stack:
-                                                thread_stack = re.sub("/" + tid, "/all", stack)
-                                                process_stack = re.sub(pid + "/", "all/", thread_stack)
-                                                if process_stack not in process_counts[t]:
-                                                    process_counts[t][process_stack] = [0, 0]
-                                                if thread_stack not in thread_counts[t][pid]:
-                                                    thread_counts[t][pid][thread_stack] = [0, 0]
-                                                thread_counts[t][pid][thread_stack][0] += int(primary)
-                                                process_counts[t][process_stack][0] += int(primary)
+                                                thread_stack = re.sub(
+                                                    "/" + tid, "/all", stack
+                                                )
+                                                process_stack = re.sub(
+                                                    pid + "/", "all/", thread_stack
+                                                )
+                                                if (
+                                                    process_stack
+                                                    not in process_counts[t]
+                                                ):
+                                                    process_counts[t][process_stack] = [
+                                                        0,
+                                                        0,
+                                                    ]
+                                                if (
+                                                    thread_stack
+                                                    not in thread_counts[t][pid]
+                                                ):
+                                                    thread_counts[t][pid][
+                                                        thread_stack
+                                                    ] = [0, 0]
+                                                thread_counts[t][pid][thread_stack][
+                                                    0
+                                                ] += int(primary)
+                                                process_counts[t][process_stack][
+                                                    0
+                                                ] += int(primary)
                                                 if event_type == "custom_event_ratio":
-                                                    thread_counts[t][pid][thread_stack][1] += int(secondary)
-                                                    process_counts[t][process_stack][1] += int(secondary)
+                                                    thread_counts[t][pid][thread_stack][
+                                                        1
+                                                    ] += int(secondary)
+                                                    process_counts[t][process_stack][
+                                                        1
+                                                    ] += int(secondary)
                             # Merge thread cumulative data into existing process file
                             if output_process_totals and write_process_totals:
                                 fh, abs_path = mkstemp()
-                                with open(abs_path, 'wb') as new_file:
-                                    with open(file, 'r') as result:
+                                with open(abs_path, "wb") as new_file:
+                                    with open(file, "r") as result:
                                         for line in result:
                                             if line[0:2] == "t=":
                                                 new_file.write(line.encode())
                                                 t = line.strip().partition("=")[2]
                                                 if t in thread_counts:
                                                     for pid in thread_counts[t]:
-                                                        for stack in thread_counts[t][pid]:
-                                                            primary = str(thread_counts[t][pid][stack][0])
-                                                            new_line = stack + " " + primary
-                                                            if event_type == "custom_event_ratio":
-                                                                secondary = str(thread_counts[t][pid][stack][1])
-                                                                new_line += " " + secondary
+                                                        for stack in thread_counts[t][
+                                                            pid
+                                                        ]:
+                                                            primary = str(
+                                                                thread_counts[t][pid][
+                                                                    stack
+                                                                ][0]
+                                                            )
+                                                            new_line = (
+                                                                stack + " " + primary
+                                                            )
+                                                            if (
+                                                                event_type
+                                                                == "custom_event_ratio"
+                                                            ):
+                                                                secondary = str(
+                                                                    thread_counts[t][
+                                                                        pid
+                                                                    ][stack][1]
+                                                                )
+                                                                new_line += (
+                                                                    " " + secondary
+                                                                )
                                                             new_line += "\n"
-                                                            new_file.write(new_line.encode())
+                                                            new_file.write(
+                                                                new_line.encode()
+                                                            )
                                             else:
                                                 new_file.write(line.encode())
                                 close(fh)
@@ -199,7 +261,9 @@ def create_cumulative_count_stack(local_data, results_files, output_job_totals=T
             if output_job_totals:
                 out_file = re.sub("proc[0-9]+_", "procall_", filename)
                 file = os.path.join(local_data, out_file)
-                f = open(file, 'wb')  # Write Process cumulative data to new process file
+                f = open(
+                    file, "wb"
+                )  # Write Process cumulative data to new process file
                 for t in process_counts:
                     time = "t=" + t + "\n"
                     f.write(time.encode())
@@ -213,14 +277,21 @@ def create_cumulative_count_stack(local_data, results_files, output_job_totals=T
                         f.write(new_line.encode())
                 f.close()
                 full_filename = os.path.join(local_data, results_file)
-                f_results = open(full_filename, 'a')
+                f_results = open(full_filename, "a")
                 f_results.write(out_file + "\n")
                 f_results.close()
 
 
-derived_events = {"process-cumulative-counts": {"event": "Process-Cumulative-Counts", "unit": "samples"},
-                  "job-cumulative-counts": {"event": "Job-Cumulative-Counts", "unit": "samples"}}
-derived_event_map = {derived_events[raw_event]["event"]: raw_event for raw_event in derived_events}
+derived_events = {
+    "process-cumulative-counts": {
+        "event": "Process-Cumulative-Counts",
+        "unit": "samples",
+    },
+    "job-cumulative-counts": {"event": "Job-Cumulative-Counts", "unit": "samples"},
+}
+derived_event_map = {
+    derived_events[raw_event]["event"]: raw_event for raw_event in derived_events
+}
 
 
 def get_derived_events():
@@ -260,9 +331,13 @@ def event_to_raw_event(event, cpu_definition):
     event_map = cpu_definition.get_available_event_map(event_to_raw_event=True)
     r1, _, r2 = event.partition(" / ")
     if r1 != "":
-        e1 = "-plus-".join([event_map[e] if e in event_map else e for e in re.split(" \+ ", r1)])
+        e1 = "-plus-".join(
+            [event_map[e] if e in event_map else e for e in re.split(" \+ ", r1)]
+        )
     if r2 != "":
-        e2 = "-plus-".join([event_map[e] if e in event_map else e for e in re.split(" \+ ", r2)])
+        e2 = "-plus-".join(
+            [event_map[e] if e in event_map else e for e in re.split(" \+ ", r2)]
+        )
         return e1 + "-divide-" + e2
     else:
         return e1
@@ -275,9 +350,13 @@ def raw_event_to_event(raw_event, cpu_definition):
     event_map = cpu_definition.get_available_event_map(event_to_raw_event=False)
     r1, _, r2 = raw_event.partition("-divide-")
     if r1 != "":
-        e1 = " + ".join([event_map[e] if e in event_map else e for e in re.split("-plus-", r1)])
+        e1 = " + ".join(
+            [event_map[e] if e in event_map else e for e in re.split("-plus-", r1)]
+        )
     if r2 != "":
-        e2 = " + ".join([event_map[e] if e in event_map else e for e in re.split("-plus-", r2)])
+        e2 = " + ".join(
+            [event_map[e] if e in event_map else e for e in re.split("-plus-", r2)]
+        )
         return e1 + " / " + e2
     else:
         return e1

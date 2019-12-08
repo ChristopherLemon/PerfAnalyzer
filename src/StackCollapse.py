@@ -58,13 +58,13 @@ def dump_trace(finalise=False):
     global files
     global trace_buffer
     global event_sample
-    if (len(trace_buffer) > 100 or finalise):
+    if len(trace_buffer) > 100 or finalise:
         filename = output_file + "_trace-" + trace_event
         if filename in files:
-            f = open(filename, 'ab')
+            f = open(filename, "ab")
         else:
             files.add(filename)
-            f = open(filename, 'wb')
+            f = open(filename, "wb")
             l = "start-time;" + str(start_time) + "\n"
             f.write(l.encode())
         for val in trace_buffer:
@@ -88,13 +88,13 @@ def dump_stacks():
     for event in collapsed:
         filename = output_file + "_" + event
         if filename in files:
-            f = open(filename, 'ab')
+            f = open(filename, "ab")
         else:
             files.add(filename)
-            f = open(filename, 'wb')
+            f = open(filename, "wb")
             l = "start-time;" + str(start_time) + "\n"
             f.write(l.encode())
-        l = "t=" + '{:.2f}'.format(float(nt)*float(dt)) + "\n"
+        l = "t=" + "{:.2f}".format(float(nt) * float(dt)) + "\n"
         f.write(l.encode())
         for k in order[event]:
             l = k + " " + str(collapsed[event][k]) + "\n"
@@ -109,8 +109,8 @@ def finalise():
     global telapsed
     for filename in files:
         telapsed = time - start_time
-        f = open(filename, 'ab')
-        l = "t=" + '{:.2f}'.format(telapsed)
+        f = open(filename, "ab")
+        l = "t=" + "{:.2f}".format(telapsed)
         f.write(l.encode())
         f.close()
 
@@ -134,18 +134,49 @@ def collapse_stacks(input_file):
             line = line.strip()
             if len(line) == 0:
                 if trace_event != "":
-                    record_trace(primary_event, ";".join([pname] + stack), exe_name, pid, tid, time - start_time)
+                    record_trace(
+                        primary_event,
+                        ";".join([pname] + stack),
+                        exe_name,
+                        pid,
+                        tid,
+                        time - start_time,
+                    )
                 else:
-                    remember_stack(primary_event, ";".join([pname] + stack), int(period))
+                    remember_stack(
+                        primary_event, ";".join([pname] + stack), int(period)
+                    )
                 if accumulate:
                     if trace_event != "":
-                        record_trace(primary_event, ";".join([pname_sum_threads] + stack), exe_name, pid, "all", time - start_time)
+                        record_trace(
+                            primary_event,
+                            ";".join([pname_sum_threads] + stack),
+                            exe_name,
+                            pid,
+                            "all",
+                            time - start_time,
+                        )
                     else:
-                        remember_stack(primary_event, ";".join([pname_sum_threads] + stack), int(period))
+                        remember_stack(
+                            primary_event,
+                            ";".join([pname_sum_threads] + stack),
+                            int(period),
+                        )
                     if trace_event != "":
-                        record_trace(primary_event, ";".join([pname_sum_processes] + stack), exe_name, "all", "all", time - start_time)
+                        record_trace(
+                            primary_event,
+                            ";".join([pname_sum_processes] + stack),
+                            exe_name,
+                            "all",
+                            "all",
+                            time - start_time,
+                        )
                     else:
-                        remember_stack(primary_event, ";".join([pname_sum_processes] + stack), int(period))
+                        remember_stack(
+                            primary_event,
+                            ";".join([pname_sum_processes] + stack),
+                            int(period),
+                        )
                 stack = []
                 pname = ""
                 pname_sum_threads = ""
@@ -170,7 +201,9 @@ def collapse_stacks(input_file):
                     cid = "0"
             # match start of event sample
             # exe ... pid/tid ... time: ... (period?) ... event: ...
-            match = re.match("^(\S.+?)\s+(\d+)\/*(\d+)*\s+([^:]+):\s*(?:(\d+)\s+)?([^\s]+):\s*", line)
+            match = re.match(
+                "^(\S.+?)\s+(\d+)\/*(\d+)*\s+([^:]+):\s*(?:(\d+)\s+)?([^\s]+):\s*", line
+            )
             if match:
                 exe_name = match.group(1)
                 primary_event = match.group(6)
@@ -184,7 +217,7 @@ def collapse_stacks(input_file):
                 else:
                     pid = "?"
                     tid = match.group(2)
-                #for system wide mode accumulate sum over physical cpus
+                # for system wide mode accumulate sum over physical cpus
                 if accumulate and cid != "":
                     pid = cid
                 if include_tid:
@@ -195,7 +228,7 @@ def collapse_stacks(input_file):
                     pname = match.group(1) + "-" + pid
                 else:
                     pname = match.group(1)
-                    pname = pname.replace(" ","_")
+                    pname = pname.replace(" ", "_")
             else:
                 # match line in call stack
                 match = re.match("^\s*(\w+)\s*(.+) \((\S*)\)", line)
@@ -214,20 +247,63 @@ def collapse_stacks(input_file):
 
 if __name__ == "__main__":
     """Simplified stack collapse script, based on stackcollapse.pl by Brendan Gregg"""
-    parser = argparse.ArgumentParser(description='perf stack collapse script')
-    parser.add_argument('-pid', '--pid', action="store_true", default=False,  dest="include_pid", help="include pid with process names")
-    parser.add_argument('-tid', '--tid', action="store_true", default=False,  dest="include_tid", help="include tid and pid with process names")
-    parser.add_argument('-dt', '--dt', type=float, dest="dt", help="time interval (s) of sample bins")
-    parser.add_argument('-accumulate', '--accumulate', action="store_true", default=False, dest="accumulate",
-                        help="Accumulate totals per process")
-    parser.add_argument('-trace_event', '--trace_event', default="", dest="trace_event",
-                        help="Trace an event to create a timeline")
-    parser.add_argument('-output_file', '--output_file', default="", dest="output_file",
-                        help="Common root name of output file")
-    parser.add_argument('-input_file', '--input_file', default="", dest="input_file",
-                        help="Input perf stacks file")
-    parser.add_argument('-muliplier', '--multiplier', type=int, default=1, dest="multiplier",
-                        help="Integer multiplier for event counts")
+    parser = argparse.ArgumentParser(description="perf stack collapse script")
+    parser.add_argument(
+        "-pid",
+        "--pid",
+        action="store_true",
+        default=False,
+        dest="include_pid",
+        help="include pid with process names",
+    )
+    parser.add_argument(
+        "-tid",
+        "--tid",
+        action="store_true",
+        default=False,
+        dest="include_tid",
+        help="include tid and pid with process names",
+    )
+    parser.add_argument(
+        "-dt", "--dt", type=float, dest="dt", help="time interval (s) of sample bins"
+    )
+    parser.add_argument(
+        "-accumulate",
+        "--accumulate",
+        action="store_true",
+        default=False,
+        dest="accumulate",
+        help="Accumulate totals per process",
+    )
+    parser.add_argument(
+        "-trace_event",
+        "--trace_event",
+        default="",
+        dest="trace_event",
+        help="Trace an event to create a timeline",
+    )
+    parser.add_argument(
+        "-output_file",
+        "--output_file",
+        default="",
+        dest="output_file",
+        help="Common root name of output file",
+    )
+    parser.add_argument(
+        "-input_file",
+        "--input_file",
+        default="",
+        dest="input_file",
+        help="Input perf stacks file",
+    )
+    parser.add_argument(
+        "-muliplier",
+        "--multiplier",
+        type=int,
+        default=1,
+        dest="multiplier",
+        help="Integer multiplier for event counts",
+    )
     args = parser.parse_args()
     include_pid = args.include_pid
     include_tid = args.include_tid
@@ -238,5 +314,3 @@ if __name__ == "__main__":
     output_file = args.output_file
     multiplier = args.multiplier
     collapse_stacks(input_file)
-
-    

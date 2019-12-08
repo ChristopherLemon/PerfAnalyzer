@@ -15,18 +15,29 @@ from decimal import Decimal
 def format_number(x):
     y = float(x)
     if abs(y) >= 1000.0:
-        y = '{0:.2E}'.format(Decimal(x))
+        y = "{0:.2E}".format(Decimal(x))
     else:
         y = str(x)
     return y
 
 
-def get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, inverted, searchcolor):
+def get_svg_scripts(
+    xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, inverted, searchcolor
+):
     # Scripts to be copied into svg file
-    values = {'xpad': xpad, 'bgcolor1': bgcolor1, 'bgcolor2': bgcolor2, 'nametype': nametype,
-              'fontsize': fontsize, 'fontwidth': fontwidth, 'inverted': inverted, 'searchcolor': searchcolor}
+    values = {
+        "xpad": xpad,
+        "bgcolor1": bgcolor1,
+        "bgcolor2": bgcolor2,
+        "nametype": nametype,
+        "fontsize": fontsize,
+        "fontwidth": fontwidth,
+        "inverted": inverted,
+        "searchcolor": searchcolor,
+    }
 
-    svg_scripts = string.Template("""<defs >
+    svg_scripts = string.Template(
+        """<defs >
     <linearGradient id="background" y1="0" y2="1" x1="0" x2="0" >
         <stop stop-color="$bgcolor1" stop-opacity="0.0" offset="5%" />
         <stop stop-color="$bgcolor1" stop-opacity="1.0" offset="15%" />
@@ -364,22 +375,23 @@ def get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, inv
         }
     }
 ]]>
-</script>""")
+</script>"""
+    )
     return svg_scripts.substitute(values)
 
 
 class Attributes:
-
     def __init__(self, info):
-        self.attributes = {'class': "\"func_g\"",
-                           'onmouseover': "\"s(this)\"",
-                           'onmouseout': "\"c()\"",
-                           'onclick': "\"zoom(this)\"",
-                           'title': info}
+        self.attributes = {
+            "class": '"func_g"',
+            "onmouseover": '"s(this)"',
+            "onmouseout": '"c()"',
+            "onclick": '"zoom(this)"',
+            "title": info,
+        }
 
 
 class Node:
-
     def __init__(self, start_time, start_time_2):
         self.start_time = start_time
         self.start_time_2 = start_time_2
@@ -392,18 +404,19 @@ class Node:
 
 
 class SVGPackage:
-
     def __init__(self):
         self.svg = []
 
     def header(self, width, height):
-        values = {'width': width, 'height': height}
-        svg_header = string.Template("""<?xml version="1.0" standalone="no"?>
+        values = {"width": width, "height": height}
+        svg_header = string.Template(
+            """<?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg version="1.1" width="100%" height="100%" onload="init()" onresize="resize()" viewBox="0 0 $width $height" 
 xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <!-- Flame graph stack visualization. See https://github.com/brendangregg/FlameGraph for latest version, 
-and http://www.brendangregg.com/flamegraphs.html for examples. -->""")
+and http://www.brendangregg.com/flamegraphs.html for examples. -->"""
+        )
         self.svg.append(svg_header.substitute(values) + "\n")
 
     def include(self, content):
@@ -414,10 +427,12 @@ and http://www.brendangregg.com/flamegraphs.html for examples. -->""")
         return "rgb({},{},{})".format(r, g, b)
 
     def group_start(self, attr):
-        g_attributes = "<g class={} onmouseover={} onmouseout={} onclick={}>\n".format(attr.attributes["class"],
-                                                                                       attr.attributes["onmouseover"],
-                                                                                       attr.attributes["onmouseout"],
-                                                                                       attr.attributes["onclick"])
+        g_attributes = "<g class={} onmouseover={} onmouseout={} onclick={}>\n".format(
+            attr.attributes["class"],
+            attr.attributes["onmouseover"],
+            attr.attributes["onmouseout"],
+            attr.attributes["onclick"],
+        )
         self.svg.append(g_attributes)
         self.svg.append("<title>{}</title>".format(attr.attributes["title"]))
 
@@ -425,21 +440,32 @@ and http://www.brendangregg.com/flamegraphs.html for examples. -->""")
         self.svg.append("</g>\n")
 
     def filled_rectangle(self, x1, y1, x2, y2, fill, extra=""):
-        x1 = '{:.1f}'.format(x1)
-        x2 = '{:.1f}'.format(x2)
-        w = '{:.1f}'.format(float(x2) - float(x1))
-        h = '{:.1f}'.format(float(y2) - float(y1))
-        values = {'x1': x1, 'y1': y1, 'w': w, 'h': h, 'fill': fill, 'extra': extra}
-        rectangle = string.Template("""<rect x="$x1" y="$y1" width="$w" height="$h" fill="$fill" $extra/>\n""")
+        x1 = "{:.1f}".format(x1)
+        x2 = "{:.1f}".format(x2)
+        w = "{:.1f}".format(float(x2) - float(x1))
+        h = "{:.1f}".format(float(y2) - float(y1))
+        values = {"x1": x1, "y1": y1, "w": w, "h": h, "fill": fill, "extra": extra}
+        rectangle = string.Template(
+            """<rect x="$x1" y="$y1" width="$w" height="$h" fill="$fill" $extra/>\n"""
+        )
         self.svg.append(rectangle.substitute(values))
 
     def string_ttf(self, color, font, size, x, y, str_val, loc="left", extra=""):
-        x = '{:.2f}'.format(x)
-        values = {'loc': loc, 'x': x, 'y': y, 'size': size, 'font': font, 'color': color,
-                  'str': str_val, 'extra': extra}
+        x = "{:.2f}".format(x)
+        values = {
+            "loc": loc,
+            "x": x,
+            "y": y,
+            "size": size,
+            "font": font,
+            "color": color,
+            "str": str_val,
+            "extra": extra,
+        }
         string_ttf = string.Template(
             """<text text-anchor="$loc" x="$x" y="$y" font-size="$size" font-family="$font" 
-            fill="$color" $extra >$str</text>\n""")
+            fill="$color" $extra >$str</text>\n"""
+        )
         self.svg.append(string_ttf.substitute(values))
 
     def get_svg(self):
@@ -448,7 +474,6 @@ and http://www.brendangregg.com/flamegraphs.html for examples. -->""")
 
 
 class ColorHandler:
-
     def __init__(self):
         self.palette_map = {}
 
@@ -494,10 +519,16 @@ class ColorHandler:
             logmean = math.log(mean)
             logvalue = math.log(value)
             if value > mean:
-                g = int(255 * ((logmax - logmean - (logvalue - logmean)) / (logmax - logmean)))
+                g = int(
+                    255
+                    * ((logmax - logmean - (logvalue - logmean)) / (logmax - logmean))
+                )
                 b = g
             elif value < mean:
-                r = int(255 * ((logmax - logmean + (logvalue - logmean)) / (logmax - logmean)))
+                r = int(
+                    255
+                    * ((logmax - logmean + (logvalue - logmean)) / (logmax - logmean))
+                )
                 b = r
         return "rgb({},{},{})".format(str(r), str(g), str(b))
 
@@ -514,7 +545,7 @@ class ColorHandler:
 
     def read_palette(self, palette_file):
         if os.path.isfile(palette_file):
-            fin = open(palette_file, 'r')
+            fin = open(palette_file, "r")
             for line in fin:
                 colour_map = line.strip().split("->")
                 self.palette_map[colour_map[0]] = colour_map[1]
@@ -533,7 +564,7 @@ class ColorHandler:
         weight = 1
         max_value = 1
         mod = 10
-        name = re.sub(r'.(.*?)`/', '', name)
+        name = re.sub(r".(.*?)`/", "", name)
         for c in list(name):
             i = (ord(c)) % mod
             vector += (i / (mod - 1)) * weight
@@ -545,52 +576,61 @@ class ColorHandler:
         return 1 - (vector / max_value)
 
 
-ImageSettings = namedtuple('defaults',
-                           ['imagewidth',
-                            'frameheight',
-                            'fontsize',
-                            'fontwidth',
-                            'fonttype',
-                            'minwidth',
-                            'xpad',
-                            'ypad1',
-                            'ypad2',
-                            'framepad',
-                            'inverted',
-                            'bgcolor1',
-                            'bgcolor2',
-                            'nametype',
-                            'searchcolor',
-                            'pal_file',
-                            'sort_by_time',
-                            'sort_by_name',
-                            'colors'])
+ImageSettings = namedtuple(
+    "defaults",
+    [
+        "imagewidth",
+        "frameheight",
+        "fontsize",
+        "fontwidth",
+        "fonttype",
+        "minwidth",
+        "xpad",
+        "ypad1",
+        "ypad2",
+        "framepad",
+        "inverted",
+        "bgcolor1",
+        "bgcolor2",
+        "nametype",
+        "searchcolor",
+        "pal_file",
+        "sort_by_time",
+        "sort_by_name",
+        "colors",
+    ],
+)
 
 
 class FlameGraph:
     """FlameGraph object representing raw SVG for flamegraph"""
 
-    def __init__(self, working_dir, in_file, out_file,
-                 description="",
-                 custom_event_ratio=False,
-                 diff=False,
-                 exclusive=True,
-                 color_map=None,
-                 has_color_map=False,
-                 imagewidth=1200,
-                 frameheight=16,
-                 fontsize=12,
-                 fontwidth=0.59,
-                 fonttype='Verdana',
-                 minwidth=0.1,
-                 inverted=0,
-                 nametype='Function',
-                 searchcolor='rgb(230,0,230)',
-                 pal_file='palette.map',
-                 sort_by_time=True,
-                 sort_by_name=False,
-                 colors='aqua',
-                 unit="samples"):
+    def __init__(
+        self,
+        working_dir,
+        in_file,
+        out_file,
+        description="",
+        custom_event_ratio=False,
+        diff=False,
+        exclusive=True,
+        color_map=None,
+        has_color_map=False,
+        imagewidth=1200,
+        frameheight=16,
+        fontsize=12,
+        fontwidth=0.59,
+        fonttype="Verdana",
+        minwidth=0.1,
+        inverted=0,
+        nametype="Function",
+        searchcolor="rgb(230,0,230)",
+        pal_file="palette.map",
+        sort_by_time=True,
+        sort_by_name=False,
+        colors="aqua",
+        unit="samples",
+    ):
         self.working_dir = working_dir
         self.in_file = self.working_dir + os.sep + in_file
         self.out_file = self.working_dir + os.sep + out_file
@@ -625,42 +665,70 @@ class FlameGraph:
         self.tmp = {}
         self.nodes = {}
         self.last = []
-        self.image_settings = \
-            self.set_image_setings(fontsize, imagewidth, frameheight, fontwidth, fonttype, minwidth, inverted,
-                                   nametype, searchcolor, pal_file, sort_by_time, sort_by_name, colors)
+        self.image_settings = self.set_image_setings(
+            fontsize,
+            imagewidth,
+            frameheight,
+            fontwidth,
+            fonttype,
+            minwidth,
+            inverted,
+            nametype,
+            searchcolor,
+            pal_file,
+            sort_by_time,
+            sort_by_name,
+            colors,
+        )
         if self.image_settings.sort_by_time:
             self.sort = self.initialise_sort_by_time()
         self.im = SVGPackage()
         self.svg_scripts = self.set_svg_scripts()
         self.process_stacks()
 
-    def set_image_setings(self, fontsize, imagewidth, frameheight, fontwidth, fonttype, minwidth, inverted,
-                          nametype, searchcolor, pal_file, sort_by_time, sort_by_name, colors):
+    def set_image_setings(
+        self,
+        fontsize,
+        imagewidth,
+        frameheight,
+        fontwidth,
+        fonttype,
+        minwidth,
+        inverted,
+        nametype,
+        searchcolor,
+        pal_file,
+        sort_by_time,
+        sort_by_name,
+        colors,
+    ):
         if self.diff or self.custom_event_ratio:
-            bgcolor1 = '#eeeeee'
-            bgcolor2 = '#eeeeb0'
+            bgcolor1 = "#eeeeee"
+            bgcolor2 = "#eeeeb0"
         else:
-            bgcolor1 = '#f8f8f8'
-            bgcolor2 = '#e8e8e8'
-        return ImageSettings(imagewidth=imagewidth,
-                             frameheight=frameheight,
-                             fontsize=fontsize,
-                             fontwidth=fontwidth,
-                             fonttype=fonttype,
-                             minwidth=minwidth,
-                             xpad=10,
-                             ypad1=fontsize * 4,
-                             ypad2=fontsize * 2 + 10,
-                             framepad=1,
-                             inverted=inverted,
-                             bgcolor1=bgcolor1,
-                             bgcolor2=bgcolor2,
-                             nametype=nametype,
-                             searchcolor=searchcolor,
-                             pal_file=pal_file,
-                             sort_by_time=sort_by_time,
-                             sort_by_name=sort_by_name,
-                             colors=colors)
+            bgcolor1 = "#f8f8f8"
+            bgcolor2 = "#e8e8e8"
+        return ImageSettings(
+            imagewidth=imagewidth,
+            frameheight=frameheight,
+            fontsize=fontsize,
+            fontwidth=fontwidth,
+            fonttype=fonttype,
+            minwidth=minwidth,
+            xpad=10,
+            ypad1=fontsize * 4,
+            ypad2=fontsize * 2 + 10,
+            framepad=1,
+            inverted=inverted,
+            bgcolor1=bgcolor1,
+            bgcolor2=bgcolor2,
+            nametype=nametype,
+            searchcolor=searchcolor,
+            pal_file=pal_file,
+            sort_by_time=sort_by_time,
+            sort_by_name=sort_by_name,
+            colors=colors,
+        )
 
     def set_svg_scripts(self):
         xpad = self.image_settings.xpad
@@ -671,10 +739,19 @@ class FlameGraph:
         fontwidth = self.image_settings.fontwidth
         inverted = self.image_settings.inverted
         searchcolor = self.image_settings.searchcolor
-        return get_svg_scripts(xpad, bgcolor1, bgcolor2, nametype, fontsize, fontwidth, inverted, searchcolor)
+        return get_svg_scripts(
+            xpad,
+            bgcolor1,
+            bgcolor2,
+            nametype,
+            fontsize,
+            fontwidth,
+            inverted,
+            searchcolor,
+        )
 
     def read_data(self):
-        fin = open(self.in_file, 'r')
+        fin = open(self.in_file, "r")
         for line in fin:
             stack = line.strip("<>/")
             frames = stack.split(";")
@@ -734,8 +811,14 @@ class FlameGraph:
             if samples2:
                 self.exclusive_time_2 = int(samples2)
 
-            self.last = self.flow(self.last, stack, \
-                self.inclusive_time, self.exclusive_time, self.inclusive_time_2, self.exclusive_time_2)
+            self.last = self.flow(
+                self.last,
+                stack,
+                self.inclusive_time,
+                self.exclusive_time,
+                self.inclusive_time_2,
+                self.exclusive_time_2,
+            )
 
             self.inclusive_time += int(samples)
             if samples2:
@@ -746,8 +829,14 @@ class FlameGraph:
             if self.mean_samples2 > 0.0:
                 self.mean_samples2 /= float(self.processed)
                 self.mean_delta = self.mean_samples1 / self.mean_samples2
-            self.flow(self.last, [], \
-                self.inclusive_time, self.exclusive_time, self.inclusive_time_2, self.exclusive_time_2)
+            self.flow(
+                self.last,
+                [],
+                self.inclusive_time,
+                self.exclusive_time,
+                self.inclusive_time_2,
+                self.exclusive_time_2,
+            )
             self.timemax = self.inclusive_time
             self.timemax_2 = self.inclusive_time_2
             self.other = Node(self.timemax, self.timemax_2)
@@ -771,13 +860,13 @@ class FlameGraph:
                 len_same = i
                 break
             len_same = i + 1
-        for i in range(len_a, len_same-1, -1):
+        for i in range(len_a, len_same - 1, -1):
             k = last[i] + ";" + str(i)
             node_id = k + ";" + str(inc) + ";" + str(inc2)
-            self.nodes[node_id] = \
-                Node(self.tmp[k].start_time, self.tmp[k].start_time_2)
-            self.nodes[node_id].increment_exclusive_time( \
-                self.tmp[k].exclusive_time, self.tmp[k].exclusive_time_2)
+            self.nodes[node_id] = Node(self.tmp[k].start_time, self.tmp[k].start_time_2)
+            self.nodes[node_id].increment_exclusive_time(
+                self.tmp[k].exclusive_time, self.tmp[k].exclusive_time_2
+            )
             self.nodes[node_id].group = group
             del self.tmp[k]
         for i in range(len_same, len_b + 1):
@@ -793,8 +882,15 @@ class FlameGraph:
         fonttype = self.image_settings.fonttype
         fontsize = self.image_settings.fontsize
         self.im.header(imagewidth, imageheight)
-        self.im.string_ttf(self.im.allocate_color(0, 0, 0), fonttype, fontsize + 2,
-                           int(imagewidth / 2), fontsize*2, "No Data", "middle")
+        self.im.string_ttf(
+            self.im.allocate_color(0, 0, 0),
+            fonttype,
+            fontsize + 2,
+            int(imagewidth / 2),
+            fontsize * 2,
+            "No Data",
+            "middle",
+        )
         self.write_flamegraph()
 
     def make_svg(self):
@@ -812,21 +908,61 @@ class FlameGraph:
         self.im.header(imagewidth, imageheight)
         self.im.include(self.svg_scripts)
         if self.diff or self.custom_event_ratio:
-            self.im.filled_rectangle(0, 0, imagewidth, imageheight, 'url(#background)')
+            self.im.filled_rectangle(0, 0, imagewidth, imageheight, "url(#background)")
         else:
-            self.im.filled_rectangle(0, 0, imagewidth, imageheight, 'transparent')
+            self.im.filled_rectangle(0, 0, imagewidth, imageheight, "transparent")
         black = self.im.allocate_color(0, 0, 0)
         vdgrey = self.im.allocate_color(160, 160, 160)
-        self.im.string_ttf(black, fonttype, fontsize + 5, int(imagewidth / 2), fontsize * 2, "", "middle")
-        self.im.string_ttf(black, fonttype, fontsize, xpad, imageheight - (ypad2 / 2), " ", "",
-                           "id=\"details\"")
-        self.im.string_ttf(black, fonttype, fontsize, xpad, fontsize * 2, "Reset Zoom", "",
-                           "id=\"unzoom\" onclick=\"unzoom()\" style=\"opacity:0.0;cursor:pointer\"")
-        self.im.string_ttf(black, fonttype, fontsize, imagewidth - xpad - 100, fontsize * 2, "Search", "",
-                           "id=\"search\" onmouseover=\"searchover()\" onmouseout=\"searchout()\" "
-                           "onclick=\"search_prompt()\" style=\"opacity:0.1;cursor:pointer\"")
-        self.im.string_ttf(black, fonttype, fontsize, imagewidth - xpad - 100, imageheight - (ypad2 / 2), " ", "",
-                           "id=\"matched\"")
+        self.im.string_ttf(
+            black,
+            fonttype,
+            fontsize + 5,
+            int(imagewidth / 2),
+            fontsize * 2,
+            "",
+            "middle",
+        )
+        self.im.string_ttf(
+            black,
+            fonttype,
+            fontsize,
+            xpad,
+            imageheight - (ypad2 / 2),
+            " ",
+            "",
+            'id="details"',
+        )
+        self.im.string_ttf(
+            black,
+            fonttype,
+            fontsize,
+            xpad,
+            fontsize * 2,
+            "Reset Zoom",
+            "",
+            'id="unzoom" onclick="unzoom()" style="opacity:0.0;cursor:pointer"',
+        )
+        self.im.string_ttf(
+            black,
+            fonttype,
+            fontsize,
+            imagewidth - xpad - 100,
+            fontsize * 2,
+            "Search",
+            "",
+            'id="search" onmouseover="searchover()" onmouseout="searchout()" '
+            'onclick="search_prompt()" style="opacity:0.1;cursor:pointer"',
+        )
+        self.im.string_ttf(
+            black,
+            fonttype,
+            fontsize,
+            imagewidth - xpad - 100,
+            imageheight - (ypad2 / 2),
+            " ",
+            "",
+            'id="matched"',
+        )
         if self.has_color_map:
             palette_file = self.working_dir + os.sep + self.image_settings.pal_file
             self.color_handler.read_palette(palette_file)
@@ -860,37 +996,69 @@ class FlameGraph:
                 escaped_func = re.sub("&", "&amp;", func)
                 escaped_func = re.sub("<", "&lt;", escaped_func)
                 escaped_func = re.sub(">", "&gt;", escaped_func)
-                escaped_func = re.sub("\"", "&quot;", escaped_func)
+                escaped_func = re.sub('"', "&quot;", escaped_func)
                 escaped_func = re.sub(" ", "", escaped_func)
                 if self.diff:
-                    inc_pct = '{:.4f}'.format(100.0 * inclusive_time_2 / float(self.timemax))
-                    exc_pct = '{:.4f}'.format(100.0 * exclusive_time_2 / float(self.timemax))
+                    inc_pct = "{:.4f}".format(
+                        100.0 * inclusive_time_2 / float(self.timemax)
+                    )
+                    exc_pct = "{:.4f}".format(
+                        100.0 * exclusive_time_2 / float(self.timemax)
+                    )
                     if self.exclusive:
                         delta = float(exclusive_time_2) - float(exclusive_time)
                     else:
                         delta = float(inclusive_time_2) - float(inclusive_time)
                     deltapct = "{:.4f}".format(100.0 * delta / float(self.timemax))
-                    info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%; Difference: {}%)" \
-                        .format(escaped_func, inclusive_time_2_txt, self.unit, inc_pct, exclusive_time_2_txt,
-                                self.unit, exc_pct, deltapct)
+                    info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%; Difference: {}%)".format(
+                        escaped_func,
+                        inclusive_time_2_txt,
+                        self.unit,
+                        inc_pct,
+                        exclusive_time_2_txt,
+                        self.unit,
+                        exc_pct,
+                        deltapct,
+                    )
                 elif self.custom_event_ratio:
-                    inc_pct = '{:.4f}'.format(100.0 * inclusive_time_2 / float(self.timemax_2))
-                    exc_pct = '{:.4f}'.format(100.0 * exclusive_time_2 / float(self.timemax_2))
+                    inc_pct = "{:.4f}".format(
+                        100.0 * inclusive_time_2 / float(self.timemax_2)
+                    )
+                    exc_pct = "{:.4f}".format(
+                        100.0 * exclusive_time_2 / float(self.timemax_2)
+                    )
                     delta = 0.0
                     if self.exclusive:
                         if float(exclusive_time_2) > 0.0:
                             delta = float(exclusive_time) / float(exclusive_time_2)
                     elif float(inclusive_time_2) > 0.0:
                         delta = float(inclusive_time) / float(inclusive_time_2)
-                    info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%; Ratio: {})" \
-                        .format(escaped_func, inclusive_time_2_txt, self.unit, inc_pct, exclusive_time_2_txt,
-                                self.unit, exc_pct, format_number(delta))
+                    info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%; Ratio: {})".format(
+                        escaped_func,
+                        inclusive_time_2_txt,
+                        self.unit,
+                        inc_pct,
+                        exclusive_time_2_txt,
+                        self.unit,
+                        exc_pct,
+                        format_number(delta),
+                    )
                 else:
-                    inc_pct = '{:.4f}'.format(100.0 * inclusive_time / float(self.timemax))
-                    exc_pct = '{:.4f}'.format(100.0 * exclusive_time / float(self.timemax))
-                    info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%)"\
-                        .format(escaped_func, inclusive_time_txt, self.unit, inc_pct, exclusive_time_txt,
-                                self.unit, exc_pct)
+                    inc_pct = "{:.4f}".format(
+                        100.0 * inclusive_time / float(self.timemax)
+                    )
+                    exc_pct = "{:.4f}".format(
+                        100.0 * exclusive_time / float(self.timemax)
+                    )
+                    info = "{} (Inclusive: {} {}, {}%; Exclusive: {} {}, {}%)".format(
+                        escaped_func,
+                        inclusive_time_txt,
+                        self.unit,
+                        inc_pct,
+                        exclusive_time_txt,
+                        self.unit,
+                        exc_pct,
+                    )
             nameattr = Attributes(info)
             self.im.group_start(nameattr)
             if self.custom_event_ratio or self.diff:
@@ -904,24 +1072,32 @@ class FlameGraph:
             if func == "-":
                 color = vdgrey
             if self.diff:
-                color = self.color_handler.blue_to_red_color_scale(delta, self.max_delta)
+                color = self.color_handler.blue_to_red_color_scale(
+                    delta, self.max_delta
+                )
                 if not self.exclusive and float(inclusive_time) == 0.0:
                     color = self.color_handler.green_color_scale(delta, self.max_delta)
             elif self.custom_event_ratio:
-                color = self.color_handler.green_to_red_color_log_scale(delta, self.mean_delta, self.upper_delta)
+                color = self.color_handler.green_to_red_color_log_scale(
+                    delta, self.mean_delta, self.upper_delta
+                )
             else:
                 color = self.color_handler.color_map(self.image_settings.colors, func)
-            self.im.filled_rectangle(x1, y1, x2, y2, color, "rx=\"0\" ry=\"0\" group=\"" + node.group + "\"")
-            chars = int((float(x2)-float(x1)) / float(fontsize * fontwidth))
+            self.im.filled_rectangle(
+                x1, y1, x2, y2, color, 'rx="0" ry="0" group="' + node.group + '"'
+            )
+            chars = int((float(x2) - float(x1)) / float(fontsize * fontwidth))
             text = ""
             if chars >= 3:
-                text = func[0:min(chars, len(func))]
+                text = func[0 : min(chars, len(func))]
                 if chars < len(func):
                     text = text[:-2] + ".."
                 text = re.sub("&", "&amp;", text)
                 text = re.sub("<", "&lt;", text)
                 text = re.sub(">", "&gt;", text)
-            self.im.string_ttf(black, fonttype, fontsize, x1 + 3, 3 + 0.5*(y1 + y2), text, "")
+            self.im.string_ttf(
+                black, fonttype, fontsize, x1 + 3, 3 + 0.5 * (y1 + y2), text, ""
+            )
             self.im.group_end()
         self.write_flamegraph()
 
@@ -947,19 +1123,22 @@ class FlameGraph:
             if int(depth) > self.depthmax:
                 self.depthmax = int(depth)
         for node_id in delete_nodes:
-            self.other.increment_exclusive_time(self.nodes[node_id].exclusive_time, \
-                self.nodes[node_id].exclusive_time)
+            self.other.increment_exclusive_time(
+                self.nodes[node_id].exclusive_time, self.nodes[node_id].exclusive_time
+            )
             del self.nodes[node_id]
 
     def write_flamegraph(self):
-        f = open(self.out_file, 'w')
+        f = open(self.out_file, "w")
         f.write(self.im.get_svg())
         f.close()
 
     def initialise_sort_by_time(self):
         self.store_data_order()
 
-        def sort_stacks_by_time(a, b):  # Order each level in call stacks in the order of first appearance
+        def sort_stacks_by_time(
+            a, b
+        ):  # Order each level in call stacks in the order of first appearance
             if self.custom_event_ratio or self.diff:
                 len_a = len(a) - 2
                 len_b = len(b) - 2
@@ -976,6 +1155,7 @@ class FlameGraph:
                 if ca < cb:
                     return -1
             return -1
+
         return sort_stacks_by_time
 
     def store_data_order(self):

@@ -54,7 +54,6 @@ class ClusterAnalysis:
 
 
 class ClusterFlameGraph:
-
     def __init__(self):
         self.stack_map = {}
         self.cluster_data = {}
@@ -84,8 +83,18 @@ class ClusterFlameGraph:
                         colour_map[node] = v
         return colour_map
 
-    def make_stack_map(self, all_stack_data, clusters, append_cluster_labels, event1=None, event2=None,
-                       xlower=None, xupper=None, ylower=None, yupper=None):
+    def make_stack_map(
+        self,
+        all_stack_data,
+        clusters,
+        append_cluster_labels,
+        event1=None,
+        event2=None,
+        xlower=None,
+        xupper=None,
+        ylower=None,
+        yupper=None,
+    ):
         self.stack_map = {}
         for stack_name in all_stack_data:
             self.stack_map[stack_name] = {}
@@ -108,9 +117,18 @@ class ClusterFlameGraph:
                             i = self.cluster_labels[ci]
                             if i in clusters:
                                 if xlower:
-                                    count1 = self.cluster_data[job][pid][tid][node][event1]
-                                    count2 = self.cluster_data[job][pid][tid][node][event2]
-                                    if count1 < ylower or count1 > yupper or count2 < xlower or count2 > xupper:
+                                    count1 = self.cluster_data[job][pid][tid][node][
+                                        event1
+                                    ]
+                                    count2 = self.cluster_data[job][pid][tid][node][
+                                        event2
+                                    ]
+                                    if (
+                                        count1 < ylower
+                                        or count1 > yupper
+                                        or count2 < xlower
+                                        or count2 > xupper
+                                    ):
                                         continue
                                 if append_cluster_labels:
                                     new_stack = stack + "[[cluster" + str(i) + "]]"
@@ -121,7 +139,6 @@ class ClusterFlameGraph:
 
 
 class GeneralAnalysis:
-
     def __init__(self):
         self.cluster_analysis = ClusterAnalysis()
         self.cluster_flamegraph = ClusterFlameGraph()
@@ -152,15 +169,17 @@ class GeneralAnalysis:
             label = e
             self.event_index[label] = len(self.event_index)
             self.events.append(label)
-        for r in self.cluster_events['Ratios']:
+        for r in self.cluster_events["Ratios"]:
             e1 = r[0]
             e2 = r[1]
-            label = e1 + '-divide-' + e2
+            label = e1 + "-divide-" + e2
             self.event_index[label] = len(self.event_index)
             self.events.append(label)
 
     def add_data(self, stack_data, process):
-        processes = [c.process for c in self.all_stack_data.values() if stack_data.process]
+        processes = [
+            c.process for c in self.all_stack_data.values() if stack_data.process
+        ]
         if stack_data.process not in processes:
             self.all_stack_data[process] = stack_data
 
@@ -183,9 +202,13 @@ class GeneralAnalysis:
         self.base_case_offset = {}
         for node in self.cluster_data[job][pid][tid]:
             if node not in self.base_case_offset:
-                self.base_case_offset[node] = {e: 0.0 for e in self.cluster_data[job][pid][tid][node]}
+                self.base_case_offset[node] = {
+                    e: 0.0 for e in self.cluster_data[job][pid][tid][node]
+                }
             for e in self.cluster_data[job][pid][tid][node]:
-                self.base_case_offset[node][e] = self.cluster_data[job][pid][tid][node][e]
+                self.base_case_offset[node][e] = self.cluster_data[job][pid][tid][node][
+                    e
+                ]
         for job in self.cluster_data:
             for pid in self.cluster_data[job]:
                 for tid in self.cluster_data[job][pid]:
@@ -217,16 +240,20 @@ class GeneralAnalysis:
                     if tid not in self.data[job][pid]:
                         self.data[job][pid][tid] = {}
                         self.counter[job][pid][tid] = {}
-                    self.counter[job][pid][tid] = stack_data.tasks[task_id].event_counter
+                    self.counter[job][pid][tid] = stack_data.tasks[
+                        task_id
+                    ].event_counter
                     counts = stack_data.get_original_event_stack_data(process_id)
                     for stack in counts:
                         s = re.sub("(([\-0-9]+)/([0-9]+))", "", stack)
                         s = re.sub(label + ";", "", s)
                         if s not in self.data[job][pid][tid]:
-                            self.data[job][pid][tid][s] = {e: 0.0 for e in self.cluster_events["All"]}
+                            self.data[job][pid][tid][s] = {
+                                e: 0.0 for e in self.cluster_events["All"]
+                            }
                         self.data[job][pid][tid][s][raw_event] += counts[stack]
 
-        self.ncols = len(self.cluster_events['Ratios'])
+        self.ncols = len(self.cluster_events["Ratios"])
         self.nrows = 0
         self.cluster_data = {}
         for job in self.data:
@@ -241,17 +268,19 @@ class GeneralAnalysis:
                     for s in self.data[job][pid][tid]:
                         node = s.rpartition(";")[2]
                         if node not in self.cluster_data[job][pid][tid]:
-                            self.cluster_data[job][pid][tid][node] = {e: 0.0 for e in self.cluster_events["All"]}
+                            self.cluster_data[job][pid][tid][node] = {
+                                e: 0.0 for e in self.cluster_events["All"]
+                            }
                         for e in self.cluster_events["All"]:
                             v = self.data[job][pid][tid][s][e]
                             self.cluster_data[job][pid][tid][node][e] += float(v)
                             self.nrows += 1
-        if len(self.cluster_events['Ratios']) > 0:
+        if len(self.cluster_events["Ratios"]) > 0:
             for job in self.cluster_data:
                 for pid in self.cluster_data[job]:
                     for tid in self.cluster_data[job][pid]:
                         for node in self.cluster_data[job][pid][tid]:
-                            for r in self.cluster_events['Ratios']:
+                            for r in self.cluster_events["Ratios"]:
                                 e1 = r[0]
                                 e2 = r[1]
                                 r1 = self.cluster_data[job][pid][tid][node][e1]
@@ -259,7 +288,7 @@ class GeneralAnalysis:
                                 v = 0.0
                                 if r2 > 0.0:
                                     v = r1 / r2
-                                e = e1 + '-divide-' + e2
+                                e = e1 + "-divide-" + e2
                                 self.cluster_data[job][pid][tid][node][e] = v
                                 self.nrows += 1
         if log_scale:
@@ -267,7 +296,9 @@ class GeneralAnalysis:
         if centred:
             self.add_offset(reference_process)
 
-    def setup_cluster_analysis(self, event1, event2, xlower=None, xupper=None, ylower=None, yupper=None):
+    def setup_cluster_analysis(
+        self, event1, event2, xlower=None, xupper=None, ylower=None, yupper=None
+    ):
         n = 0
         self.cluster_map = {}
         self.cluster_analysis.blob = []
@@ -284,7 +315,12 @@ class GeneralAnalysis:
                         count1 = self.cluster_data[job][pid][tid][node][event1]
                         count2 = self.cluster_data[job][pid][tid][node][event2]
                         if xlower:
-                            if count1 < ylower or count1 > yupper or count2 < xlower or count2 > xupper:
+                            if (
+                                count1 < ylower
+                                or count1 > yupper
+                                or count2 < xlower
+                                or count2 > xupper
+                            ):
                                 continue
                         if node not in self.cluster_map[job][pid][tid]:
                             self.cluster_map[job][pid][tid][node] = n
@@ -292,17 +328,36 @@ class GeneralAnalysis:
                         self.cluster_analysis.blob.append(x)
                         n += 1
 
-    def make_stack_map(self, clusters, append_cluster_labels, event1=None, event2=None, xlower=None,
-                       xupper=None, ylower=None, yupper=None):
-        self.cluster_flamegraph.make_stack_map(self.all_stack_data, clusters, append_cluster_labels, event1=event1,
-                                               event2=event2, xlower=xlower, xupper=xupper, ylower=ylower,
-                                               yupper=yupper)
+    def make_stack_map(
+        self,
+        clusters,
+        append_cluster_labels,
+        event1=None,
+        event2=None,
+        xlower=None,
+        xupper=None,
+        ylower=None,
+        yupper=None,
+    ):
+        self.cluster_flamegraph.make_stack_map(
+            self.all_stack_data,
+            clusters,
+            append_cluster_labels,
+            event1=event1,
+            event2=event2,
+            xlower=xlower,
+            xupper=xupper,
+            ylower=ylower,
+            yupper=yupper,
+        )
 
     def calculate_ratios(self, n, event1, event2, xlower, xupper, ylower, yupper):
         self.setup_cluster_analysis(event1, event2, xlower, xupper, ylower, yupper)
         self.cluster_analysis.calculate_ratios(n)
         self.cluster_filter = [i for i in range(0, n)]
-        self.cluster_flamegraph.add_data(self.cluster_data, self.cluster_analysis.cluster_labels, self.cluster_map)
+        self.cluster_flamegraph.add_data(
+            self.cluster_data, self.cluster_analysis.cluster_labels, self.cluster_map
+        )
         self.initialised = True
 
     def get_stack_data(self):
@@ -333,7 +388,9 @@ class GeneralAnalysis:
                                 if node not in self.data:
                                     data[job][pid][tid][node] = {}
                                 for e in self.cluster_data[job][pid][tid][node]:
-                                    data[job][pid][tid][node][e] = self.cluster_data[job][pid][tid][node][e]
+                                    data[job][pid][tid][node][e] = self.cluster_data[
+                                        job
+                                    ][pid][tid][node][e]
             return data
         else:
             return self.cluster_data
