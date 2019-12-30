@@ -85,25 +85,22 @@ def generate_empty_table():
 
 def generate_source_code_table(stacks_data, process_id, frame, hpc_results):
     source_lines = get_lines(frame, hpc_results)
+    frames = hpc_results.get_frames()
     inclusive_counts, exclusive_counts = get_file_analysis(
         stacks_data, process_id, frame, hpc_results
     )
     total = hpc_results.get_total_value(stacks_data, process_id)
+    file = ""
+    if frame in frames:
+        info = frames[frame]
+        file = os.path.join(hpc_results.results_dir, info[0])
     table_html = ["<table>", "<thead>", "<tr>"]
-    if process_id.event_type == "original":
-        table_html += [
-            "<th>Inclusive</th>",
-            "<th>Exclusive</th>",
-            "<th>Line</th>",
-            "<th>Source Code</th>",
-        ]
-    else:
-        table_html += [
-            "<th>Inclusive</th>",
-            "<th>Exclusive</th>",
-            "<th>Line</th>",
-            "<th>Source Code</th>",
-        ]
+    table_html += [
+        "<th>Inclusive</th>",
+        "<th>Exclusive</th>",
+        "<th>Line</th>",
+        "<th>" + file + "</th>",
+    ]
     table_html.append("</tr>")
     table_html.append("</thead>")
     max_len = 1
