@@ -932,7 +932,7 @@ class JobHandler:
         )
         output = subprocess.check_output(command, shell=True)
         command_line = output.decode("utf-8")
-        if re.match(" -a ", command_line):
+        if re.match(".* -a ", command_line):
             system_wide = True
         else:
             system_wide = False

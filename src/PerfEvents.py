@@ -134,6 +134,16 @@ class CpuDefinition:
                     self.copy_to_active_event(event)
 
     def get_base_event(self):
+        active_events = self.get_active_events()
+        if self.base_event in active_events:
+            return self.base_event
+        else:
+            for event in active_events:
+                if re.match(".*(cycles|clock)", event, re.IGNORECASE):
+                    self.base_event = event
+                    return self.base_event
+        if len(active_events) > 0:
+            self.base_event = active_events[0]
         return self.base_event
 
     @staticmethod
@@ -358,7 +368,7 @@ class CpuDefinition:
             else:
                 events_enabled = True
         general_analysis_enabled = (
-            len(self.get_active_raw_events()) > 1 and self.base_event in active_events
+            len(self.get_active_raw_events()) > 1
         )
         return {
             "general_analysis": general_analysis_enabled,
