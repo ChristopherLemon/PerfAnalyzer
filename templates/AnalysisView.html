@@ -324,7 +324,7 @@
                                 <div {{hidden}} class="cluster_checkbox_container" id="container_{{i}}">
                                     <div class="flex-row" style="margin-left:0">
                                         <div class="flex-column" style="width:10%;height:100%"><label><input type="checkbox" {{checked}} class="cluster_checkbox" id="{{i}}" name="{{i}}"><b>{{i|string}}</b></label></div>
-                                        <div class="flex-column" style="width:90%;height:100%"><div onclick="check_cluster_box({{i}})" style="width:120px;height:20px;background-color:{{colours[i]}}"><b><center>{{i|string}}</center></b></div></div>
+                                        <div class="flex-column" style="width:90%;height:100%"><div onclick="check_cluster_box({{i}})" id="group_name{{i}}" style="text-align:center;width:90%;height:20px;background-color:{{colours[i]}}"><b>{{analysis_model.group_names[i]}}</b></div></div>
                                     </div>
                                 </div>
                             {% endfor %}
@@ -749,7 +749,12 @@
             type: 'POST',
             success: function(response) {
                 console.log(response);
-                document.getElementById("scatter_plot").data = response;
+                document.getElementById("scatter_plot").data = response.scatter_plot;
+                let num_clusters = document.getElementById("num_clusters").value;
+                for (let i = 0; i < num_clusters; ++i)
+                {
+                    document.getElementById("group_name" + i.toString()).innerHTML = response.group_names[i];
+                }
                 if (mode == "clusters") {
                     $('#cluster_controls').show();
                 } else if (mode == "hotspots") {
@@ -780,7 +785,11 @@
             type: 'POST',
             success: function(response) {
                 console.log(response);
-                document.getElementById("scatter_plot").data = response;
+                document.getElementById("scatter_plot").data = response.scatter_plot;
+                for (let i = 0; i < num_clusters; ++i)
+                {
+                    document.getElementById("group_name" + i.toString()).innerHTML = response.group_names[i];
+                }
                 hideLoaders();
             },
             error: function(error) {
@@ -809,7 +818,11 @@
                 type: 'POST',
                 success: function(response) {
                     console.log(response);
-                    document.getElementById("scatter_plot").data = response;
+                    document.getElementById("scatter_plot").data = response.scatter_plot;
+                    for (let i = 0; i < num_clusters; ++i)
+                    {
+                        document.getElementById("group_name" + i.toString()).innerHTML = response.group_names[i];
+                    }
                     hideLoaders();
                     showClusterCheckboxes(num_clusters);
                 },
@@ -1407,6 +1420,10 @@
                 }
                 if( response.scatter_plot != undefined ) {
                     document.getElementById("scatter_plot").data = response.scatter_plot;
+                }
+                for (let i = 0; i < num_clusters; ++i)
+                {
+                    document.getElementById("group_name" + i.toString()).innerHTML = response.group_names[i];
                 }
                 document.getElementById("text_filter").value = response.text_filter;
                 document.getElementById("point_filter").value = response.text_filter;

@@ -166,6 +166,7 @@ def general_analysis():
     analysis_model.layout.footer = "Loaded Results: " + " & ".join(
         analysis_model.layout.results
     )
+    analysis_model.group_names = analysis_data.get_group_names()
     ids = all_stack_data[base_event].get_all_process_ids()
     return render_template(
         "AnalysisView.html",
@@ -178,7 +179,7 @@ def general_analysis():
         analysis_model=analysis_model,
         enabled_modes=GlobalData.enabled_modes,
         ids=ids,
-        colours=colours,
+        colours=colours
     )
 
 
@@ -306,7 +307,9 @@ def get_new_chart():
             analysis_model.hotspots,
             log_scale,
         )
-    return scatter_plot
+    analysis_model.layout.scatter_plot = scatter_plot
+    analysis_model.group_names = analysis_data.get_group_names()
+    return jsonify(analysis_model.layout.to_dict())
 
 
 @AnalysisView.route("/update_cluster_parameters", methods=["GET", "POST"])
@@ -346,7 +349,9 @@ def update_cluster_parameters():
     scatter_plot = get_cluster_plot(
         analysis_data, event1, event2, svgchart, centred, log_scale
     )
-    return scatter_plot
+    analysis_model.layout.scatter_plot = scatter_plot
+    analysis_model.group_names = analysis_data.get_group_names()
+    return jsonify(analysis_model.layout.to_dict())
 
 
 @AnalysisView.route("/update_scatter_plot_mode", methods=["GET", "POST"])
@@ -406,7 +411,9 @@ def update_scatter_plot_mode():
             analysis_model.hotspots,
             log_scale,
         )
-    return scatter_plot
+    analysis_model.layout.scatter_plot = scatter_plot
+    analysis_model.layout.group_names = analysis_data.get_group_names()
+    return jsonify(analysis_model.layout.to_dict())
 
 
 @AnalysisView.route("/update_all_charts", methods=["GET", "POST"])
@@ -624,6 +631,7 @@ def update_all_charts():
         analysis_model.reference_event
     )
     analysis_model.layout.text_filter = analysis_model.text_filter
+    analysis_model.layout.group_names = analysis_data.get_group_names()
     return jsonify(analysis_model.layout.to_dict())
 
 
@@ -840,8 +848,8 @@ def run_analysis(
     raw_event1 = event_to_raw_event(event1, GlobalData.loaded_cpu_definition)
     raw_event2 = event_to_raw_event(event2, GlobalData.loaded_cpu_definition)
     analysis_data.make_data(reference_process, centred=centred, log_scale=log_scale)
-    analysis_data.calculate_ratios(
-        num_clusters, raw_event1, raw_event2, xlower, xupper, ylower, yupper
+    analysis_data.group_data(
+        num_clusters, raw_event1, raw_event2, xlower, xupper, ylower, yupper, group_by_log10=log_scale
     )
     n = analysis_data.get_num_clusters()
     analysis_model.clusters = [str(i) for i in range(0, n)]

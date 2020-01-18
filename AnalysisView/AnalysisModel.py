@@ -8,6 +8,7 @@ class AnalysisModel:
         self.event = ""
         self.flamegraph_event_type = "original"
         self.analysis_type = analysis_type
+        self.group_names = []
         self.append_cluster_labels = False
         self.num_clusters = 11
         self.cluster_labels = []
@@ -59,6 +60,7 @@ class AnalysisModel:
             self.event_totals_chart = None
             self.event_totals_table = None
             self.event_ratios_chart = None
+            self.group_names = None
             self.source_code_info = None
             self.source_code_table = None
             self.source_code_line = None

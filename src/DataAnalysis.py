@@ -15,7 +15,7 @@ class ClusterAnalysis:
     def add_data(self, blob):
         self.blob = blob
 
-    def calculate_ratios(self, n):
+    def calculate_ratio_groups(self, event1, event2, n):
         self.cluster_labels = []
         self.nclusters = n
         xmax = -sys.maxsize
@@ -29,6 +29,7 @@ class ClusterAnalysis:
         ymax = max(ymax, 1.0)
         dt = 0.5 * pi / float(n)
         bins = [0.5 * pi - dt * float(i) for i in range(1, n + 1)]
+        self.group_names = [f"({event1}) > {str(float(v))} * ({event2})" for v in bins]
         for x in self.blob:
             yi = x[0] / ymax
             xi = x[1] / xmax
@@ -45,6 +46,29 @@ class ClusterAnalysis:
                     if b <= t:
                         self.cluster_labels.append(j)
                         break
+
+    def calculate_log10_groups(self, event1, event2, n):
+        self.cluster_labels = []
+        self.nclusters = n
+        ymin = sys.maxsize
+        ymax = -sys.maxsize
+        for i, x in enumerate(self.blob):
+            yi = x[0]
+            ymin = min(ymin, yi)
+            ymax = max(ymax, yi)
+        dt = (ymax - ymin) / float(n)
+        bins = [ymin + ((i - 1) * dt) for i in range(n, 0, -1)]
+        self.group_names = [f"log10({event1}) > log10({event2}) + {str(float(v))}" for v in bins]
+        for x in self.blob:
+            yi = x[0]
+            xi = x[1]
+            t = yi - xi
+            for j, b in enumerate(bins):
+                if b <= t:
+                    self.cluster_labels.append(j)
+                    break
+                elif j == len(bins) - 1:
+                    self.cluster_labels.append(j)
 
     def get_cluster_labels(self):
         return self.cluster_labels
@@ -351,9 +375,12 @@ class GeneralAnalysis:
             yupper=yupper,
         )
 
-    def calculate_ratios(self, n, event1, event2, xlower, xupper, ylower, yupper):
+    def group_data(self, n, event1, event2, xlower, xupper, ylower, yupper, group_by_log10):
         self.setup_cluster_analysis(event1, event2, xlower, xupper, ylower, yupper)
-        self.cluster_analysis.calculate_ratios(n)
+        if group_by_log10:
+            self.cluster_analysis.calculate_log10_groups(event1, event2, n)
+        else:
+            self.cluster_analysis.calculate_ratio_groups(event1, event2, n)
         self.cluster_filter = [i for i in range(0, n)]
         self.cluster_flamegraph.add_data(
             self.cluster_data, self.cluster_analysis.cluster_labels, self.cluster_map
@@ -371,6 +398,9 @@ class GeneralAnalysis:
 
     def get_events(self):
         return self.events
+
+    def get_group_names(self):
+        return self.cluster_analysis.group_names
 
     def get_cluster_data(self):
         data = {}
