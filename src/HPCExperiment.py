@@ -376,10 +376,11 @@ class HPCExperiment:
                 current_stack_trace[unique_id],
                 str(current_count[unique_id]),
             )
-            filename = self.get_results_file_name(metric, process)
-            if filename not in self.results_files:
-                self.results_files[filename] = open(filename, "wb")
-                self.results_files[filename].write(out.encode())
+            if current_count[unique_id] > 0:
+                filename = self.get_results_file_name(metric, process)
+                if filename not in self.results_files:
+                    self.results_files[filename] = open(filename, "wb")
+                    self.results_files[filename].write(out.encode())
         for filename in self.results_files:
             self.results_files[filename].write("t=1.00\n".encode())
             self.results_files[filename].close()
@@ -443,6 +444,7 @@ class HPCExperiment:
             n = f.attrib["n"]
             i = f.attrib["i"]
             n = re.sub(":", "-", n)  # avoid filename with colons
+            n = re.sub(" ", "-", n)  # avoid filename with spaces
             match = re.match("[0-9\.]*(.*)\.\[([0-9]+),([0-9]+)\]", n)
             if match:
                 metric = match.group(1)
