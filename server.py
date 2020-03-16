@@ -409,31 +409,18 @@ def index():
 
             jobhandler = JobHandler(GlobalData.root_directory, job)
 
+            report_error = False
             if GlobalData.job_settings.use_ssh:
                 e = jobhandler.check_connection(GlobalData.job_settings)
                 if e != "":
+                    report_error = True
                     main_logger.info(
                         u"Job " + GlobalData.job_settings.job_name + ": " + e
                     )
-                    main_logger.info(
-                        u"Job " + GlobalData.job_settings.job_name + " Aborted"
-                    )
                     status = "Error - connection error"
-                    layout["title"] = "Submit Jobs / Load Profiles: " + status
-                    return render_template(
-                        "index.html",
-                        layout=layout,
-                        events=GlobalData.loaded_cpu_definition.get_active_events(),
-                        trace_jobs=GlobalData.trace_jobs,
-                        event_group_map=GlobalData.loaded_cpu_definition.get_active_event_group_map(),
-                        all_event_groups=GlobalData.loaded_cpu_definition.get_event_groups(),
-                        jobs=GlobalData.jobs,
-                        processes=GlobalData.processes,
-                        job_settings=GlobalData.job_settings.to_dict(),
-                        enabled_modes=GlobalData.enabled_modes,
-                    )
             failed_paths = jobhandler.get_failed_paths(job, GlobalData.job_settings)
             if len(failed_paths) > 0:
+                report_error = True
                 for path in failed_paths:
                     main_logger.info(
                         u"Job "
@@ -442,10 +429,17 @@ def index():
                         + path
                         + " was not found"
                     )
-                main_logger.info(
-                    u"Job " + GlobalData.job_settings.job_name + " Aborted"
-                )
                 status = "Error - remote directory is invalid"
+            if len(GlobalData.selected_cpu_definition.get_active_raw_events()) == 0:
+                report_error = True
+                main_logger.info(
+                    u"Job " + GlobalData.job_settings.job_name + ": " + "no performance events selected"
+                )
+                status = "Error - no performance events selected"
+            if report_error:
+                main_logger.info(
+                        u"Job " + GlobalData.job_settings.job_name + " Aborted"
+                    )
                 layout["title"] = "Submit Jobs / Load Profiles: " + status
                 return render_template(
                     "index.html",
