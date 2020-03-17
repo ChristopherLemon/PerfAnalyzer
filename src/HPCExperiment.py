@@ -377,6 +377,8 @@ class HPCExperiment:
                 str(current_count[unique_id]),
             )
             if current_count[unique_id] > 0:
+                if metric not in self.metrics:
+                    self.metrics[metric] = period
                 filename = self.get_results_file_name(metric, process)
                 if filename not in self.results_files:
                     self.results_files[filename] = open(filename, "wb")
